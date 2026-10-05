@@ -16,6 +16,8 @@
 #include <psp2/io/fcntl.h>
 #include <psp2/io/stat.h>
 #include <psp2/io/devctl.h>
+#include <psp2/ime_dialog.h>
+#include <psp2/common_dialog.h>
 #include <psp2/display.h>
 #include <psp2/registrymgr.h>
 #include <psp2/net/net.h>
@@ -90,7 +92,7 @@ enum { SET_THEME, SET_CLOCK, SET_SOUND, SET_STARTUP, SET_CONFIRM, SET_LAUNCH, SE
 enum { PAGE_NONE, PAGE_SYSINFO, PAGE_GAMEINFO, PAGE_PLAYER };
 
 /* Menus: the first CAT_COUNT are the category roots, the rest are nested lists. */
-enum { M_MEMCARD = CAT_COUNT, M_SAVES, M_VITAXMB, M_SYSSET, M_THEMESET, M_NETSET, M_VIDEOS, M_TRACKS, M_COUNT };
+enum { M_MEMCARD = CAT_COUNT, M_SAVES, M_FOLDER, M_VITAXMB, M_SYSSET, M_THEMESET, M_NETSET, M_VIDEOS, M_TRACKS, M_COUNT };
 enum { LAY_COLUMN, LAY_GAME, LAY_SUB };
 #define MAX_DEPTH 4
 
@@ -171,7 +173,7 @@ static vita2d_texture *xicon(const char *name)
 }
 
 static vita2d_texture *cat_tex[CAT_COUNT];
-static vita2d_texture *tex_theme, *tex_psp, *tex_exit, *tex_photo_s, *tex_music_s, *tex_video_s, *tex_net_s, *tex_game_s, *tex_savedata_s, *tex_ms_s, *tex_launch, *tex_badge, *tex_browser, *tex_remote, *tex_sharing, *tex_date, *tex_usb, *tex_rss, *tex_manual, *tex_lftv;
+static vita2d_texture *tex_theme, *tex_psp, *tex_exit, *tex_photo_s, *tex_music_s, *tex_video_s, *tex_net_s, *tex_game_s, *tex_savedata_s, *tex_ms_s, *tex_launch, *tex_badge, *tex_browser, *tex_remote, *tex_sharing, *tex_date, *tex_usb, *tex_rss, *tex_manual, *tex_lftv, *tex_folder;
 
 static void load_icons(void)
 {
@@ -190,6 +192,7 @@ static void load_icons(void)
 	tex_net_s   = xicon("cnf_network");
 	tex_game_s  = xicon("game");
 	tex_savedata_s = xicon("savedata");
+	tex_folder  = xicon("folder");
 	tex_ms_s    = xicon("ms");
 	tex_launch  = xicon("cnf_update");
 	tex_badge   = xicon("badge");
@@ -932,6 +935,186 @@ static void update_game_counts(void)
 	}
 }
 
+/* ---- user folders: the games are grouped in ux0:data/VitaXMB/folders.txt ----
+ *   F<TAB>name        starts a folder
+ *   A<TAB>titleid     puts that app in the folder above
+ * The list shown in Memory Card is: the folders, then the apps that are in none. */
+
+#define MAX_FOLDERS 32
+#define MAX_ASSIGN  1024
+#define FOLDERS_PATH CONFIG_DIR "/folders.txt"
+
+static char folder_name[MAX_FOLDERS][40];
+static int n_folders;
+static struct { char id[16]; int folder; } assign[MAX_ASSIGN];
+static int n_assign;
+static Item all_apps[MAX_ITEMS];        /* every installed app; the menus hold copies */
+static int n_all;
+static int open_folder = -1;            /* folder shown in M_FOLDER */
+
+static int app_folder(const char *id)
+{
+	for (int i = 0; i < n_assign; i++)
+		if (!strcmp(assign[i].id, id)) return assign[i].folder;
+	return -1;
+}
+
+static void app_set_folder(const char *id, int f)
+{
+	for (int i = 0; i < n_assign; i++)
+		if (!strcmp(assign[i].id, id)) {
+			if (f < 0) assign[i] = assign[--n_assign];
+			else assign[i].folder = f;
+			return;
+		}
+	if (f >= 0 && n_assign < MAX_ASSIGN) {
+		snprintf(assign[n_assign].id, sizeof(assign[0].id), "%s", id);
+		assign[n_assign++].folder = f;
+	}
+}
+
+static void folders_save(void)
+{
+	FILE *f = fopen(FOLDERS_PATH, "wb");
+	if (!f) return;
+	for (int i = 0; i < n_folders; i++) {
+		fprintf(f, "F\t%s\n", folder_name[i]);
+		for (int k = 0; k < n_assign; k++)
+			if (assign[k].folder == i) fprintf(f, "A\t%s\n", assign[k].id);
+	}
+	fclose(f);
+}
+
+static void folders_load(void)
+{
+	n_folders = n_assign = 0;
+	FILE *f = fopen(FOLDERS_PATH, "rb");
+	if (!f) return;
+	char line[128];
+	int cur = -1;
+	while (fgets(line, sizeof(line), f)) {
+		line[strcspn(line, "\r\n")] = 0;
+		if (line[0] == 'F' && line[1] == '\t' && n_folders < MAX_FOLDERS) {
+			cur = n_folders++;
+			snprintf(folder_name[cur], sizeof(folder_name[0]), "%s", line + 2);
+		} else if (line[0] == 'A' && line[1] == '\t' && cur >= 0 && n_assign < MAX_ASSIGN) {
+			snprintf(assign[n_assign].id, sizeof(assign[0].id), "%s", line + 2);
+			assign[n_assign++].folder = cur;
+		}
+	}
+	fclose(f);
+}
+
+static void folder_default_name(char *out, int n)
+{
+	for (int k = 1; k < 100; k++) {
+		snprintf(out, n, "Folder %d", k);
+		int used = 0;
+		for (int i = 0; i < n_folders; i++) if (!strcmp(folder_name[i], out)) used = 1;
+		if (!used) return;
+	}
+}
+
+static void folder_clean_name(char *dst, int n, const char *src)
+{
+	int o = 0;
+	while (*src == ' ') src++;
+	for (; *src && o < n - 1; src++)
+		if (*src != '\t' && *src != '\n' && *src != '\r') dst[o++] = *src;
+	while (o > 0 && dst[o - 1] == ' ') o--;
+	dst[o] = 0;
+}
+
+static int folder_new(const char *name)
+{
+	if (n_folders >= MAX_FOLDERS) return -1;
+	int f = n_folders++;
+	folder_clean_name(folder_name[f], sizeof(folder_name[0]), name);
+	if (!folder_name[f][0]) folder_default_name(folder_name[f], sizeof(folder_name[0]));
+	return f;
+}
+
+static void folder_delete(int f)
+{
+	for (int i = 0; i < n_assign; ) {
+		if (assign[i].folder == f) assign[i] = assign[--n_assign];
+		else { if (assign[i].folder > f) assign[i].folder--; i++; }
+	}
+	for (int i = f; i < n_folders - 1; i++) memcpy(folder_name[i], folder_name[i + 1], sizeof(folder_name[0]));
+	n_folders--;
+}
+
+static int folder_count(int f)
+{
+	int c = 0;
+	for (int i = 0; i < n_all; i++) if (app_folder(all_apps[i].id) == f) c++;
+	return c;
+}
+
+/* Copies an app from the master list into a menu with a clean (not yet loaded) state. */
+static void menu_add_app(int m, const Item *src)
+{
+	Menu *mn = &menus[m];
+	if (mn->count >= MAX_ITEMS) return;
+	Item *d = &mn->items[mn->count];
+	*d = *src;
+	d->icon = NULL; d->icon_tried = 0; d->load_state = 0; d->pending_pix = NULL;
+	d->icon_rect = 0; d->meta_resolved = 0; d->dec_queued = 0; d->glow = 0.0f;
+	d->gate_path[0] = d->bg_path[0] = 0;
+	__sync_synchronize();
+	mn->count++;
+}
+
+static void fill_folder_menu(int f)
+{
+	clear_menu(M_FOLDER);
+	loader_pause = 1;
+	while (loader_busy) sceKernelDelayThread(1000);
+	if (f >= 0 && f < n_folders)
+		for (int i = 0; i < n_all; i++)
+			if (app_folder(all_apps[i].id) == f) menu_add_app(M_FOLDER, &all_apps[i]);
+	if (menus[M_FOLDER].count == 0)
+		add_item(M_FOLDER, KIND_INFO, "Empty folder", "Options > Select Games", NULL, tex_folder);
+	Menu *mn = &menus[M_FOLDER];
+	if (mn->sel >= mn->count) mn->sel = mn->count - 1;
+	if (mn->sel < 0) mn->sel = 0;
+	mn->pos = (float)mn->sel;
+	loader_pause = 0;
+}
+
+static void rebuild_game_lists(void)
+{
+	Menu *mn = &menus[M_MEMCARD];
+	clear_menu(M_MEMCARD);
+	loader_pause = 1;
+	while (loader_busy) sceKernelDelayThread(1000);
+
+	int order[MAX_FOLDERS];
+	for (int i = 0; i < n_folders; i++) order[i] = i;
+	for (int i = 1; i < n_folders; i++) {                     /* insertion sort by name */
+		int v = order[i], k = i - 1;
+		while (k >= 0 && strcasecmp(folder_name[order[k]], folder_name[v]) > 0) { order[k + 1] = order[k]; k--; }
+		order[k + 1] = v;
+	}
+	for (int i = 0; i < n_folders; i++) {
+		int f = order[i], c = folder_count(f);
+		char sub[32];
+		if (c == 0) snprintf(sub, sizeof(sub), "Empty");
+		else snprintf(sub, sizeof(sub), "%d game%s", c, c == 1 ? "" : "s");
+		Item *it = add_item(M_MEMCARD, KIND_FOLDER, folder_name[f], sub, NULL, tex_folder);
+		if (it) { it->submenu = M_FOLDER; it->value_id = f; }
+	}
+	for (int i = 0; i < n_all; i++)
+		if (app_folder(all_apps[i].id) < 0) menu_add_app(M_MEMCARD, &all_apps[i]);
+	if (mn->count == 0)
+		add_item(M_MEMCARD, KIND_INFO, "No games found", "Nothing in ux0:app", NULL, tex_game_s);
+	if (mn->sel >= mn->count) mn->sel = mn->count - 1;
+	if (mn->sel < 0) mn->sel = 0;
+	mn->pos = (float)mn->sel;
+	loader_pause = 0;
+	fill_folder_menu(open_folder);
+}
+
 static void scan_apps(void)
 {
 	clear_menu(M_MEMCARD);
@@ -970,9 +1153,9 @@ static void scan_apps(void)
 		sceIoDclose(dfd);
 	}
 	qsort(mn->items, mn->count, sizeof(Item), item_cmp);
-	if (mn->count == 0)
-		add_item(M_MEMCARD, KIND_INFO, "No games found", "Nothing in ux0:app", NULL, tex_game_s);
-	if (mn->sel >= mn->count) mn->sel = 0;
+	n_all = mn->count;
+	memcpy(all_apps, mn->items, n_all * sizeof(Item));
+	rebuild_game_lists();
 }
 
 static void scan_saves(void)
@@ -1237,6 +1420,7 @@ static void build_menus(void)
 	if (it) it->submenu = M_MEMCARD;
 	menus[CAT_GAME].sel = 1;
 
+	folders_load();
 	scan_apps();
 	scan_saves();
 	update_game_counts();
@@ -1315,7 +1499,7 @@ static int icon_thread(SceSize args, void *argp)
 		if (loader_pause) { sceKernelDelayThread(2000); continue; }
 		Item *best = NULL;
 		int bestd = 1 << 30;
-		for (int k = M_MEMCARD; k <= M_SAVES; k++) {         /* the only menus whose rows carry art */
+		for (int k = M_MEMCARD; k <= M_FOLDER; k++) {        /* the only menus whose rows carry art */
 			Menu *mn = &menus[k];
 			for (int i = 0; i < mn->count; i++) {
 				Item *it = &mn->items[i];
@@ -1867,14 +2051,14 @@ static vita2d_texture *glow_for(vita2d_texture *src)
 	return g;
 }
 
-static int is_game_folder(int m) { return m == M_MEMCARD || m == M_SAVES; }
+static int is_game_folder(int m) { return m == M_MEMCARD || m == M_SAVES || m == M_FOLDER; }
 static int menu_layout(int m) { return is_game_folder(m) ? LAY_GAME : (m >= M_VITAXMB && m != M_VIDEOS ? LAY_SUB : (m == M_VIDEOS ? LAY_SUB : LAY_COLUMN)); }
 static int menu_owner(int m)
 {
 	if (m < CAT_COUNT) return m;
 	if (m == M_VIDEOS) return CAT_VIDEO;
 	if (m == M_TRACKS) return CAT_MUSIC;
-	if (m == M_MEMCARD || m == M_SAVES) return CAT_GAME;
+	if (m == M_MEMCARD || m == M_SAVES || m == M_FOLDER) return CAT_GAME;
 	return CAT_SETTINGS;
 }
 
@@ -2178,8 +2362,9 @@ static void draw_dialog(float t, const char *l1, const char *l2, int sel)
 }
 
 /* ---- Options panel (triangle) ---- */
-enum { OPT_START, OPT_INFO, OPT_REFRESH };
-static const char *opt_names[3] = { "Start", "Information", "Refresh List" };
+enum { OPT_START, OPT_INFO, OPT_REFRESH, OPT_NEWFOLDER, OPT_SELECT, OPT_RENAME, OPT_DELFOLDER, OPT_REMOVE };
+static const char *opt_names[8] = { "Start", "Information", "Refresh List", "New Folder", "Select Games",
+                                    "Rename Folder", "Delete Folder", "Remove from Folder" };
 
 static void draw_options_panel(float t, const int *ids, int n, int sel, const Palette *pal)
 {
@@ -2202,13 +2387,96 @@ static void draw_options_panel(float t, const int *ids, int n, int sel, const Pa
 	for (int i = 0; i < n; i++) {
 		float y = y0 + i * 40.0f;
 		if (i == sel) vita2d_draw_rectangle(px + 3, y - 19, SCREEN_W - px - 3, 38, RGBA8(255, 255, 255, a * 20 / 100));
-		ptext_vc(px + 11, y, WHITE(i == sel ? a : a * 78 / 100), 28, opt_names[ids[i]]);
+		ptext_vc(px + 11, y, WHITE(i == sel ? a : a * 78 / 100), ptext_width(28, opt_names[ids[i]]) > SCREEN_W - px - 22 ? 24 : 28, opt_names[ids[i]]);
 		if (ids[i] == OPT_START && i == sel) {
 			float bx = px + 11 + ptext_width(28, "Start") + 12;
 			vita2d_draw_rectangle(bx, y - 11, 66, 22, RGBA8(0, 0, 0, a * 55 / 100));
 			ptext_vc(bx + 6, y, WHITE(a), 17, "START");
 		}
 	}
+}
+
+/* ---- folder picker: tick the games that belong in a folder ---- */
+static int pk_open, pk_folder = -1, pk_sel;
+static float pk_t, pk_top;
+static unsigned char pk_on[MAX_ITEMS];
+
+static int pk_count(void)
+{
+	int c = 0;
+	for (int i = 0; i < n_all; i++) c += pk_on[i];
+	return c;
+}
+
+static void pk_start(int f)
+{
+	pk_folder = f;
+	pk_sel = 0;
+	pk_top = 0.0f;
+	for (int i = 0; i < n_all; i++) pk_on[i] = app_folder(all_apps[i].id) == f;
+	pk_open = 1;
+}
+
+static void pk_apply(void)
+{
+	for (int i = 0; i < n_all; i++) {
+		int cur_f = app_folder(all_apps[i].id);
+		if (pk_on[i]) app_set_folder(all_apps[i].id, pk_folder);
+		else if (cur_f == pk_folder) app_set_folder(all_apps[i].id, -1);
+	}
+	folders_save();
+	rebuild_game_lists();
+}
+
+static void draw_picker(float t)
+{
+	int a = (int)(255 * t);
+	if (a <= 3) return;
+	vita2d_draw_rectangle(0, 0, SCREEN_W, SCREEN_H, RGBA8(0, 0, 0, (int)(225 * t)));
+	char head[96];
+	snprintf(head, sizeof(head), "Games in \"%s\"", pk_folder >= 0 ? folder_name[pk_folder] : "");
+	ptext_vc_fit(60, 46, WHITE(a), 28, head, 600);
+	char cnt[32];
+	snprintf(cnt, sizeof(cnt), "%d selected", pk_count());
+	ptext_vc(900 - ptext_width(22, cnt), 46, WHITE(a * 7 / 10), 22, cnt);
+	vita2d_draw_rectangle(50, 76, 860, 2, WHITE(a * 30 / 100));
+
+	if (n_all == 0) {
+		ptext_vc(480 - ptext_width(24, "No games installed") / 2.0f, 270, WHITE(a * 7 / 10), 24, "No games installed");
+	}
+	const float row_h = 38.0f, y0 = 112.0f;
+	for (int i = 0; i < n_all; i++) {
+		float y = y0 + (i - pk_top) * row_h;
+		if (y < y0 - 20.0f || y > 452.0f) continue;
+		int sel = i == pk_sel;
+		int ra = a;
+		if (y < y0 - 2.0f) ra = a * (int)(100 - (y0 - y) * 5) / 100;
+		if (y > 430.0f) ra = a * (int)(100 - (y - 430.0f) * 4) / 100;
+		if (ra <= 3) continue;
+		if (sel) vita2d_draw_rectangle(50, y - 18, 860, 36, WHITE(ra * 20 / 100));
+		/* check box */
+		float bx = 70, by = y - 10;
+		unsigned int bc = WHITE(ra * (sel ? 100 : 70) / 100);
+		vita2d_draw_rectangle(bx, by, 20, 2, bc);
+		vita2d_draw_rectangle(bx, by + 18, 20, 2, bc);
+		vita2d_draw_rectangle(bx, by, 2, 20, bc);
+		vita2d_draw_rectangle(bx + 18, by, 2, 20, bc);
+		if (pk_on[i]) vita2d_draw_rectangle(bx + 5, by + 5, 10, 10, WHITE(ra));
+		const Item *it = &all_apps[i];
+		ptext_vc_fit(110, y, WHITE(ra * (sel ? 100 : 78) / 100), 24, it->title, 540);
+		int of = app_folder(it->id);
+		if (of >= 0 && of != pk_folder) {
+			char tag[64];
+			snprintf(tag, sizeof(tag), "In: %s", folder_name[of]);
+			ptext_vc(890 - ptext_width(18, tag), y, WHITE(ra * 5 / 10), 18, tag);
+		}
+	}
+	glyph_cross(200, 508, 8, a);
+	ptext_vc(219, 508, WHITE(a), 24, "Select");
+	glyph_triangle(380, 508, 9, a);
+	ptext_vc(399, 508, WHITE(a), 24, "All / None");
+	glyph_ring(600, 508, 9, a);
+	ptext_vc(619, 508, WHITE(a), 24, "Done");
 }
 
 /* The "Options" pill at the bottom right: a single rounded shape (row by row, so the translucent
@@ -2764,6 +3032,7 @@ static char rc_cmd[64][100];
 static int  rc_n, rc_i, rc_wait;
 static char rc_shot[48];
 static char rc_uri[128];
+static char rc_name[40];                 /* debug builds: stands in for typing a folder name */
 
 static void remote_poll(void)
 {
@@ -2799,6 +3068,7 @@ static unsigned int remote_step(void)
 	if (c[0] == 'w' && c[1] >= '0' && c[1] <= '9') { rc_wait = atoi(c + 1); return 0; }
 	if (strcmp(c, "page:text") == 0) { test_page = 1; return 0; }
 	if (strcmp(c, "page:off") == 0) { test_page = 0; return 0; }
+	if (strncmp(c, "name:", 5) == 0) { snprintf(rc_name, sizeof(rc_name), "%s", c + 5); return 0; }
 	if (strncmp(c, "uri:", 4) == 0) { snprintf(rc_uri, sizeof(rc_uri), "%s", c + 4); return 0; }
 	if (strncmp(c, "hint:", 5) == 0) { text_hint_mode = atoi(c + 5); atlas_dirty = 1; return 0; }
 	if (strncmp(c, "shot:", 5) == 0) { snprintf(rc_shot, sizeof(rc_shot), "%s", c + 5); return 0; }
@@ -2858,7 +3128,8 @@ static void save_screenshot(const char *name)
 }
 
 /* Actions queued by the UI and carried out once per frame, after input. */
-enum { ACT_NONE, ACT_EXIT_ASK, ACT_EXIT_DO, ACT_ARTDEC_ASK, ACT_ARTDEC_DO, ACT_URI, ACT_START, ACT_INFO, ACT_REFRESH };
+enum { ACT_NONE, ACT_EXIT_ASK, ACT_EXIT_DO, ACT_ARTDEC_ASK, ACT_ARTDEC_DO, ACT_URI, ACT_START, ACT_INFO, ACT_REFRESH,
+       ACT_NEWFOLDER, ACT_SELECT, ACT_RENAME, ACT_DELFOLDER_ASK, ACT_DELFOLDER_DO, ACT_REMOVE };
 
 static void launch_uri(const char *uri)
 {
@@ -2881,7 +3152,81 @@ static void launch_uri(const char *uri)
 
 static int item_has_options(int m, const Item *it)
 {
-	return (m == M_MEMCARD && it->kind == KIND_APP) || (m == M_SAVES && it->id[0]);
+	if (m == M_MEMCARD) return it->kind == KIND_APP || it->kind == KIND_FOLDER;
+	if (m == M_FOLDER) return 1;
+	return m == M_SAVES && it->id[0];
+}
+
+/* ---- the system's on-screen keyboard, for naming folders ---- */
+enum { IME_NEW, IME_RENAME };
+static int ime_active, ime_purpose, ime_target, ime_fake;
+static uint16_t ime_title[32], ime_init[SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1], ime_buf[SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1];
+
+static void u8_to_u16(uint16_t *d, const char *s, int max)
+{
+	int o = 0;
+	const unsigned char *u = (const unsigned char *)s;
+	while (*u && o < max - 1) {
+		if (u[0] < 0x80) { d[o++] = u[0]; u += 1; }
+		else if ((u[0] & 0xE0) == 0xC0 && u[1]) { d[o++] = ((u[0] & 0x1F) << 6) | (u[1] & 0x3F); u += 2; }
+		else if ((u[0] & 0xF0) == 0xE0 && u[1] && u[2]) { d[o++] = ((u[0] & 0x0F) << 12) | ((u[1] & 0x3F) << 6) | (u[2] & 0x3F); u += 3; }
+		else u += 1;
+	}
+	d[o] = 0;
+}
+
+static void u16_to_u8(char *d, const uint16_t *s, int max)
+{
+	int o = 0;
+	for (; *s && o < max - 4; s++) {
+		if (*s < 0x80) d[o++] = (char)*s;
+		else if (*s < 0x800) { d[o++] = (char)(0xC0 | (*s >> 6)); d[o++] = (char)(0x80 | (*s & 0x3F)); }
+		else { d[o++] = (char)(0xE0 | (*s >> 12)); d[o++] = (char)(0x80 | ((*s >> 6) & 0x3F)); d[o++] = (char)(0x80 | (*s & 0x3F)); }
+	}
+	d[o] = 0;
+}
+
+static void ime_begin(const char *title, const char *initial, int purpose, int target)
+{
+	ime_purpose = purpose;
+	ime_target = target;
+#ifdef VITAXMB_DEBUG
+	if (rc_name[0]) { ime_fake = 1; ime_active = 1; return; }
+#endif
+	SceImeDialogParam param;
+	sceImeDialogParamInit(&param);
+	u8_to_u16(ime_title, title, 32);
+	u8_to_u16(ime_init, initial, SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1);
+	memset(ime_buf, 0, sizeof(ime_buf));
+	param.supportedLanguages = 0x0001FFFF;
+	param.languagesForced = SCE_FALSE;
+	param.type = SCE_IME_TYPE_DEFAULT;
+	param.option = 0;
+	param.textBoxMode = SCE_IME_DIALOG_TEXTBOX_MODE_DEFAULT;
+	param.maxTextLength = 30;
+	param.title = ime_title;
+	param.initialText = ime_init;
+	param.inputTextBuffer = ime_buf;
+	if (sceImeDialogInit(&param) >= 0) ime_active = 1;
+}
+
+/* 0 while the keyboard is up, 1 when the user confirmed a name, -1 when cancelled. */
+static int ime_poll(char *out, int n)
+{
+	if (ime_fake) {
+		ime_fake = 0;
+		snprintf(out, n, "%s", rc_name);
+		rc_name[0] = 0;
+		return 1;
+	}
+	if (sceImeDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) return 0;
+	SceImeDialogResult res;
+	memset(&res, 0, sizeof(res));
+	sceImeDialogGetResult(&res);
+	int ok = res.button == SCE_IME_DIALOG_BUTTON_ENTER;
+	if (ok) u16_to_u8(out, ime_buf, n);
+	sceImeDialogTerm();
+	return ok && out[0] ? 1 : -1;
 }
 
 int main(void)
@@ -2938,7 +3283,8 @@ int main(void)
 	int dlg_sel = 0, dlg_action = ACT_NONE;
 	const Item *dlg_item = NULL;
 	int opt_open = 0; float opt_t = 0.0f;                 /* Options panel */
-	int opt_ids[3], opt_n = 0, opt_sel = 0;
+	int opt_ids[8], opt_n = 0, opt_sel = 0;
+	int opt_folder = -1;                                  /* the folder the options act on */
 	const Item *opt_item = NULL;
 	int opt_menu = 0;
 
@@ -2987,14 +3333,39 @@ int main(void)
 			hold_frames = 0;
 		}
 		pressed |= remote_step();
-		if (launching || startup_t < 0.45f) pressed = 0;
+		if (launching || startup_t < 0.45f || ime_active) pressed = 0;
 
 		int act = ACT_NONE;
 		const Item *act_item = NULL;
 		Menu *mn = &menus[cur];
 		int lay = menu_layout(cur);
 
-		if (dlg_open) {
+		if (ime_active) {
+			/* ---- on-screen keyboard (naming a folder) ---- */
+			char nm[48] = "";
+			int r = ime_poll(nm, sizeof(nm));
+			if (r != 0) {
+				ime_active = 0;
+				if (r > 0 && ime_purpose == IME_NEW) {
+					int f = folder_new(nm);
+					if (f >= 0) {
+						folders_save();
+						rebuild_game_lists();
+						for (int i = 0; i < menus[M_MEMCARD].count; i++)
+							if (menus[M_MEMCARD].items[i].kind == KIND_FOLDER && menus[M_MEMCARD].items[i].value_id == f) {
+								menus[M_MEMCARD].sel = i;
+								menus[M_MEMCARD].pos = (float)i;
+							}
+						pk_start(f);
+					}
+				} else if (r > 0 && ime_purpose == IME_RENAME && ime_target >= 0 && ime_target < n_folders) {
+					folder_clean_name(folder_name[ime_target], sizeof(folder_name[0]), nm);
+					if (!folder_name[ime_target][0]) folder_default_name(folder_name[ime_target], sizeof(folder_name[0]));
+					folders_save();
+					rebuild_game_lists();
+				}
+			}
+		} else if (dlg_open) {
 			/* ---- confirmation dialog ---- */
 			if (pressed & (SCE_CTRL_UP | SCE_CTRL_DOWN)) { dlg_sel = !dlg_sel; sound_play(SND_CURSOR); }
 			if (pressed & SCE_CTRL_CROSS) {
@@ -3004,6 +3375,23 @@ int main(void)
 			} else if (pressed & SCE_CTRL_CIRCLE) {
 				sound_play(SND_CANCEL);
 				dlg_open = 0;
+			}
+		} else if (pk_open) {
+			/* ---- folder picker ---- */
+			if ((pressed & SCE_CTRL_UP)   && pk_sel > 0)         { pk_sel--; sound_play(SND_CURSOR); }
+			if ((pressed & SCE_CTRL_DOWN) && pk_sel < n_all - 1) { pk_sel++; sound_play(SND_CURSOR); }
+			if (pressed & SCE_CTRL_LTRIGGER) { pk_sel = pk_sel - 5 < 0 ? 0 : pk_sel - 5; sound_play(SND_CURSOR); }
+			if (pressed & SCE_CTRL_RTRIGGER) { pk_sel = pk_sel + 5 > n_all - 1 ? (n_all > 0 ? n_all - 1 : 0) : pk_sel + 5; sound_play(SND_CURSOR); }
+			if ((pressed & SCE_CTRL_CROSS) && n_all) { pk_on[pk_sel] = !pk_on[pk_sel]; sound_play(SND_CURSOR); }
+			if (pressed & SCE_CTRL_TRIANGLE) {
+				int all = pk_count() == n_all;
+				for (int i = 0; i < n_all; i++) pk_on[i] = !all;
+				sound_play(SND_CURSOR);
+			}
+			if (pressed & SCE_CTRL_CIRCLE) {
+				pk_apply();
+				pk_open = 0;
+				sound_play(SND_CANCEL);
 			}
 		} else if (page_open == PAGE_PLAYER) {
 			/* ---- music player ---- */
@@ -3023,8 +3411,18 @@ int main(void)
 			if (pressed & SCE_CTRL_DOWN) { if (opt_sel < opt_n - 1) { opt_sel++; sound_play(SND_CURSOR); } }
 			if (pressed & SCE_CTRL_CROSS) {
 				int id = opt_ids[opt_sel];
-				if (id != OPT_START) sound_play(SND_CURSOR);
-				act = id == OPT_START ? ACT_START : (id == OPT_INFO ? ACT_INFO : ACT_REFRESH);
+				if (id == OPT_DELFOLDER) sound_play(SND_CONFIRM);
+				else if (id != OPT_START) sound_play(SND_CURSOR);
+				switch (id) {
+				case OPT_START:     act = ACT_START; break;
+				case OPT_INFO:      act = ACT_INFO; break;
+				case OPT_NEWFOLDER: act = ACT_NEWFOLDER; break;
+				case OPT_SELECT:    act = ACT_SELECT; break;
+				case OPT_RENAME:    act = ACT_RENAME; break;
+				case OPT_DELFOLDER: act = ACT_DELFOLDER_ASK; break;
+				case OPT_REMOVE:    act = ACT_REMOVE; break;
+				default:            act = ACT_REFRESH; break;
+				}
 				act_item = opt_item;
 				opt_open = 0;
 			} else if (pressed & (SCE_CTRL_CIRCLE | SCE_CTRL_TRIANGLE)) {
@@ -3078,6 +3476,11 @@ int main(void)
 				case KIND_FOLDER:
 					if ((pressed & SCE_CTRL_CROSS) && depth < MAX_DEPTH && it->submenu >= 0) {
 						sound_play(SND_CURSOR);
+						if (it->submenu == M_FOLDER) {          /* a user folder: fill its list first */
+							open_folder = it->value_id;
+							menus[M_FOLDER].sel = 0;
+							fill_folder_menu(open_folder);
+						}
 						stack[depth++] = cur;
 						prev_menu = cur;
 						cur = it->submenu;
@@ -3132,9 +3535,32 @@ int main(void)
 				opt_item = it;
 				opt_menu = cur;
 				opt_n = 0;
-				if (it->kind == KIND_APP) opt_ids[opt_n++] = OPT_START;
-				opt_ids[opt_n++] = OPT_INFO;
-				opt_ids[opt_n++] = OPT_REFRESH;
+				opt_folder = -1;
+				if (cur == M_MEMCARD && it->kind == KIND_FOLDER) {
+					opt_folder = it->value_id;
+					opt_ids[opt_n++] = OPT_SELECT;
+					opt_ids[opt_n++] = OPT_RENAME;
+					opt_ids[opt_n++] = OPT_DELFOLDER;
+					opt_ids[opt_n++] = OPT_NEWFOLDER;
+				} else if (cur == M_MEMCARD) {
+					opt_ids[opt_n++] = OPT_START;
+					opt_ids[opt_n++] = OPT_INFO;
+					opt_ids[opt_n++] = OPT_NEWFOLDER;
+					opt_ids[opt_n++] = OPT_REFRESH;
+				} else if (cur == M_FOLDER) {
+					opt_folder = open_folder;
+					if (it->kind == KIND_APP) {
+						opt_ids[opt_n++] = OPT_START;
+						opt_ids[opt_n++] = OPT_INFO;
+						opt_ids[opt_n++] = OPT_REMOVE;
+					}
+					opt_ids[opt_n++] = OPT_SELECT;
+					opt_ids[opt_n++] = OPT_RENAME;
+					opt_ids[opt_n++] = OPT_DELFOLDER;
+				} else {
+					opt_ids[opt_n++] = OPT_INFO;
+					opt_ids[opt_n++] = OPT_REFRESH;
+				}
 				opt_sel = 0;
 				opt_open = 1;
 			}
@@ -3171,6 +3597,13 @@ int main(void)
 			} else {
 				act = ACT_EXIT_DO;
 			}
+		} else if (act == ACT_DELFOLDER_ASK) {
+			if (opt_folder >= 0 && opt_folder < n_folders) {
+				snprintf(dlg_l1, sizeof(dlg_l1), "Delete the folder \"%.40s\"?", folder_name[opt_folder]);
+				snprintf(dlg_l2, sizeof(dlg_l2), "The games stay installed.");
+				dlg_action = ACT_DELFOLDER_DO; dlg_item = NULL; dlg_sel = 1; dlg_open = 1;
+			}
+			act = ACT_NONE;
 		} else if (act == ACT_ARTDEC_ASK) {
 			snprintf(dlg_l1, sizeof(dlg_l1), "Decrypt game artwork?");
 			snprintf(dlg_l2, sizeof(dlg_l2), "Loads VitaShell's kernel modules. Experimental.");
@@ -3196,6 +3629,42 @@ int main(void)
 			break;
 		case ACT_INFO:
 			if (act_item) { gameinfo_gather(act_item, opt_menu == M_SAVES); page_open = PAGE_GAMEINFO; }
+			break;
+		case ACT_NEWFOLDER: {
+			char nm[40];
+			folder_default_name(nm, sizeof(nm));
+			ime_begin("New folder", nm, IME_NEW, -1);
+			break; }
+		case ACT_SELECT:
+			if (opt_folder >= 0 && opt_folder < n_folders) pk_start(opt_folder);
+			break;
+		case ACT_RENAME:
+			if (opt_folder >= 0 && opt_folder < n_folders) ime_begin("Rename folder", folder_name[opt_folder], IME_RENAME, opt_folder);
+			break;
+		case ACT_DELFOLDER_DO:
+			if (opt_folder >= 0 && opt_folder < n_folders) {
+				int leaving = cur == M_FOLDER;
+				folder_delete(opt_folder);
+				open_folder = -1;
+				folders_save();
+				rebuild_game_lists();
+				if (leaving && depth > 0) {
+					prev_menu = cur;
+					cur = stack[--depth];
+					slide_dir = -1.0f;
+					folder_trans = 1;
+					in_t = 0.0f; out_t = 0.0f;
+				}
+			}
+			break;
+		case ACT_REMOVE:
+			if (act_item) {
+				char rid[16];
+				snprintf(rid, sizeof(rid), "%s", act_item->id);
+				app_set_folder(rid, -1);
+				folders_save();
+				rebuild_game_lists();
+			}
 			break;
 		case ACT_REFRESH:
 			if (opt_menu == M_MEMCARD) { scan_apps(); update_game_counts(); menus[M_MEMCARD].pos = (float)menus[M_MEMCARD].sel; }
@@ -3313,6 +3782,15 @@ int main(void)
 		if (page_t < 0.01f) page_t = 0.0f; else if (page_t > 0.99f) page_t = 1.0f;
 		dlg_t = lerpf(dlg_t, dlg_open ? 1.0f : 0.0f, 0.3f);
 		if (dlg_t < 0.01f) dlg_t = 0.0f; else if (dlg_t > 0.99f) dlg_t = 1.0f;
+		pk_t = lerpf(pk_t, pk_open ? 1.0f : 0.0f, 0.3f);
+		if (pk_t < 0.01f) pk_t = 0.0f; else if (pk_t > 0.99f) pk_t = 1.0f;
+		{
+			float want = pk_sel - 4.0f;
+			float maxtop = n_all - 9.0f;
+			if (want > maxtop) want = maxtop;
+			if (want < 0.0f) want = 0.0f;
+			pk_top = lerpf(pk_top, want, 0.3f);
+		}
 		opt_t = lerpf(opt_t, opt_open ? 1.0f : 0.0f, 0.3f);
 		if (opt_t < 0.01f) opt_t = 0.0f; else if (opt_t > 0.99f) opt_t = 1.0f;
 		if (launching) {
@@ -3421,7 +3899,7 @@ int main(void)
 		/* "Options" pill, only where the triangle does something */
 		{
 			const Item *sit = menus[cur].count ? &menus[cur].items[menus[cur].sel] : NULL;
-			if (sit && item_has_options(cur, sit) && !dlg_open && page_open == PAGE_NONE && !launching)
+			if (sit && item_has_options(cur, sit) && !dlg_open && !pk_open && !ime_active && page_open == PAGE_NONE && !launching)
 				draw_options_pill((int)(255 * (1.0f - opt_t) * su_bar));
 		}
 
@@ -3439,6 +3917,7 @@ int main(void)
 		}
 
 		if (opt_t > 0.0f) draw_options_panel(opt_t, opt_ids, opt_n, opt_sel, &pal);
+		if (pk_t > 0.0f) draw_picker(pk_t);
 		if (dlg_t > 0.0f) draw_dialog(dlg_t, dlg_l1, dlg_l2, dlg_sel);
 
 		if (test_page) {
@@ -3454,6 +3933,7 @@ int main(void)
 			vita2d_draw_rectangle(0, 0, SCREEN_W, SCREEN_H, RGBA8(0, 0, 0, (int)(255 * (1.0f - ease_out(startup_t / 0.6f)))));
 
 		vita2d_end_drawing();
+		if (ime_active && !ime_fake) vita2d_common_dialog_update();
 		uint64_t prof_t3 = sceKernelGetProcessTimeWide();
 		vita2d_swap_buffers();
 		uint64_t prof_t4 = sceKernelGetProcessTimeWide();

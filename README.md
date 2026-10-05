@@ -27,6 +27,7 @@
 - [How it works](#how-it-works)
 - [Game artwork](#game-artwork)
 - [Music and video](#music-and-video)
+- [Folders](#folders)
 - [Extra storage (experimental)](#extra-storage-experimental)
 - [Settings reference](#settings-reference)
 - [Repository layout](#repository-layout)
@@ -46,6 +47,7 @@
 **Made for the Vita**
 
 - **Game** lists every installed title and homebrew bubble (and your saved data), reads each app's own LiveArea artwork, and starts it. *Information* shows title, ID, version and location.
+- **Folders** keep a big library tidy: create folders in the game list and tick the games and homebrew that belong in each one (see [Folders](#folders)).
 - **Settings** has real, working pages: *System Information* (firmware, nickname, MAC address, model, memory card, battery, CPU clock), plus VitaXMB's own settings (theme color, clock format, sound effects, startup animation, confirmation dialogs, launch method).
 - **Music** is an MP3 player with the PSP's player screen: LED spectrum analyzer driven by the real audio, track badge, ID3 title and artist, elapsed and total time, progress bar, next/previous and seeking.
 - **Network, Photo, Video** hand off to the Vita's own apps (Internet Browser, PlayStation Store, Party, Messages, Near, Photos, Videos), and Settings opens the Vita's real settings pages.
@@ -77,7 +79,7 @@
 | **L / R** | Jump five rows |
 | **Cross** | Open / start / change a value |
 | **Circle** | Back, close a page or dialog |
-| **Triangle** | Options (on a game or on saved data) |
+| **Triangle** | Options (on a game, a folder or saved data) |
 
 Music player: **Cross** play/pause, **L / R** previous/next track, **Left / Right** seek 10 s, **Circle** leave the player (the music keeps playing).
 
@@ -150,6 +152,16 @@ An experimental *Decrypt Artwork (beta)* setting (off by default, asks for confi
 
 - Music plays **MP3** files. The system blocks apps from reading `ux0:music`, so VitaXMB scans **`ux0:pspemu/MUSIC`** (Adrenaline's folder). Put your songs there. FLAC and WAV are not supported.
 - Videos are listed from `ux0:pspemu/VIDEO`; selecting one opens the Vita's Videos app (a decoder is out of scope).
+
+## Folders
+
+Organise your games and homebrew in **Game > Memory Card**. Press **Triangle** for Options:
+
+- **New Folder** asks for a name with the Vita's own keyboard, then opens the picker.
+- The **picker** lists every installed app with a tick box. **Cross** ticks or unticks, **L / R** jump five rows, **Triangle** selects all or none, **Circle** saves and closes. A game that is already in another folder shows where; ticking it moves it.
+- On a folder (or inside one): **Select Games** reopens the picker, **Rename Folder**, **Delete Folder** (asks first; the games stay installed and return to the main list). Inside a folder, **Remove from Folder** takes the highlighted game out.
+
+Folders are listed first, then the games that are in no folder. A game is in at most one folder. Everything is stored in `ux0:data/VitaXMB/folders.txt` (plain text, one `F` line per folder followed by `A` lines with title IDs), so it survives uninstalling and reinstalling a game.
 
 ## Extra storage (experimental)
 
