@@ -2043,7 +2043,7 @@ static void sysinfo_gather(void)
 	int pct = scePowerGetBatteryLifePercent();
 	info_add("Battery", "%d%%%s", pct < 0 ? 0 : pct, scePowerIsBatteryCharging() ? " (charging)" : "");
 	info_add("Processor", "%d MHz", scePowerGetArmClockFrequency());
-	info_add("VitaXMB", "0.2");
+	info_add("VitaXMB", "1.0.0");
 }
 
 /* Details for a game or a saved-data entry. */
