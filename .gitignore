@@ -10,6 +10,7 @@
 !/sce_sys/
 !/assets/
 !/third_party/
+!/updater/
 !/docs/
 
 # only the PSP icons the code actually loads

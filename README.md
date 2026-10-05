@@ -28,6 +28,8 @@
 - [Game artwork](#game-artwork)
 - [Music and video](#music-and-video)
 - [Folders](#folders)
+- [Updates](#updates)
+- [Custom themes (beta)](#custom-themes-beta)
 - [Extra storage (experimental)](#extra-storage-experimental)
 - [Settings reference](#settings-reference)
 - [Repository layout](#repository-layout)
@@ -41,6 +43,7 @@
 - Six categories on a horizontal bar (Settings, Photo, Music, Video, Game, Network) with the PSP's icon sizes, spacing, glow, drop shadows, rules under selected titles and its monthly color themes with the animated waves.
 - The two-level layout the PSP uses for Settings: the open category slides left, the parent list collapses into an icon column, and the child list shows wrench-badge rows with values on the right.
 - A wide-icon **game list**: the selected title grows into a landscape tile while neighbours stack above and below. Rest on a game and its full-screen background art fades in behind the list.
+- The PSP's real **wave background** (the firmware's own wave model, animated the way the PSP animates it) and its **boot intro** (logo, ribbon and glow with the month's tint) before the XMB appears.
 - Startup animation (fade in, bar and lists slide in together), the XMB sound set (opening, cursor, cancel, confirm, start game), PSP-style confirmation dialogs and the **Options** panel opened with the triangle button.
 - Text is rendered the way the PSP does it: a soft drop shadow, kerned, sub-pixel positioned and glued to its icon while scrolling.
 
@@ -53,6 +56,11 @@
 - **Music** is an MP3 player with the PSP's player screen: LED spectrum analyzer driven by the real audio, track badge, ID3 title and artist, elapsed and total time, progress bar, next/previous and seeking.
 - **Network, Photo, Video** hand off to the Vita's own apps (Internet Browser, PlayStation Store, Party, Messages, Near, Photos, Videos), and Settings opens the Vita's real settings pages.
 - **Video** lists the videos in `ux0:pspemu/VIDEO`.
+
+**Updates and themes**
+
+- **Network Update** is the first item under Settings, like the PSP's System Update: it checks GitHub for a new release, shows the release notes and installs it for you (see [Updates](#updates)).
+- **PSP custom themes (beta)**: drop `.ctf` / `.ptf` theme files in a folder and apply them from *Settings > Theme Settings* (see [Custom themes (beta)](#custom-themes-beta)).
 
 **Engineering**
 
@@ -97,7 +105,7 @@ VitaXMB is an *unsafe* homebrew (it reads other apps' folders and launches other
 You need the [VitaSDK](https://vitasdk.org/) plus these libraries from its package manager:
 
 ```sh
-vdpm vita2d libpng libjpeg-turbo freetype harfbuzz zlib bzip2 taihen
+vdpm vita2d libpng libjpeg-turbo freetype harfbuzz zlib bzip2 taihen mbedtls
 ```
 
 Then, with `VITASDK` set:
@@ -162,6 +170,38 @@ Organise your games and homebrew in **Game > Memory Card**. Press **Triangle** f
 
 Folders are listed first, then the games that are in no folder. A game is in at most one folder. Everything is stored in `ux0:data/VitaXMB/folders.txt` (plain text, one `F` line per folder followed by `A` lines with title IDs), so it survives uninstalling and reinstalling a game.
 
+## Updates
+
+VitaXMB can update itself from its GitHub releases (`dekiller82/VitaXMB`).
+
+- **Settings > Network Update** (the first item) checks for a newer release, shows its release notes (scroll with Up / Down or L / R) and installs it. With **Check for Updates at Start** on (*VitaXMB Settings*, on by default), a notice appears a few seconds after startup when a newer release exists.
+- Installing closes VitaXMB, hands over to a small bundled app (*VitaXMB Updater*) that shows a progress screen, installs the package and starts VitaXMB again. The updater app is installed automatically the first time and refreshed when it changes.
+- The download uses its own HTTPS client, because the Vita's built-in SSL library cannot complete a handshake with GitHub.
+- Installing needs VitaShell's modules in `ux0:VitaShell` (the same ones VitaShell uses to install packages). If the system installer refuses the package, the downloaded `.vpk` is kept in `ux0:data/VitaXMB/` so you can install it with VitaShell.
+- Tags are compared as `major.minor.patch` (`v1.2.0`, `1.3`); keep minor and patch under 100.
+
+## Custom themes (beta)
+
+**This is a beta. Please test it and tell me what you see.** VitaXMB can load the PSP's custom themes (`.ctf` and `.ptf`, the 6.60 / 6.61 CXMB kind). Put theme files in `ux0:data/VitaXMB/themes` (or `ux0:pspemu/PSP/THEME`) and choose one under *Settings > Theme Settings > Custom Theme (beta)*. Choosing *Off* returns to the stock look.
+
+What is read from a theme today:
+
+- wallpaper or the month's sky, the 12 colour pictures, text and icon colours, icon sizes, the theme's font
+- the wave (a theme's own model, or none), the boot intro, and the XMB sounds
+- icons, battery and clock, category bar spacing / gap / move speed, strip, panel and text-list layouts
+- the Options panel and game list positions, the separator line, arrows and check boxes
+- a theme that turns the whole XMB in space (such as *Clear XMB Black*)
+
+A PSP theme is partly code (patches to the PSP's own modules), which the Vita cannot run, so VitaXMB reads what the theme *says* and imitates the rest. Some themes will look different from the real PSP, and some parts are not supported yet.
+
+**Please help by reporting what is wrong.** Open an [issue](https://github.com/dekiller82/VitaXMB/issues) with:
+
+- the theme's name and where you got it,
+- a **screenshot or photo from VitaXMB** and, if you can, a **photo of the same screen on a real PSP** (the same menu, the same selected item),
+- what looks wrong (position, colours, sounds, animation, a crash).
+
+Real PSP photos are the most useful: they show what the theme is supposed to look like, which the theme file alone does not. Themes are not included in this repository; they belong to their authors.
+
 ## Extra storage (experimental)
 
 **Beta, off by default. Please test it and report what you see.** If a storage manager (StorageMgr, YAMT and similar) mounts a second card as `uma0:`, `imc0:`, `xmc0:` or `grw0:`, the *Extra Storage (beta)* setting makes VitaXMB also look there:
@@ -186,8 +226,11 @@ Tested on one console: an SD2Vita as `ux0:` plus a real memory card mounted as `
 | Confirmation Dialogs | On / Off | asks before leaving the XMB |
 | Game Launch Method | A-D | the system call and flag used to start a title |
 | Photo / Music / Video / Network Category | Shown / Hidden | hides that category from the bar; Settings and Game always stay |
+| Check for Updates at Start | On / Off | looks for a new release a few seconds after startup, see [Updates](#updates) |
 | Extra Storage (beta) | On / Off | experimental, see above |
 | Decrypt Artwork (beta) | On / Off | experimental, see above |
+
+**Settings > Theme Settings > Custom Theme (beta)**: Off or one of the PSP themes found, see [Custom themes (beta)](#custom-themes-beta).
 
 **Settings > Theme Settings > Color**: automatic (follows the month, like the PSP) or any of the twelve months. October is measured from a real PSP capture; the other months are approximations.
 
@@ -205,7 +248,14 @@ Release builds contain no debugging code. Configure with `-DVITAXMB_DEBUG=ON` to
 
 ```
 CMakeLists.txt            build definition (VPK, SELF, assets)
-src/main.c                the launcher
+src/main.c                the launcher: main loop and input
+src/core/                 data, config, items and menus, game scanning, artwork, settings, the updater
+src/media/                sound mixer, media scan, music player
+src/render/               textures, drawing, text engine, backgrounds, waves
+src/theme/                PSP theme loader, RCO runtime, boot intro, theme sounds
+src/ui/                   layouts, lists, pages, dialogs, pickers
+updater/main.c            the small installer app (VitaXMB Updater)
+assets/psp/               the PSP boot intro resource
 sce_sys/                  bubble icon and LiveArea files of the VitaXMB app itself
 assets/font.otf           baseline-normalised UI font
 assets/icons/             PSP-style XMB icons (PNG)
@@ -226,6 +276,8 @@ Everything in the tree is needed to build; nothing else is committed.
 - The PlayStation Network and "Extras" categories of the real PSP are not implemented.
 - The *Decrypt Artwork (beta)* experiment can freeze the console; it is off by default.
 - *Extra Storage (beta)* is new and lightly tested, see above.
+- **Custom themes are a beta**: some themes differ from the real PSP and some theme features are not implemented, see [Custom themes (beta)](#custom-themes-beta).
+- **Updating needs VitaShell's modules** in `ux0:VitaShell`; without them the update is downloaded and left for you to install with VitaShell.
 
 ## Credits and licenses
 
@@ -233,9 +285,11 @@ VitaXMB is released under the **GNU GPL v3** (see `LICENSE`).
 
 - [VitaSDK](https://vitasdk.org/), [libvita2d](https://github.com/xerpi/libvita2d), [FreeType](https://freetype.org/), [HarfBuzz](https://harfbuzz.github.io/), libpng, libjpeg-turbo, zlib, bzip2.
 - [minimp3](https://github.com/lieff/minimp3) by lieff (CC0).
-- [VitaShell](https://github.com/TheOfficialFloW/VitaShell) by TheFloW (GPL-3.0) and [CopyIcons](https://github.com/cy33hc/copyicons) by cy33hc (GPL-3.0): the user-module header, the import stub and the PFS-mount approach used for artwork decryption.
+- [mbed TLS](https://github.com/Mbed-TLS/mbedtls) for the update download (Apache-2.0 / GPL-2.0-or-later).
+- [VitaShell](https://github.com/TheOfficialFloW/VitaShell) by TheFloW (GPL-3.0) and [CopyIcons](https://github.com/cy33hc/copyicons) by cy33hc (GPL-3.0): the user-module header, the import stub and the PFS-mount approach used for artwork decryption, and the way packages are installed (system installer plus a helper app, as in VitaShell's own updater).
 - [vita-uriCaller](https://github.com/Freakler/vita-uriCaller) for the list of system URIs.
+- [CXMB](https://github.com/PSP-Archive/CXMB) and the PSP homebrew community's documentation of the `.ctf` / `.ptf` theme format, the RCO resource format (RCOMage by ZiNgA BuRgA and Youness Alaoui, for its attribute tables) and the PGF font format (as read by [PPSSPP](https://github.com/hrydgard/ppsspp)).
 
-**Third-party assets.** The XMB icons, sound effects and typeface in `assets/` imitate the look of Sony's PSP system software and the FOT-NewRodin typeface and are included as supplied by the project author for personal, non-commercial use. They remain the property of their respective owners and are not covered by the GPL. If you are a rights holder and want them removed, please open an issue.
+**Third-party assets.** The XMB icons, sound effects and typeface in `assets/` imitate the look of Sony's PSP system software and the FOT-NewRodin typeface and are included as supplied by the project author for personal, non-commercial use. The wave model, the month sky pictures and the boot intro resource (`assets/psp/`) are taken from the PSP firmware's own resources. They remain the property of their respective owners and are not covered by the GPL. If you are a rights holder and want them removed, please open an issue.
 
 VitaXMB is an independent fan project. It is not affiliated with or endorsed by Sony Interactive Entertainment. "PlayStation", "PSP", "PS Vita" and "XMB" are trademarks of their respective owners.
