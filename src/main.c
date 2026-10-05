@@ -141,8 +141,12 @@ int main(void)
 			sceRtcGetCurrentClockLocalTime(&bdt);
 			boot_month = theme ? theme - 1 : (bdt.month >= 1 && bdt.month <= 12 ? bdt.month - 1 : 0);
 			Palette bp = get_palette(boot_month);
-			FILE *bsf = fopen(CONFIG_DIR "/bootshot", "rb");
+#ifdef VITAXMB_DEBUG
+			FILE *bsf = fopen(CONFIG_DIR "/bootshot", "rb");      /* debug builds: save a boot frame */
 			if (bsf) fclose(bsf);
+#else
+			FILE *bsf = NULL;
+#endif
 			boot_play(boot_month, boot_backdrop, bp.wave_top, bsf ? save_screenshot : NULL);
 			t = boot_hand_abs ? (float)(sceKernelGetProcessTimeWide() - boot_hand_abs) / 1.0e6f : 0.0f;       /* the wave carries on in real time from where the boot began it */
 		}
