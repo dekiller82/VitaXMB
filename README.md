@@ -47,7 +47,7 @@
 - **Game** lists every installed title and homebrew bubble (and your saved data), reads each app's own LiveArea artwork, and starts it. *Information* shows title, ID, version and location.
 - **Settings** has real, working pages: *System Information* (firmware, nickname, MAC address, model, memory card, battery, CPU clock), plus VitaXMB's own settings (theme color, clock format, sound effects, startup animation, confirmation dialogs, launch method).
 - **Music** is an MP3 player with the PSP's player screen: LED spectrum analyzer driven by the real audio, track badge, ID3 title and artist, elapsed and total time, progress bar, next/previous and seeking.
-- **Network, Photo, Video** hand off to the Vita's own apps (Internet Browser, PlayStation Store, PS4 Link, Photos, Videos, ...).
+- **Network, Photo, Video** hand off to the Vita's own apps (Internet Browser, PlayStation Store, Party, Messages, Near, Photos, Videos), and Settings opens the Vita's real settings pages.
 - **Video** lists the videos in `ux0:pspemu/VIDEO`.
 
 **Engineering**
@@ -167,6 +167,14 @@ An experimental *Decrypt Game Artwork* setting (off by default, asks for confirm
 
 **Settings > System Settings**: *System Information*, plus shortcuts to the Vita's own Settings pages.
 
+## Development
+
+Release builds contain no debugging code. Configure with `-DVITAXMB_DEBUG=ON` to add:
+
+- `ux0:data/VitaXMB/trace.txt`: breadcrumbs, slow-frame timings (`input / icons / draw / swap`) and launch results.
+- A file-based **remote control**: write space-separated commands to `ux0:data/VitaXMB/remote.txt` and the app executes one per frame, then deletes the file. Commands: `left right up down cross circle triangle l r`, `w<frames>` (wait), `shot:<name>` (save `ux0:data/VitaXMB/<name>.png`), `page:text` / `page:off` (glyph test page), `hint:<0-3>` (text hinting mode), `uri:<hexflags>:<uri>` (try a launch request).
+- This is how the screenshots and the demo GIF in this README were captured, over an FTP connection to the console.
+
 ## Repository layout
 
 ```
@@ -185,7 +193,8 @@ Everything in the tree is needed to build; nothing else is committed.
 
 ## Known issues
 
-- **Launching other apps** (games, the Browser, Settings pages) depends on the system accepting the launch request. If the launch does nothing, check `ux0:data/VitaXMB/trace.txt`: a result of `80802026` means the Vita was in a bad state; rebooting it fixes that.
+- **System apps cannot be started by title ID** from an app (the Vita shows error `C2-12570-5`). VitaXMB therefore opens them through their own URI schemes (`wbapp0:` Browser, `settings_dlg:` Settings, `psns:` PlayStation Store, `pspy:` Party, `psnmsg:` Messages, `near:` Near, `photo:`, `music:`, `video:`). The Browser and the Settings pages are confirmed on firmware 3.70; the others come from a working third-party launcher but have not been tried on every setup.
+- If launch requests are being refused (the call returns `0x80802026` in a debug build), the console's app manager is in a bad state: reboot the Vita.
 - `ux0:music`, `ux0:video` and `ux0:picture` cannot be read by apps; use the Adrenaline folders or the Vita's own apps.
 - The PlayStation Network and "Extras" categories of the real PSP are not implemented.
 - The *Decrypt Game Artwork* experiment can freeze the console; it is off by default.

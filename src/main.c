@@ -399,6 +399,10 @@ static void xlog(const char *fmt, ...)
 /* Breadcrumbs for freezes: the last line written is the last thing that happened. */
 static void trace(const char *fmt, ...)
 {
+#ifndef VITAXMB_DEBUG
+	(void)fmt;
+	return;
+#endif
 	static int n;
 	SceUID fd = sceIoOpen(CONFIG_DIR "/trace.txt",
 	                      SCE_O_WRONLY | SCE_O_CREAT | (n++ == 0 ? SCE_O_TRUNC : SCE_O_APPEND), 0777);
@@ -1156,12 +1160,13 @@ static void build_menus(void)
 	scan_videos();
 
 	/* Network: the Vita's online apps */
-	add_uri(CAT_NETWORK, "Internet Browser", "psgm:play?titleid=NPXS10003", tex_browser);
-	add_uri(CAT_NETWORK, "PlayStation Store", "psgm:play?titleid=NPXS10002", tex_net_s);
-	add_uri(CAT_NETWORK, "PS4 Link", "psgm:play?titleid=NPXS10013", tex_remote);
-	add_uri(CAT_NETWORK, "PS3 Remote Play", "psgm:play?titleid=NPXS10012", tex_remote);
-	add_uri(CAT_NETWORK, "Party", "psgm:play?titleid=NPXS10001", tex_sharing);
-	add_uri(CAT_NETWORK, "Messages", "psgm:play?titleid=NPXS10014", tex_rss);
+	/* System apps are opened with their own URI schemes: starting them by title ID
+	 * (psgm:play?titleid=NPXS...) makes the system show error C2-12570-5. */
+	add_uri(CAT_NETWORK, "Internet Browser", "wbapp0:", tex_browser);
+	add_uri(CAT_NETWORK, "PlayStation Store", "psns:browse?category=STORE-MSF73008-VITAGAMES", tex_net_s);
+	add_uri(CAT_NETWORK, "Party", "pspy:", tex_sharing);
+	add_uri(CAT_NETWORK, "Messages", "psnmsg:", tex_rss);
+	add_uri(CAT_NETWORK, "Near", "near:", tex_remote);
 
 	Item *it;
 	it = add_item(CAT_GAME, KIND_FOLDER, "Saved Data Utility", "", NULL, tex_savedata_s);
@@ -2679,6 +2684,9 @@ static void remote_poll(void)
 /* One command per frame; returns the synthetic "pressed" mask. */
 static unsigned int remote_step(void)
 {
+#ifndef VITAXMB_DEBUG
+	return 0;
+#endif
 	static const struct { const char *name; unsigned int btn; } map[] = {
 		{ "left", SCE_CTRL_LEFT }, { "right", SCE_CTRL_RIGHT }, { "up", SCE_CTRL_UP }, { "down", SCE_CTRL_DOWN },
 		{ "cross", SCE_CTRL_CROSS }, { "circle", SCE_CTRL_CIRCLE }, { "triangle", SCE_CTRL_TRIANGLE },

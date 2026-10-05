@@ -18,6 +18,12 @@ set(VITA_VERSION  "00.10")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2 -std=gnu11")
 
 add_executable(${PROJECT_NAME} src/main.c)
+
+# Development only: trace.txt, a file-based remote control and screenshots. Off in releases.
+option(VITAXMB_DEBUG "Enable debug tracing and the remote-control file" OFF)
+if(VITAXMB_DEBUG)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE VITAXMB_DEBUG)
+endif()
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/third_party/vitashell_stub" "${CMAKE_SOURCE_DIR}/third_party/minimp3")
 target_link_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/third_party/vitashell_stub")
 target_include_directories(${PROJECT_NAME} PRIVATE "${VITASDK}/arm-vita-eabi/include/freetype2")
