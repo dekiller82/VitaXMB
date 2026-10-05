@@ -4,12 +4,10 @@
 /* Settings-style sub lists, button glyphs, info pages, dialogs, panel */
 /* ------------------------------------------------------------------ */
 
-static float sub_y(float d)
+/* y of the row d places from the selected one in a Settings-style list: the engine's list style for that page (paf.h) */
+static float sub_y(float d, int style)
 {
-	static const float yy[] = { -23, 67, 157, 270, 383, 473, 563, 653 };   /* d = -3 .. 4 */
-	d = clampf(d, -3.0f, 3.99f);
-	int i = (int)floorf(d + 3.0f);
-	return lerpf(yy[i], yy[i + 1], d + 3.0f - i);
+	return ITEM_Y + xl_offset(style, d);
 }
 
 /* The 2px rule under a selected title: grey-white on the left, white on the right. */
@@ -89,7 +87,7 @@ static void draw_sub_list(int m, float xoff, float amul)
 	for (int j = 0; j < mn->count; j++) {
 		float d = j - mn->pos;
 		if (d < -3.2f || d > 4.2f) continue;
-		float y = sub_y(d);
+		float y = sub_y(d, m == M_VIDEOS ? XS_VIDEO : (m == M_TRACKS ? XS_MUSIC : XS_SETTINGS));
 		const Item *it = &mn->items[j];
 		float sel = it->glow;                     /* emphasis follows the selection, not the slide */
 		float fade = d < 0 ? clampf(1.0f + d * 0.28f, 0.0f, 1.0f) : clampf(1.0f - d * 0.12f, 0.0f, 1.0f);

@@ -152,11 +152,7 @@ static int menu_owner(int m)
 /* y of the row at offset d from the selection, in the folder (game list) layout. */
 static float folder_y(float d)
 {
-	static const float yy[] = { 20, 114, 272, 423, 519, 615, 711 };   /* d = -2 .. 4 */
-	d = clampf(d, -2.0f, 3.99f);
-	int i = (int)floorf(d + 2.0f);
-	float f = d + 2.0f - i;
-	return lerpf(yy[i], yy[i + 1], f);
+	return 272.0f + xl_offset(XS_GAME, d);                      /* the game list's style in the engine (paf.h) */
 }
 
 /* Fits a texture inside a box, preserving aspect. */

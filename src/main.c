@@ -11,6 +11,7 @@
  */
 #include "core/common.h"
 #include "render/xform.h"
+#include "theme/paf.h"
 #include "core/data.h"
 #include "core/assets.h"
 #include "media/sound.h"
@@ -675,12 +676,11 @@ int main(void)
 		{
 			float want_pos = (float)cat_slot(cat);
 			/* the theme's own duration for a category change (200 ms by default): about a quarter of it is the time constant */
-			float tau = fmaxf(cat_ms, 1.0f) / 4.0f;
-			cat_pos = lerpf(cat_pos, want_pos, 1.0f - expf(-16.7f / tau));
+			cat_pos = lerpf(cat_pos, want_pos, ease4_step(cat_ms));          /* the engine's own curve for it (paf.h) */
 			if (fabsf(cat_pos - want_pos) < 0.004f) cat_pos = want_pos;
 		}
 		for (int i = 0; i < M_COUNT; i++) {
-			menus[i].pos = lerpf(menus[i].pos, (float)menus[i].sel, 0.25f);
+			menus[i].pos = lerpf(menus[i].pos, (float)menus[i].sel, ease4_step(200.0f));     /* a list scrolls in 200 ms with the same curve */
 			if (fabsf(menus[i].pos - menus[i].sel) < 0.004f) menus[i].pos = (float)menus[i].sel;
 		}
 		for (int mi = 0; mi < M_COUNT; mi++) {
@@ -688,7 +688,7 @@ int main(void)
 			for (int ji = 0; ji < gm->count; ji++) {
 				Item *gi = &gm->items[ji];
 				float tg = ji == gm->sel ? 1.0f : 0.0f;
-				gi->glow += (tg - gi->glow) * (tg > gi->glow ? 0.70f : 0.80f);
+				gi->glow += (tg - gi->glow) * ease4_step(200.0f);
 				if (fabsf(tg - gi->glow) < 0.01f) gi->glow = tg;
 			}
 		}

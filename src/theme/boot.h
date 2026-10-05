@@ -38,6 +38,8 @@ static uint8_t *boot_read_file(const char *path, size_t *n)
 }
 
 /* Plays the animation; any of Cross, Circle or Start skips it. month is 0..11, col the background wave's colour. */
+static void text_prewarm(int steps);                   /* text.h: builds the letters the menus will need, a few a frame */
+
 static void boot_play(int month, void (*backdrop)(float, float), const unsigned char col[3], void (*shot)(const char *))
 {
 	size_t n = 0;
@@ -130,6 +132,7 @@ static void boot_play(int month, void (*backdrop)(float, float), const unsigned 
 		}
 #endif
 		vita2d_end_drawing();
+		text_prewarm(8);                                           /* the first menu frame would otherwise build every letter at once: a visible hitch at the hand-over */
 		if (shot && shot_i < 1 && ms >= shot_ms) {
 			char nm[24];
 			snprintf(nm, sizeof(nm), "bs%d", shot_i++);

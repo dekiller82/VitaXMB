@@ -253,7 +253,7 @@ src/main.c                the launcher: main loop and input
 src/core/                 data, config, items and menus, game scanning, artwork, settings, the updater
 src/media/                sound mixer, media scan, music player
 src/render/               textures, drawing, text engine, backgrounds, waves
-src/theme/                PSP theme loader, RCO runtime, boot intro, theme sounds
+src/theme/                PSP theme loader, RCO runtime, boot intro, theme sounds, the PSP engine's list styles and easing (paf.h)
 src/ui/                   layouts, lists, pages, dialogs, pickers
 updater/main.c            the small installer app (VitaXMB Updater)
 assets/psp/               the PSP boot intro resource

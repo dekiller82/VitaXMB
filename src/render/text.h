@@ -9,7 +9,7 @@
 #define ATLAS_H 1024
 #define GLYPH_SLOTS 4096        /* power of two */
 #define GLYPH_PAD 2
-#define SHADOW_PAD 4
+#define SHADOW_PAD 8
 
 typedef struct {
 	uint32_t key;               /* (size << 24) | codepoint, 0 = empty */
@@ -93,19 +93,59 @@ static void atlas_put(int x, int y, int w, int h, const uint8_t *cov, int cstrid
 	}
 }
 
-static void box_blur(uint8_t *img, uint8_t *tmp, int w, int h)
+static void box_blur_r(uint8_t *img, uint8_t *tmp, int w, int h, int r)
+{
+	const int n = 2 * r + 1;
+	for (int y = 0; y < h; y++) {                       /* running sums: the cost does not grow with the radius */
+		const uint8_t *in = img + y * w;
+		uint8_t *out = tmp + y * w;
+		int sum = 0;
+		for (int k = 0; k <= r && k < w; k++) sum += in[k];
+		for (int x = 0; x < w; x++) {
+			out[x] = (uint8_t)(sum / n);
+			if (x + r + 1 < w) sum += in[x + r + 1];
+			if (x - r >= 0) sum -= in[x - r];
+		}
+	}
+	for (int x = 0; x < w; x++) {
+		int sum = 0;
+		for (int k = 0; k <= r && k < h; k++) sum += tmp[k * w + x];
+		for (int y = 0; y < h; y++) {
+			img[y * w + x] = (uint8_t)(sum / n);
+			if (y + r + 1 < h) sum += tmp[(y + r + 1) * w + x];
+			if (y - r >= 0) sum -= tmp[(y - r) * w + x];
+		}
+	}
+}
+static void box_blur(uint8_t *img, uint8_t *tmp, int w, int h) { box_blur_r(img, tmp, w, h, 1); }
+
+/* The PSP's text shadow (measured on an Adrenaline capture): a wide soft glow, mostly below and right of the letters. Black: the dark blue seen in the capture was only measured on the blue sky. */
+static int   sh_rad = 3, sh_n = 3;                      /* box blur radius and passes (about 3.5 px sigma) */
+static float sh_dim = 0.6f, sh_alpha = 0.5f;            /* strength of the bitmap, opacity of the colour */
+static int   sh_dx = 2, sh_dy = 2;                      /* offset, screen pixels */
+static int   sh_col[3] = { 0, 0, 0 };
+static float txt_soft = 0.5f;                           /* how much the letters themselves are softened (the PSP's picture is a 2x upscale) */
+
+static void make_shadow(uint8_t *img, uint8_t *tmp, int pw, int ph)
+{
+	for (int i = 0; i < sh_n; i++) box_blur_r(img, tmp, pw, ph, sh_rad);
+	for (int i = 0; i < pw * ph; i++) { int v = (int)(img[i] * sh_dim * 3.0f); img[i] = (uint8_t)(v > 255 ? 255 : v); }   /* the blur thins the glow: bring it back up */
+}
+
+/* a 3x3 smoothing of a glyph bitmap (copy), mixed with the original by txt_soft */
+static void soften_glyph(uint8_t *dst, const uint8_t *src, int w, int h, int pitch)
 {
 	for (int y = 0; y < h; y++)
 		for (int x = 0; x < w; x++) {
-			int sum = 0;
-			for (int k = -1; k <= 1; k++) { int xx = x + k; if (xx >= 0 && xx < w) sum += img[y * w + xx]; }
-			tmp[y * w + x] = sum / 3;
-		}
-	for (int y = 0; y < h; y++)
-		for (int x = 0; x < w; x++) {
-			int sum = 0;
-			for (int k = -1; k <= 1; k++) { int yy = y + k; if (yy >= 0 && yy < h) sum += tmp[yy * w + x]; }
-			img[y * w + x] = sum / 3;
+			int s = 0, wsum = 0;
+			for (int j = -1; j <= 1; j++)
+				for (int i = -1; i <= 1; i++) {
+					int xx = x + i, yy = y + j, wt = (i == 0 ? 2 : 1) * (j == 0 ? 2 : 1);
+					if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+					s += src[yy * pitch + xx] * wt; wsum += wt;
+				}
+			float v = src[y * pitch + x] * (1.0f - txt_soft) + (float)s / (float)wsum * txt_soft;
+			dst[y * w + x] = (uint8_t)(v > 255.0f ? 255 : v);
 		}
 }
 
@@ -163,9 +203,7 @@ static Glyph *glyph_get(uint32_t cp, unsigned int size, int sub)
 				uint8_t *img = calloc(pw * ph, 1), *tmp = calloc(pw * ph, 1);
 				if (img && tmp) {
 					for (int j = 0; j < hh; j++) memcpy(img + (j + SHADOW_PAD) * pw + SHADOW_PAD, dst + j * w, w);
-					box_blur(img, tmp, pw, ph);
-					box_blur(img, tmp, pw, ph);
-					for (int i = 0; i < pw * ph; i++) img[i] = img[i] * 9 / 10;
+					make_shadow(img, tmp, pw, ph);
 					atlas_put(sx, sy, pw, ph, img, pw);
 					g->sx = sx; g->sy = sy; g->sw = pw; g->sh = ph;
 					g->sleft = ox0 - SHADOW_PAD;
@@ -175,6 +213,15 @@ static Glyph *glyph_get(uint32_t cp, unsigned int size, int sub)
 				g->ax = ax; g->ay = ay; g->aw = w; g->ah = hh;
 				g->left = ox0; g->top = -oy0;
 				return g;
+			}
+			/* The shadow is soft, so a quarter-pixel shift of the letter does not change it: only the glyph at phase 0 builds it, the other phases share it. */
+			Glyph *g0 = NULL;
+			if (sub) {
+				g->key = key;                                   /* hold this slot while the phase-0 glyph is made */
+				g->aw = g->ah = g->sw = g->sh = 0;
+				g->adv = 0;
+				g0 = glyph_get(cp, size, 0);
+				if (!g0) { g->key = 0; return NULL; }
 			}
 			FT_Set_Pixel_Sizes(ft_face, 0, size);
 			FT_UInt idx = (FT_UInt)cp;          /* glyph id from the shaper */
@@ -192,14 +239,18 @@ static Glyph *glyph_get(uint32_t cp, unsigned int size, int sub)
 					FT_LOAD_TARGET_LIGHT | FT_LOAD_FORCE_AUTOHINT,
 					FT_LOAD_NO_HINTING,
 				};
-				if (FT_Load_Glyph(ft_face, idx, flags[text_hint_mode & 3] | FT_LOAD_NO_BITMAP))
+				if (FT_Load_Glyph(ft_face, idx, flags[text_hint_mode & 3] | FT_LOAD_NO_BITMAP)) {
+					g->key = 0;
 					return NULL;
+				}
 			}
 			/* shift the outline by sub/4 px so glyphs sit at fractional pen positions */
 			if (sub && ft_face->glyph->format == FT_GLYPH_FORMAT_OUTLINE)
 				FT_Outline_Translate(&ft_face->glyph->outline, sub * 16, 0);
-			if (FT_Render_Glyph(ft_face->glyph, FT_RENDER_MODE_NORMAL))
+			if (FT_Render_Glyph(ft_face->glyph, FT_RENDER_MODE_NORMAL)) {
+				g->key = 0;
 				return NULL;
+			}
 			FT_GlyphSlot sl = ft_face->glyph;
 			FT_Bitmap *bm = &sl->bitmap;
 
@@ -211,22 +262,26 @@ static Glyph *glyph_get(uint32_t cp, unsigned int size, int sub)
 				int pw = w + SHADOW_PAD * 2, ph = hh + SHADOW_PAD * 2;
 				int ox, oy, sx, sy;
 				if (!atlas_alloc(w + GLYPH_PAD * 2, hh + GLYPH_PAD * 2, &ox, &oy) ||
-				    !atlas_alloc(pw + GLYPH_PAD * 2, ph + GLYPH_PAD * 2, &sx, &sy)) {
+				    (!g0 && !atlas_alloc(pw + GLYPH_PAD * 2, ph + GLYPH_PAD * 2, &sx, &sy))) {
 					g->key = 0;
 					atlas_dirty = 1;
 					return NULL;
 				}
 				ox += GLYPH_PAD; oy += GLYPH_PAD; sx += GLYPH_PAD; sy += GLYPH_PAD;
-				atlas_put(ox, oy, w, hh, bm->buffer, bm->pitch);
+				if (txt_soft > 0.001f) {
+					uint8_t *soft = malloc((size_t)w * hh);
+					if (soft) { soften_glyph(soft, bm->buffer, w, hh, bm->pitch); atlas_put(ox, oy, w, hh, soft, w); free(soft); }
+					else atlas_put(ox, oy, w, hh, bm->buffer, bm->pitch);
+				} else atlas_put(ox, oy, w, hh, bm->buffer, bm->pitch);
 
-				/* shadow: padded copy, blurred twice, slightly dimmed */
-				uint8_t *img = calloc(pw * ph, 1), *tmp = calloc(pw * ph, 1);
-				if (img && tmp) {
+				/* shadow: padded copy, blurred (shared with the other phases of the same letter) */
+				uint8_t *img = g0 ? NULL : calloc(pw * ph, 1), *tmp = g0 ? NULL : calloc(pw * ph, 1);
+				if (g0) {
+					g->sx = g0->sx; g->sy = g0->sy; g->sw = g0->sw; g->sh = g0->sh; g->sleft = g0->sleft; g->stop = g0->stop;
+				} else if (img && tmp) {
 					for (int j = 0; j < hh; j++)
 						memcpy(img + (j + SHADOW_PAD) * pw + SHADOW_PAD, bm->buffer + j * bm->pitch, w);
-					box_blur(img, tmp, pw, ph);
-					box_blur(img, tmp, pw, ph);
-					for (int i = 0; i < pw * ph; i++) img[i] = img[i] * 9 / 10;
+					make_shadow(img, tmp, pw, ph);
 					atlas_put(sx, sy, pw, ph, img, pw);
 					g->sx = sx; g->sy = sy; g->sw = pw; g->sh = ph;
 					g->sleft = sl->bitmap_left - SHADOW_PAD;
@@ -283,6 +338,21 @@ static int text_shape(unsigned int size, const char *s, Shaped *out)
 	return (int)n;
 }
 
+/* Builds the common letters (ASCII, the sizes the menus use, the four sub-pixel phases) a few at a time, e.g. during the boot animation. */
+static void text_prewarm(int steps)
+{
+	static int idx;
+	static const unsigned int sizes[3] = { 28, 22, 24 };
+	if (!atlas || pt_font) return;
+	while (steps-- > 0 && idx < 3 * 95) {                  /* phase 0 only: it owns the shadow; the other phases are cheap and the atlas has to stay roomy */
+		int si = idx / 95, ci = idx % 95, ph = 0;
+		idx++;
+		char s[2] = { (char)(32 + ci), 0 };
+		Shaped sh[MAX_SHAPED];
+		if (text_shape(sizes[si], s, sh) > 0) glyph_get(sh[0].gid, sizes[si], ph);
+	}
+}
+
 static float text_width_f(unsigned int size, const char *s)
 {
 	if (!atlas) return 0;
@@ -300,9 +370,9 @@ static void text_draw(float x, float y, unsigned int col, unsigned int size, con
 	Shaped sh[MAX_SHAPED];
 	int n = text_shape(size, s, sh);
 	unsigned int a = col >> 24;
-	unsigned int shadow = RGBA8(0, 0, 0, a * 75 / 100);
+	unsigned int shadow = RGBA8(sh_col[0], sh_col[1], sh_col[2], (unsigned int)(a * sh_alpha));
 	const float by = y;                 /* fractional on purpose: text glides with the icons */
-	const int sdx = 2, sdy = 2;
+	const int sdx = sh_dx, sdy = sh_dy;
 
 	for (int pass = text_flat ? 1 : 0; pass < 2; pass++) {
 		float pen = x;
