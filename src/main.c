@@ -15,6 +15,7 @@
 #include <psp2/io/dirent.h>
 #include <psp2/io/fcntl.h>
 #include <psp2/io/stat.h>
+#include <psp2/io/devctl.h>
 #include <psp2/display.h>
 #include <psp2/registrymgr.h>
 #include <psp2/net/net.h>
@@ -84,7 +85,7 @@ static const char *cat_names[CAT_COUNT] = { "Settings", "Photo", "Music", "Video
 
 enum { KIND_INFO, KIND_APP, KIND_EXIT, KIND_FOLDER, KIND_VALUE, KIND_URI, KIND_PAGE, KIND_TRACK };
 /* values for KIND_VALUE rows */
-enum { SET_THEME, SET_CLOCK, SET_SOUND, SET_STARTUP, SET_CONFIRM, SET_LAUNCH, SET_ART };
+enum { SET_THEME, SET_CLOCK, SET_SOUND, SET_STARTUP, SET_CONFIRM, SET_LAUNCH, SET_ART, SET_EXTRA };
 /* values for KIND_PAGE rows */
 enum { PAGE_NONE, PAGE_SYSINFO, PAGE_GAMEINFO, PAGE_PLAYER };
 
@@ -137,6 +138,7 @@ static int clock24 = 1;       /* 24-hour clock like the PSP capture */
 static int sound_on = 1;      /* UI sound effects */
 static int startup_anim = 1;  /* fade-in / slide-in at launch */
 static int confirm_dialogs = 1; /* ask before leaving the XMB */
+static int extra_storage = 0;   /* EXPERIMENTAL: also look on a second card (uma0:, imc0:, xmc0:, grw0:) */
 
 /* Base colours per month, as {top, bottom} RGB. */
 static const unsigned char month_cols[12][6] = {
@@ -304,7 +306,7 @@ static void config_load(void)
 {
 	SceUID fd = sceIoOpen(CONFIG_PATH, SCE_O_RDONLY, 0);
 	if (fd < 0) return;
-	int v[7] = { 0, 0, 0, 1, 1, 1, 1 };
+	int v[8] = { 0, 0, 0, 1, 1, 1, 1, 0 };
 	int n = sceIoRead(fd, v, sizeof(v));
 	sceIoClose(fd);
 	if (n >= 4 && v[0] >= 0 && v[0] <= 12) theme = v[0];
@@ -314,6 +316,7 @@ static void config_load(void)
 	if (n >= 20 && (v[4] == 0 || v[4] == 1)) sound_on = v[4];
 	if (n >= 24 && (v[5] == 0 || v[5] == 1)) startup_anim = v[5];
 	if (n >= 28 && (v[6] == 0 || v[6] == 1)) confirm_dialogs = v[6];
+	if (n >= 32 && (v[7] == 0 || v[7] == 1)) extra_storage = v[7];
 }
 
 static void ensure_dirs(void)
@@ -327,7 +330,7 @@ static void config_save(void)
 	ensure_dirs();
 	SceUID fd = sceIoOpen(CONFIG_PATH, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
 	if (fd < 0) return;
-	int v[7] = { theme, launch_mode, art_decrypt, clock24, sound_on, startup_anim, confirm_dialogs };
+	int v[8] = { theme, launch_mode, art_decrypt, clock24, sound_on, startup_anim, confirm_dialogs, extra_storage };
 	sceIoWrite(fd, v, sizeof(v));
 	sceIoClose(fd);
 }
@@ -1009,6 +1012,37 @@ static void scan_saves(void)
 	if (mn->sel >= mn->count) mn->sel = 0;
 }
 
+/* Secondary storage that shows up next to ux0: when a storage manager (StorageMgr, YAMT, ...) mounts
+ * an SD2Vita or the original memory card elsewhere. A device counts if the system can report its size. */
+static int extra_devs(char devs[4][8])
+{
+	/* A card is "there" when its root can be opened. (sceAppMgrGetDevInfo only answers for ux0:, and
+	 * the names of the missing devices fail with ENODEV, so this is a reliable test.) */
+	static const char *cand[4] = { "uma0:", "imc0:", "xmc0:", "grw0:" };
+	int n = 0;
+	for (int i = 0; i < 4; i++) {
+		SceUID d = sceIoDopen(cand[i]);
+		if (d >= 0) { sceIoDclose(d); snprintf(devs[n++], 8, "%s", cand[i]); }
+	}
+	return n;
+}
+
+/* Capacity and free space of any mounted device (VitaShell uses the same devctl). */
+static int dev_space(const char *dev, uint64_t *max_size, uint64_t *free_size)
+{
+	if (sceAppMgrGetDevInfo(dev, max_size, free_size) >= 0 && *max_size) return 1;
+	SceIoDevInfo info;
+	memset(&info, 0, sizeof(info));
+	if (sceIoDevctl(dev, 0x3001, NULL, 0, &info, sizeof(info)) >= 0 && info.max_size) {
+		*max_size = info.max_size;
+		*free_size = info.free_size;
+		return 1;
+	}
+	return 0;
+}
+
+static void rescan_media(void);
+
 static const char *theme_names[13] = { "Automatic (by month)", "January", "February", "March", "April",
 	"May", "June", "July", "August", "September", "October", "November", "December" };
 static const char *launch_names[4] = { "A: standard", "B: open flag", "C: launch flag", "D: stay open" };
@@ -1024,6 +1058,14 @@ static void setting_text(int id, char *out, size_t n)
 	case SET_CONFIRM: snprintf(out, n, "%s", onoff[confirm_dialogs]); break;
 	case SET_LAUNCH:  snprintf(out, n, "%s", launch_names[launch_mode]); break;
 	case SET_ART:     snprintf(out, n, "%s", onoff[art_decrypt]); break;
+	case SET_EXTRA: {
+		if (!extra_storage) { snprintf(out, n, "Off"); break; }
+		char devs[4][8];
+		int nd = extra_devs(devs);
+		if (nd == 0) snprintf(out, n, "On (none)");
+		else if (nd == 1) snprintf(out, n, "On (%s)", devs[0]);
+		else snprintf(out, n, "On (%d cards)", nd);
+		break; }
 	default: out[0] = 0;
 	}
 }
@@ -1048,6 +1090,10 @@ static void setting_change(int id, int dir)
 	case SET_STARTUP: startup_anim = !startup_anim; break;
 	case SET_CONFIRM: confirm_dialogs = !confirm_dialogs; break;
 	case SET_LAUNCH:  launch_mode = (launch_mode + dir + 4) % 4; break;
+	case SET_EXTRA:
+		extra_storage = !extra_storage;
+		rescan_media();
+		break;
 	case SET_ART:
 		art_decrypt = !art_decrypt;
 		if (art_decrypt) {
@@ -1084,7 +1130,22 @@ static Item *add_folder(int m, const char *title, const char *sub, int submenu, 
 static void scan_videos(void)
 {
 	clear_menu(M_VIDEOS);
-	static const char *dirs[] = { "ux0:video", "ux0:data/video", "ux0:Movies", "ux0:pspemu/VIDEO", NULL };
+	static const char *base[] = { "ux0:video", "ux0:data/video", "ux0:Movies", "ux0:pspemu/VIDEO" };
+	char extra_dirs[12][24];
+	const char *dirs[20];
+	int nd = 0;
+	for (unsigned i = 0; i < sizeof(base) / sizeof(base[0]); i++) dirs[nd++] = base[i];
+	if (extra_storage) {
+		static const char *suffix[3] = { "video", "pspemu/VIDEO", "Movies" };
+		char devs[4][8];
+		int n = extra_devs(devs);
+		for (int i = 0; i < n; i++)
+			for (int k = 0; k < 3; k++) {
+				snprintf(extra_dirs[i * 3 + k], sizeof(extra_dirs[0]), "%s%s", devs[i], suffix[k]);
+				dirs[nd++] = extra_dirs[i * 3 + k];
+			}
+	}
+	dirs[nd] = NULL;
 	for (int d = 0; dirs[d]; d++) {
 		SceUID dfd = sceIoDopen(dirs[d]);
 		if (dfd < 0) continue;
@@ -1146,7 +1207,8 @@ static void build_menus(void)
 	add_value(M_VITAXMB, "Startup Animation", SET_STARTUP, tex_launch);
 	add_value(M_VITAXMB, "Confirmation Dialogs", SET_CONFIRM, tex_usb);
 	add_value(M_VITAXMB, "Game Launch Method", SET_LAUNCH, tex_launch);
-	add_value(M_VITAXMB, "Decrypt Game Artwork (experimental)", SET_ART, tex_photo_s);
+	add_value(M_VITAXMB, "Extra Storage (beta)", SET_EXTRA, tex_ms_s);
+	add_value(M_VITAXMB, "Decrypt Artwork (beta)", SET_ART, tex_photo_s);
 	theme_item_update();
 
 	/* Photo / Music / Video open the Vita's own apps */
@@ -2039,11 +2101,24 @@ static void sysinfo_gather(void)
 	uint64_t mx = 0, fr = 0;
 	if (sceAppMgrGetDevInfo("ux0:", &mx, &fr) >= 0 && mx)
 		info_add("Memory Card", "%.1f GB free of %.1f GB", fr / 1073741824.0, mx / 1073741824.0);
+	if (extra_storage) {
+		char devs[4][8];
+		int nd = extra_devs(devs);
+		for (int i = 0; i < nd; i++) {
+			uint64_t emx = 0, efr = 0;
+			char label[40];
+			snprintf(label, sizeof(label), "Storage (%s)", devs[i]);
+			if (dev_space(devs[i], &emx, &efr))
+				info_add(label, "%.1f GB free of %.1f GB", efr / 1073741824.0, emx / 1073741824.0);
+			else
+				info_add(label, "mounted");
+		}
+	}
 
 	int pct = scePowerGetBatteryLifePercent();
 	info_add("Battery", "%d%%%s", pct < 0 ? 0 : pct, scePowerIsBatteryCharging() ? " (charging)" : "");
 	info_add("Processor", "%d MHz", scePowerGetArmClockFrequency());
-	info_add("VitaXMB", "1.0.0");
+	info_add("VitaXMB", "1.1.0");
 }
 
 /* Details for a game or a saved-data entry. */
@@ -2275,6 +2350,16 @@ static void music_start(int index)
 	mus_cmd = MC_LOAD;
 }
 static void music_stop(void) { mus_cmd = MC_STOP; music_index = -1; }
+
+/* Re-reads the music and video lists (the Extra Storage setting changed). */
+static void rescan_media(void)
+{
+	if (mus_ready) music_stop();
+	scan_videos();
+	scan_music_wrapper();
+	menus[M_VIDEOS].pos = (float)menus[M_VIDEOS].sel;
+	menus[M_TRACKS].pos = (float)menus[M_TRACKS].sel;
+}
 static void music_toggle(void) { if (mus_ready) mus_playing = !mus_playing; }
 static void music_seek_rel(int delta_ms)
 {
@@ -2370,7 +2455,10 @@ static void scan_music_dir(const char *dir, int depth)
 			if (depth < 3) scan_music_dir(full, depth + 1);
 		} else {
 			const char *dot = strrchr(e.d_name, '.');
-			if (dot && !strcasecmp(dot, ".mp3")) {
+			int dup = 0;
+			for (int i = 0; i < menus[M_TRACKS].count; i++)
+				if (!strcasecmp(menus[M_TRACKS].items[i].path, full)) { dup = 1; break; }
+			if (dot && !strcasecmp(dot, ".mp3") && !dup) {
 				char title[64], artist[48];
 				id3_read(full, title, sizeof(title), artist, sizeof(artist));
 				if (!title[0]) snprintf(title, sizeof(title), "%.*s", (int)(dot - e.d_name) > 60 ? 60 : (int)(dot - e.d_name), e.d_name);
@@ -2388,6 +2476,17 @@ static void scan_music(void)
 	clear_menu(M_TRACKS);
 	scan_music_dir("ux0:music", 0);
 	scan_music_dir("ux0:pspemu/MUSIC", 0);
+	if (extra_storage) {
+		static const char *suffix[2] = { "music", "pspemu/MUSIC" };
+		char devs[4][8];
+		int n = extra_devs(devs);
+		for (int i = 0; i < n; i++)
+			for (int k = 0; k < 2; k++) {
+				char path[32];
+				snprintf(path, sizeof(path), "%s%s", devs[i], suffix[k]);
+				scan_music_dir(path, 0);
+			}
+	}
 	qsort(menus[M_TRACKS].items, menus[M_TRACKS].count, sizeof(Item), item_cmp);
 	if (menus[M_TRACKS].count == 0) add_item(M_TRACKS, KIND_INFO, "No songs", "Put MP3 files in ux0:music", NULL, tex_music_s);
 	if (menus[M_TRACKS].sel >= menus[M_TRACKS].count) menus[M_TRACKS].sel = 0;

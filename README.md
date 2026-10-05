@@ -27,6 +27,7 @@
 - [How it works](#how-it-works)
 - [Game artwork](#game-artwork)
 - [Music and video](#music-and-video)
+- [Extra storage (experimental)](#extra-storage-experimental)
 - [Settings reference](#settings-reference)
 - [Repository layout](#repository-layout)
 - [Known issues](#known-issues)
@@ -143,12 +144,24 @@ Rows show the landscape *gate* image of the app's LiveArea and, on rest, its bac
 
 Retail games' own files are encrypted, and the Vita only keeps `appmeta` copies for roughly 500 bubbles. For games without one, run **[CopyIcons](https://github.com/cy33hc/copyicons)** once: it copies each game's `pic0.png`/`icon0.png` into `ur0:appmeta`, and VitaXMB picks them up. Games with no artwork at all show their square icon on a landscape plate.
 
-An experimental *Decrypt Game Artwork* setting (off by default, asks for confirmation) can mount a game's encrypted files through VitaShell's own kernel modules, as CopyIcons does, and cache the plain copies. It loads kernel modules and has frozen a test device, so treat it as an experiment.
+An experimental *Decrypt Artwork (beta)* setting (off by default, asks for confirmation) can mount a game's encrypted files through VitaShell's own kernel modules, as CopyIcons does, and cache the plain copies. It loads kernel modules and has frozen a test device, so treat it as an experiment.
 
 ## Music and video
 
 - Music plays **MP3** files. The system blocks apps from reading `ux0:music`, so VitaXMB scans **`ux0:pspemu/MUSIC`** (Adrenaline's folder). Put your songs there. FLAC and WAV are not supported.
 - Videos are listed from `ux0:pspemu/VIDEO`; selecting one opens the Vita's Videos app (a decoder is out of scope).
+
+## Extra storage (experimental)
+
+**Beta, off by default. Please test it and report what you see.** If a storage manager (StorageMgr, YAMT and similar) mounts a second card as `uma0:`, `imc0:`, `xmc0:` or `grw0:`, the *Extra Storage (beta)* setting makes VitaXMB also look there:
+
+- music in `<card>/music` and `<card>/pspemu/MUSIC`
+- videos in `<card>/video`, `<card>/pspemu/VIDEO` and `<card>/Movies`
+- a *Storage (<card>)* row with free and total space in System Information
+
+The setting shows what it found (`Off`, `On (none)`, `On (uma0:)`, `On (N cards)`). Duplicates are skipped, because memory cards ignore letter case.
+
+Tested on one console: an SD2Vita as `ux0:` plus a real memory card mounted as `uma0:`; its music is listed and playable. Not tested: videos from a second card, other mount names, and games or saved data on the second card (the game list still reads `ux0:app` only).
 
 ## Settings reference
 
@@ -161,7 +174,8 @@ An experimental *Decrypt Game Artwork* setting (off by default, asks for confirm
 | Startup Animation | On / Off | fade in + slide in |
 | Confirmation Dialogs | On / Off | asks before leaving the XMB |
 | Game Launch Method | A-D | the system call and flag used to start a title |
-| Decrypt Game Artwork | On / Off | experimental, see above |
+| Extra Storage (beta) | On / Off | experimental, see above |
+| Decrypt Artwork (beta) | On / Off | experimental, see above |
 
 **Settings > Theme Settings > Color**: automatic (follows the month, like the PSP) or any of the twelve months. October is measured from a real PSP capture; the other months are approximations.
 
@@ -198,7 +212,8 @@ Everything in the tree is needed to build; nothing else is committed.
 - If launch requests are being refused (the call returns `0x80802026` in a debug build), the console's app manager is in a bad state: reboot the Vita.
 - `ux0:music`, `ux0:video` and `ux0:picture` cannot be read by apps; use the Adrenaline folders or the Vita's own apps.
 - The PlayStation Network and "Extras" categories of the real PSP are not implemented.
-- The *Decrypt Game Artwork* experiment can freeze the console; it is off by default.
+- The *Decrypt Artwork (beta)* experiment can freeze the console; it is off by default.
+- *Extra Storage (beta)* is new and lightly tested, see above.
 
 ## Credits and licenses
 
