@@ -91,8 +91,6 @@ VitaXMB is an *unsafe* homebrew (it reads other apps' folders and launches other
 2. Copy it to the Vita and install it with VitaShell (Cross on the file, then confirm).
 3. Start **VitaXMB** from the LiveArea. Settings are saved in `ux0:data/VitaXMB/config.bin`; failures are logged to `ux0:data/VitaXMB/log.txt`.
 
-Tested on firmware 3.65.
-
 ## Building from source
 
 You need the [VitaSDK](https://vitasdk.org/) plus these libraries from its package manager:
@@ -220,7 +218,7 @@ Everything in the tree is needed to build; nothing else is committed.
 ## Known issues
 
 - **Starting a game shows the Vita's LiveArea bubble transition** before the game appears. The system draws it whenever one app starts another, so no launcher (VitaShell and vita-launcher included) can skip it; only a shell-level plugin could.
-- **System apps cannot be started by title ID** from an app (the Vita shows error `C2-12570-5`). VitaXMB therefore opens them through their own URI schemes (`wbapp0:` Browser, `settings_dlg:` Settings, `psns:` PlayStation Store, `pspy:` Party, `psnmsg:` Messages, `near:` Near, `photo:`, `music:`, `video:`). The Browser and the Settings pages are confirmed on firmware 3.65; the others come from a working third-party launcher but have not been tried on every setup.
+- **System apps cannot be started by title ID** from an app (the Vita shows error `C2-12570-5`). VitaXMB therefore opens them through their own URI schemes (`wbapp0:` Browser, `settings_dlg:` Settings, `psns:` PlayStation Store, `pspy:` Party, `psnmsg:` Messages, `near:` Near, `photo:`, `music:`, `video:`). The Browser and the Settings pages are confirmed to work; the others come from a working third-party launcher but have not been tried on every setup.
 - If launch requests are being refused (the call returns `0x80802026` in a debug build), the console's app manager is in a bad state: reboot the Vita.
 - `ux0:music`, `ux0:video` and `ux0:picture` cannot be read by apps; use the Adrenaline folders or the Vita's own apps.
 - The PlayStation Network and "Extras" categories of the real PSP are not implemented.
