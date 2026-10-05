@@ -203,7 +203,7 @@ Everything in the tree is needed to build; nothing else is committed.
 
 VitaXMB is released under the **GNU GPL v3** (see `LICENSE`).
 
-- [VitaSDK](https://vitasdk.org/), [vita2d](https://github.com/xerpi/vita2d), [FreeType](https://freetype.org/), [HarfBuzz](https://harfbuzz.github.io/), libpng, libjpeg-turbo, zlib, bzip2.
+- [VitaSDK](https://vitasdk.org/), [libvita2d](https://github.com/xerpi/libvita2d), [FreeType](https://freetype.org/), [HarfBuzz](https://harfbuzz.github.io/), libpng, libjpeg-turbo, zlib, bzip2.
 - [minimp3](https://github.com/lieff/minimp3) by lieff (CC0).
 - [VitaShell](https://github.com/TheOfficialFloW/VitaShell) by TheFloW (GPL-3.0) and [CopyIcons](https://github.com/cy33hc/copyicons) by cy33hc (GPL-3.0): the user-module header, the import stub and the PFS-mount approach used for artwork decryption.
 - [vita-uriCaller](https://github.com/Freakler/vita-uriCaller) for the list of system URIs.
