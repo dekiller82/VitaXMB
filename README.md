@@ -197,10 +197,11 @@ A PSP theme is partly code (patches to the PSP's own modules), which the Vita ca
 **Please help by reporting what is wrong.** Open an [issue](https://github.com/dekiller82/VitaXMB/issues) with:
 
 - the theme's name and where you got it,
-- a **screenshot or photo from VitaXMB** and, if you can, a **photo of the same screen on a real PSP** (the same menu, the same selected item),
+- a **screenshot from VitaXMB**,
+- if you can, a **reference of the same screen on the real PSP XMB** (the same menu, the same selected item). You don't need a PSP: run the theme in **Adrenaline** on your Vita (it runs the PSP's own XMB) and take a screenshot there, or photograph a real PSP,
 - what looks wrong (position, colours, sounds, animation, a crash).
 
-Real PSP photos are the most useful: they show what the theme is supposed to look like, which the theme file alone does not. Themes are not included in this repository; they belong to their authors.
+The PSP reference is the most useful part: it shows what the theme is supposed to look like, which the theme file alone does not. Themes are not included in this repository; they belong to their authors.
 
 ## Extra storage (experimental)
 
