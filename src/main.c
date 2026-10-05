@@ -3447,7 +3447,7 @@ int main(void)
 					if (lay == LAY_GAME && depth > 0) go_back = 1;   /* the arrow at the left edge points back */
 					else move_cat = -1;
 				}
-				if (pressed & SCE_CTRL_RIGHT) move_cat = 1;
+				if ((pressed & SCE_CTRL_RIGHT) && !(lay == LAY_GAME && depth > 0)) move_cat = 1;   /* inside a game list Right does nothing */
 			}
 			if (pressed & SCE_CTRL_UP)    move_item = -1;
 			if (pressed & SCE_CTRL_DOWN)  move_item = 1;
