@@ -3443,7 +3443,10 @@ int main(void)
 				if (pressed & SCE_CTRL_LEFT)  go_back = 1;     /* the arrow points back */
 				if (pressed & SCE_CTRL_RIGHT) cycle = 1;
 			} else {
-				if (pressed & SCE_CTRL_LEFT)  move_cat = -1;
+				if (pressed & SCE_CTRL_LEFT) {
+					if (lay == LAY_GAME && depth > 0) go_back = 1;   /* the arrow at the left edge points back */
+					else move_cat = -1;
+				}
 				if (pressed & SCE_CTRL_RIGHT) move_cat = 1;
 			}
 			if (pressed & SCE_CTRL_UP)    move_item = -1;
