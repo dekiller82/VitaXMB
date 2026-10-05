@@ -1,0 +1,32 @@
+# Whitelist: ship only what is needed to build (plus the README and its images).
+# Everything not listed here -- build output, screenshots, debug/capture tooling, the original
+# (unfixed) fonts, source mp3s, personal notes -- is ignored.
+/*
+!/.gitignore
+!/LICENSE
+!/README.md
+!/CMakeLists.txt
+!/src/
+!/sce_sys/
+!/assets/
+!/third_party/
+!/docs/
+
+# only the PSP icons the code actually loads
+/assets/icons/tex_camera.png
+/assets/icons/tex_cert.png
+/assets/icons/tex_cnf_password.png
+/assets/icons/tex_cnf_rss.png
+/assets/icons/tex_umd.png
+/assets/icons/tex_update.png
+
+# third_party: just the headers and the import stub that the build uses
+/third_party/vitashell_stub/*
+!/third_party/vitashell_stub/vitashell_user.h
+!/third_party/vitashell_stub/vitashell_kernel.h
+!/third_party/vitashell_stub/libVitaShellUser_stub_weak.a
+
+# docs: README images and the demo GIF only
+/docs/*
+!/docs/images/
+!/docs/demo.gif
