@@ -2104,7 +2104,7 @@ static void draw_folder_column(int m, float xoff, float amul, float pic_a)
 		if (!tex) continue;
 		float w, h;
 		if (it->icon) fit_box(tex, bw, bh, &w, &h);
-		else { w = h = fminf(bh, 84.0f); }           /* the 64px stock icons stay small */
+		else { w = h = fminf(bh, it->stock == tex_folder ? 92.0f : 84.0f); }   /* the 64px stock icons stay small */
 		if (it->icon && !it->icon_rect) {            /* no landscape art: frame the square icon like one */
 			vita2d_draw_rectangle(ix - bw / 2 + 3, y - bh / 2 + 4, bw, bh, RGBA8(0, 0, 0, a * 25 / 100));
 			vita2d_draw_rectangle(ix - bw / 2, y - bh / 2, bw, bh, RGBA8(18, 28, 38, a * 80 / 100));
@@ -2115,9 +2115,13 @@ static void draw_folder_column(int m, float xoff, float amul, float pic_a)
 		if (t < 0.5f) {                               /* selected row: label unless art covers it */
 			int ta = (int)(a * (1.0f - clampf(pic_a * 1.6f, 0.0f, 1.0f)) * (1.0f - t * 2.0f));
 			if (ta > 4) {
-				float tx = ix + (it->icon ? bw : w) / 2 + 24;      /* the small stock icons keep the label close */
+				float tx = ix + (it->icon ? bw / 2 + 24 : w / 2 + 29);      /* the small stock icons keep the label close */
 				float maxw = SCREEN_W - 24.0f - tx;
-				if (it->sub[0]) {
+				if (it->sub[0] && !it->icon) {                    /* like the other lists: title above the rule, subtitle below */
+					ptext_vc_fit(tx - text_bearing(28, it->title), y - 21, WHITE(ta), 28, it->title, maxw);
+					ptext_vc_fit(tx - text_bearing(22, it->sub), y + 23, WHITE(ta * 8 / 10), 22, it->sub, maxw);
+					draw_rule(tx - 1, 948, y, ta);
+				} else if (it->sub[0]) {
 					ptext_vc_fit(tx - text_bearing(28, it->title), y - 15, WHITE(ta), 28, it->title, maxw);
 					ptext_vc_fit(tx - text_bearing(20, it->sub), y + 17, WHITE(ta * 7 / 10), 20, it->sub, maxw);
 					draw_rule(tx - 1, 948, y, ta);
