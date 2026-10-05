@@ -2084,6 +2084,8 @@ static void fit_box(const vita2d_texture *t, float bw, float bh, float *w, float
 
 /* The PSP's game-folder view: big landscape icon on the selection, small ones stacked
  * above and below, the title left to the background art (pic_alpha fades the text). */
+static void draw_rule(float x0, float x1, float y, int la);
+
 static void draw_folder_column(int m, float xoff, float amul, float pic_a)
 {
 	Menu *mn = &menus[m];
@@ -2113,11 +2115,12 @@ static void draw_folder_column(int m, float xoff, float amul, float pic_a)
 		if (t < 0.5f) {                               /* selected row: label unless art covers it */
 			int ta = (int)(a * (1.0f - clampf(pic_a * 1.6f, 0.0f, 1.0f)) * (1.0f - t * 2.0f));
 			if (ta > 4) {
-				float tx = ix + bw / 2 + 24;
+				float tx = ix + (it->icon ? bw : w) / 2 + 24;      /* the small stock icons keep the label close */
 				float maxw = SCREEN_W - 24.0f - tx;
 				if (it->sub[0]) {
 					ptext_vc_fit(tx - text_bearing(28, it->title), y - 15, WHITE(ta), 28, it->title, maxw);
 					ptext_vc_fit(tx - text_bearing(20, it->sub), y + 17, WHITE(ta * 7 / 10), 20, it->sub, maxw);
+					draw_rule(tx - 1, 948, y, ta);
 				} else {
 					ptext_vc_fit(tx - text_bearing(28, it->title), y, WHITE(ta), 28, it->title, maxw);
 				}
