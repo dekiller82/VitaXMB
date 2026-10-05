@@ -87,7 +87,7 @@ static const char *cat_names[CAT_COUNT] = { "Settings", "Photo", "Music", "Video
 
 enum { KIND_INFO, KIND_APP, KIND_EXIT, KIND_FOLDER, KIND_VALUE, KIND_URI, KIND_PAGE, KIND_TRACK };
 /* values for KIND_VALUE rows */
-enum { SET_THEME, SET_CLOCK, SET_SOUND, SET_STARTUP, SET_CONFIRM, SET_LAUNCH, SET_ART, SET_EXTRA };
+enum { SET_THEME, SET_CLOCK, SET_SOUND, SET_STARTUP, SET_CONFIRM, SET_LAUNCH, SET_ART, SET_EXTRA, SET_SHOW };   /* SET_SHOW + category: show / hide that category */
 /* values for KIND_PAGE rows */
 enum { PAGE_NONE, PAGE_SYSINFO, PAGE_GAMEINFO, PAGE_PLAYER };
 
@@ -140,6 +140,7 @@ static int clock24 = 1;       /* 24-hour clock like the PSP capture */
 static int sound_on = 1;      /* UI sound effects */
 static int startup_anim = 1;  /* fade-in / slide-in at launch */
 static int confirm_dialogs = 1; /* ask before leaving the XMB */
+static int cat_hidden[CAT_COUNT];  /* categories the user hid (Settings and Game can't be hidden) */
 static int extra_storage = 0;   /* EXPERIMENTAL: also look on a second card (uma0:, imc0:, xmc0:, grw0:) */
 
 /* Base colours per month, as {top, bottom} RGB. */
@@ -305,11 +306,21 @@ static int audio_thread(SceSize args, void *argp)
 /* Config                                                              */
 /* ------------------------------------------------------------------ */
 
+/* Position of a category on the bar once the hidden ones are left out. */
+static int cat_slot(int c)
+{
+	int n = 0;
+	for (int i = 0; i < c; i++) if (!cat_hidden[i]) n++;
+	return n;
+}
+
+static int cat_can_hide(int c) { return c != CAT_SETTINGS && c != CAT_GAME; }
+
 static void config_load(void)
 {
 	SceUID fd = sceIoOpen(CONFIG_PATH, SCE_O_RDONLY, 0);
 	if (fd < 0) return;
-	int v[8] = { 0, 0, 0, 1, 1, 1, 1, 0 };
+	int v[9] = { 0, 0, 0, 1, 1, 1, 1, 0, 0 };
 	int n = sceIoRead(fd, v, sizeof(v));
 	sceIoClose(fd);
 	if (n >= 4 && v[0] >= 0 && v[0] <= 12) theme = v[0];
@@ -320,6 +331,8 @@ static void config_load(void)
 	if (n >= 24 && (v[5] == 0 || v[5] == 1)) startup_anim = v[5];
 	if (n >= 28 && (v[6] == 0 || v[6] == 1)) confirm_dialogs = v[6];
 	if (n >= 32 && (v[7] == 0 || v[7] == 1)) extra_storage = v[7];
+	if (n >= 36 && v[8] >= 0 && v[8] < (1 << CAT_COUNT))
+		for (int c = 0; c < CAT_COUNT; c++) cat_hidden[c] = cat_can_hide(c) && ((v[8] >> c) & 1);
 }
 
 static void ensure_dirs(void)
@@ -333,7 +346,9 @@ static void config_save(void)
 	ensure_dirs();
 	SceUID fd = sceIoOpen(CONFIG_PATH, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
 	if (fd < 0) return;
-	int v[8] = { theme, launch_mode, art_decrypt, clock24, sound_on, startup_anim, confirm_dialogs, extra_storage };
+	int mask = 0;
+	for (int c = 0; c < CAT_COUNT; c++) if (cat_hidden[c]) mask |= 1 << c;
+	int v[9] = { theme, launch_mode, art_decrypt, clock24, sound_on, startup_anim, confirm_dialogs, extra_storage, mask };
 	sceIoWrite(fd, v, sizeof(v));
 	sceIoClose(fd);
 }
@@ -1249,7 +1264,9 @@ static void setting_text(int id, char *out, size_t n)
 		else if (nd == 1) snprintf(out, n, "On (%s)", devs[0]);
 		else snprintf(out, n, "On (%d cards)", nd);
 		break; }
-	default: out[0] = 0;
+	default:
+		if (id >= SET_SHOW && id < SET_SHOW + CAT_COUNT) snprintf(out, n, "%s", cat_hidden[id - SET_SHOW] ? "Hidden" : "Shown");
+		else out[0] = 0;
 	}
 }
 
@@ -1276,6 +1293,10 @@ static void setting_change(int id, int dir)
 	case SET_EXTRA:
 		extra_storage = !extra_storage;
 		rescan_media();
+		break;
+	default:
+		if (id >= SET_SHOW && id < SET_SHOW + CAT_COUNT && cat_can_hide(id - SET_SHOW))
+			cat_hidden[id - SET_SHOW] = !cat_hidden[id - SET_SHOW];
 		break;
 	case SET_ART:
 		art_decrypt = !art_decrypt;
@@ -1390,6 +1411,10 @@ static void build_menus(void)
 	add_value(M_VITAXMB, "Startup Animation", SET_STARTUP, tex_launch);
 	add_value(M_VITAXMB, "Confirmation Dialogs", SET_CONFIRM, tex_usb);
 	add_value(M_VITAXMB, "Game Launch Method", SET_LAUNCH, tex_launch);
+	add_value(M_VITAXMB, "Photo Category", SET_SHOW + CAT_PHOTO, tex_photo_s);
+	add_value(M_VITAXMB, "Music Category", SET_SHOW + CAT_MUSIC, tex_music_s);
+	add_value(M_VITAXMB, "Video Category", SET_SHOW + CAT_VIDEO, tex_video_s);
+	add_value(M_VITAXMB, "Network Category", SET_SHOW + CAT_NETWORK, tex_net_s);
 	add_value(M_VITAXMB, "Extra Storage (beta)", SET_EXTRA, tex_ms_s);
 	add_value(M_VITAXMB, "Decrypt Artwork (beta)", SET_ART, tex_photo_s);
 	theme_item_update();
@@ -2309,7 +2334,7 @@ static void sysinfo_gather(void)
 	int pct = scePowerGetBatteryLifePercent();
 	info_add("Battery", "%d%%%s", pct < 0 ? 0 : pct, scePowerIsBatteryCharging() ? " (charging)" : "");
 	info_add("Processor", "%d MHz", scePowerGetArmClockFrequency());
-	info_add("VitaXMB", "1.1.1");
+	info_add("VitaXMB", "1.2.0");
 }
 
 /* Details for a game or a saved-data entry. */
@@ -3257,7 +3282,7 @@ int main(void)
 	int cat = CAT_GAME;
 	int cur = cat;                      /* menu currently shown */
 	int stack[MAX_DEPTH], depth = 0;    /* parents when inside a folder */
-	float cat_pos = (float)cat;
+	float cat_pos = (float)cat_slot(cat);
 
 	/* column transition: new list slides in from slide_dir, old one slides out */
 	int prev_menu = -1;
@@ -3457,6 +3482,7 @@ int main(void)
 
 			if (move_cat) {
 				int n = cat + move_cat;
+				while (n >= 0 && n < CAT_COUNT && cat_hidden[n]) n += move_cat;      /* skip hidden categories */
 				if (n >= 0 && n < CAT_COUNT) {
 					cat = n;
 					prev_menu = cur;
@@ -3764,8 +3790,11 @@ int main(void)
 
 		/* ---------------- animation ---------------- */
 		const float dt_s = 1.0f / 60.0f;
-		cat_pos = lerpf(cat_pos, (float)cat, 0.22f);
-		if (fabsf(cat_pos - cat) < 0.004f) cat_pos = (float)cat;
+		{
+			float want_pos = (float)cat_slot(cat);
+			cat_pos = lerpf(cat_pos, want_pos, 0.22f);
+			if (fabsf(cat_pos - want_pos) < 0.004f) cat_pos = want_pos;
+		}
 		for (int i = 0; i < M_COUNT; i++) {
 			menus[i].pos = lerpf(menus[i].pos, (float)menus[i].sel, 0.25f);
 			if (fabsf(menus[i].pos - menus[i].sel) < 0.004f) menus[i].pos = (float)menus[i].sel;
@@ -3846,7 +3875,8 @@ int main(void)
 		float fe = ease_out(folder_t), se = ease_out(sub_t);
 		float hide = fmaxf(fe, se);
 		for (int i = 0; i < CAT_COUNT; i++) {
-			float d = i - cat_pos;
+			if (cat_hidden[i]) continue;
+			float d = cat_slot(i) - cat_pos;
 			float x = CAT_X + d * CAT_SPACING + clampf(d, -1.0f, 1.0f) * 11.0f - 196.0f * fe - 118.0f * se;
 			x -= (1.0f - su_bar) * 240.0f;
 			float sel = 1.0f - clampf(fabsf(d), 0.0f, 1.0f);
@@ -3864,7 +3894,7 @@ int main(void)
 		{
 			const float slide_px = 110.0f;
 			int owner_cur = menu_owner(cur);
-			float dc = owner_cur - cat_pos;
+			float dc = cat_slot(owner_cur) - cat_pos;
 			float cur_x = dc * CAT_SPACING + clampf(dc, -1.0f, 1.0f) * 11.0f;
 			float cur_a = (1.0f - clampf(fabsf(dc), 0.0f, 1.0f)) * su_bar;
 			cur_x -= (1.0f - su_bar) * 240.0f;
@@ -3880,7 +3910,7 @@ int main(void)
 			} else {
 				if (prev_menu >= 0) {
 					int owner_prev = menu_owner(prev_menu);
-					float dp = owner_prev - cat_pos;
+					float dp = cat_slot(owner_prev) - cat_pos;
 					float px = dp * CAT_SPACING + clampf(dp, -1.0f, 1.0f) * 11.0f;
 					float pa = 1.0f - clampf(fabsf(dp), 0.0f, 1.0f);
 					if (folder_trans && owner_prev == owner_cur) {

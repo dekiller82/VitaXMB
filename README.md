@@ -47,6 +47,7 @@
 **Made for the Vita**
 
 - **Game** lists every installed title and homebrew bubble (and your saved data), reads each app's own LiveArea artwork, and starts it. *Information* shows title, ID, version and location.
+- **Hide categories** you don't use (Photo, Music, Video, Network) in *Settings > VitaXMB Settings*; the bar closes up and left/right skip them.
 - **Folders** keep a big library tidy: create folders in the game list and tick the games and homebrew that belong in each one (see [Folders](#folders)).
 - **Settings** has real, working pages: *System Information* (firmware, nickname, MAC address, model, memory card, battery, CPU clock), plus VitaXMB's own settings (theme color, clock format, sound effects, startup animation, confirmation dialogs, launch method).
 - **Music** is an MP3 player with the PSP's player screen: LED spectrum analyzer driven by the real audio, track badge, ID3 title and artist, elapsed and total time, progress bar, next/previous and seeking.
@@ -184,6 +185,7 @@ Tested on one console: an SD2Vita as `ux0:` plus a real memory card mounted as `
 | Startup Animation | On / Off | fade in + slide in |
 | Confirmation Dialogs | On / Off | asks before leaving the XMB |
 | Game Launch Method | A-D | the system call and flag used to start a title |
+| Photo / Music / Video / Network Category | Shown / Hidden | hides that category from the bar; Settings and Game always stay |
 | Extra Storage (beta) | On / Off | experimental, see above |
 | Decrypt Artwork (beta) | On / Off | experimental, see above |
 
