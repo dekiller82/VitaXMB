@@ -107,7 +107,9 @@ Two small community plugins make VitaXMB the first thing you see: **AutoBoot** s
 
 **1. Install the plugins.** The easiest way is [**AutoPlugin 2**](https://github.com/ONElua/AutoPlugin2), a plugin manager: install AutoBoot and NoLockScreen through it and it registers them for you, so you do not have to edit `tai/config.txt`. Both are also on [VitaDB](https://vitadb.rinnegatamante.it/).
 
-**2. Tell AutoBoot to start VitaXMB.** AutoBoot reads the **title ID** of the app, not its name. Open `ux0:data/AutoBoot/boot.cfg` (create it if it does not exist) and make its only content:
+**2. Tell AutoBoot to start VitaXMB.** In AutoPlugin 2 open **Extras > AutoBoot > Select App** and pick **VitaXMB** from the list. That is all.
+
+Or do it by hand: AutoBoot reads the **title ID** of the app, not its name. Open `ux0:data/AutoBoot/boot.cfg` (create it if it does not exist) and make its only content:
 
 ```
 VXMB00001
