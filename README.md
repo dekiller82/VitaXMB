@@ -23,6 +23,7 @@
 - [Screenshots](#screenshots)
 - [Controls](#controls)
 - [Installing](#installing)
+- [Starting VitaXMB when the Vita turns on](#starting-vitaxmb-when-the-vita-turns-on)
 - [Building from source](#building-from-source)
 - [How it works](#how-it-works)
 - [Game artwork](#game-artwork)
@@ -99,6 +100,29 @@ VitaXMB is an *unsafe* homebrew (it reads other apps' folders and launches other
 1. Build `VitaXMB.vpk` (see below) or take it from a release.
 2. Copy it to the Vita and install it with VitaShell (Cross on the file, then confirm).
 3. Start **VitaXMB** from the LiveArea. Settings are saved in `ux0:data/VitaXMB/config.bin`; failures are logged to `ux0:data/VitaXMB/log.txt`.
+
+## Starting VitaXMB when the Vita turns on
+
+Two small community plugins make VitaXMB the first thing you see: **AutoBoot** starts an app as soon as the Vita has booted, and **NoLockScreen** removes the swipe-to-unlock screen. Neither is part of VitaXMB and both are optional.
+
+**1. Install the plugins.** The easiest way is [**AutoPlugin 2**](https://github.com/ONElua/AutoPlugin2), a plugin manager: install AutoBoot and NoLockScreen through it and it registers them for you, so you do not have to edit `tai/config.txt`. Both are also on [VitaDB](https://vitadb.rinnegatamante.it/).
+
+**2. Tell AutoBoot to start VitaXMB.** AutoBoot reads the **title ID** of the app, not its name. Open `ux0:data/AutoBoot/boot.cfg` (create it if it does not exist) and make its only content:
+
+```
+VXMB00001
+```
+
+No spaces, no extra lines. Typing `VitaXMB` does not work: the Vita identifies apps by their title ID, the folder name under `ux0:app/`. VitaXMB is `VXMB00001`.
+
+**3. NoLockScreen.** Nothing to configure when it was installed through AutoPlugin 2. Use version 2.0 or newer: it also skips the lock screen at boot (older versions only skip it when you wake the Vita). If you install it by hand, copy `nolockscreen.suprx` to `ux0:tai/` and add `ux0:tai/nolockscreen.suprx` under `*main` in `tai/config.txt`. See [NoLockScreen on GameBrew](https://www.gamebrew.org/wiki/NoLockScreen_Vita). Note that it also bypasses any passcode you have set, so anyone who picks up the Vita can use it.
+
+**If it does not start:**
+
+- VitaXMB must be installed (its bubble is on the LiveArea) and **Enable Unsafe Homebrew** must be on in the HENkaku settings.
+- Check that `boot.cfg` holds exactly `VXMB00001`.
+- Hold **L1** while the Vita boots to skip plugins, and look at the plugin list in AutoPlugin 2.
+- A plugin that starts an app at boot can fire before the system is ready; some builds have a delay setting.
 
 ## Building from source
 
