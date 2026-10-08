@@ -16,7 +16,7 @@
 
 #define UPD_REPO "dekiller82/VitaXMB"
 #ifndef APP_VERSION
-#define APP_VERSION "1.2.0"
+#define APP_VERSION "1.3.2"
 #endif
 #define UPD_DIR    "ux0:data/pkg"                    /* where the system installer expects an unpacked package */
 #define UPD_VPK    CONFIG_DIR "/update.vpk"
