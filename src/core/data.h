@@ -46,13 +46,26 @@ typedef struct {
 } Item;
 
 typedef struct {
-	Item items[MAX_ITEMS];
+	Item *items;            /* heap array of cap entries (menus_init) */
+	int cap;
 	int count;
 	int sel;
 	float pos;              /* animated selection position */
 } Menu;
 
 static Menu menus[M_COUNT];
+
+/* Lists that follow the size of the library get GAME_MAX rows, every other menu MAX_ITEMS. The arrays are
+ * allocated once and never move, because the icon thread keeps pointers into them. */
+static void menus_init(void)
+{
+	for (int m = 0; m < M_COUNT; m++) {
+		int big = m == M_MEMCARD || m == M_SAVES || m == M_FOLDER;
+		menus[m].cap = big ? GAME_MAX : MAX_ITEMS;
+		menus[m].items = (Item *)calloc(menus[m].cap, sizeof(Item));
+		if (!menus[m].items) menus[m].cap = 0;
+	}
+}
 
 /* Theme: "monthly" (0) follows the PSP behaviour, 1..12 forces a month. */
 static int theme = 0;

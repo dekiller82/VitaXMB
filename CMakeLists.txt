@@ -13,8 +13,8 @@ include("${VITASDK}/share/vita.cmake" REQUIRED)
 
 set(VITA_APP_NAME "VitaXMB")
 set(VITA_TITLEID  "VXMB00001")
-set(VITA_VERSION  "01.31")
-set(APP_VERSION   "1.3.1")      # the same release as VITA_VERSION, as the updater compares it with the GitHub tag
+set(VITA_VERSION  "01.32")
+set(APP_VERSION   "1.3.2")      # the same release as VITA_VERSION, as the updater compares it with the GitHub tag
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2 -std=gnu11")
 

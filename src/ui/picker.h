@@ -3,7 +3,7 @@
 /* ---- folder picker: tick the games that belong in a folder ---- */
 static int pk_open, pk_folder = -1, pk_sel;
 static float pk_t, pk_top;
-static unsigned char pk_on[MAX_ITEMS];
+static unsigned char pk_on[GAME_MAX];
 
 static int pk_count(void)
 {

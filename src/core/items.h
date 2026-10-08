@@ -8,7 +8,7 @@ static Item *add_item(int m, int kind, const char *title, const char *sub, const
                       vita2d_texture *stock)
 {
 	Menu *mn = &menus[m];
-	if (mn->count >= MAX_ITEMS) return NULL;
+	if (mn->count >= mn->cap) return NULL;
 	Item *it = &mn->items[mn->count++];
 	memset(it, 0, sizeof(*it));
 	it->kind = kind;

@@ -4,6 +4,7 @@ static void scan_apps(void)
 {
 	clear_menu(M_MEMCARD);
 	Menu *mn = &menus[M_MEMCARD];
+	if (!all_apps) all_apps = (Item *)calloc(GAME_MAX, sizeof(Item));
 
 	SceUID dfd = sceIoDopen("ux0:app");
 	if (dfd >= 0) {
@@ -39,7 +40,8 @@ static void scan_apps(void)
 	}
 	qsort(mn->items, mn->count, sizeof(Item), item_cmp);
 	n_all = mn->count;
-	memcpy(all_apps, mn->items, n_all * sizeof(Item));
+	if (all_apps) memcpy(all_apps, mn->items, n_all * sizeof(Item));
+	else n_all = 0;
 	rebuild_game_lists();
 }
 

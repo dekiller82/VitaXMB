@@ -67,6 +67,7 @@ int main(void)
 	SceUID athread = sceKernelCreateThread("xmb_audio", audio_thread, 0x10000100, 0x10000, 0, 0, NULL);
 	if (athread >= 0) sceKernelStartThread(athread, 0, NULL);
 
+	menus_init();
 	ensure_dirs();
 	config_load();
 	pt_init();

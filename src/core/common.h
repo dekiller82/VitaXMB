@@ -60,6 +60,7 @@
 #define CONFIG_PATH CONFIG_DIR "/config.bin"
 
 #define MAX_ITEMS  256
+#define GAME_MAX   2048    /* installed apps / saves that fit in the game lists */
 #define ICON_KEEP  7        /* icons kept loaded within +/- this many rows */
 
 #define WHITE(a) RGBA8(255, 255, 255, (a))

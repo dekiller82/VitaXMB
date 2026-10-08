@@ -6,15 +6,16 @@
  * The list shown in Memory Card is: the folders, then the apps that are in none. */
 
 #define MAX_FOLDERS 32
-#define MAX_ASSIGN  1024
+#define MAX_ASSIGN  GAME_MAX
 #define FOLDERS_PATH CONFIG_DIR "/folders.txt"
 
 static char folder_name[MAX_FOLDERS][40];
 static int n_folders;
 static struct { char id[16]; int folder; } assign[MAX_ASSIGN];
 static int n_assign;
-static Item all_apps[MAX_ITEMS];        /* every installed app; the menus hold copies */
+static Item *all_apps;                  /* every installed app (GAME_MAX, allocated by scan_apps); the menus hold copies */
 static int n_all;
+static short app_fold[GAME_MAX];        /* folder of all_apps[i], refreshed by refresh_app_folders() */
 static int open_folder = -1;            /* folder shown in M_FOLDER */
 
 static int app_folder(const char *id)
@@ -109,10 +110,16 @@ static void folder_delete(int f)
 	n_folders--;
 }
 
+/* app_folder() walks the assignment list, so look every app up once per rebuild instead of once per folder. */
+static void refresh_app_folders(void)
+{
+	for (int i = 0; i < n_all; i++) app_fold[i] = (short)app_folder(all_apps[i].id);
+}
+
 static int folder_count(int f)
 {
 	int c = 0;
-	for (int i = 0; i < n_all; i++) if (app_folder(all_apps[i].id) == f) c++;
+	for (int i = 0; i < n_all; i++) if (app_fold[i] == f) c++;
 	return c;
 }
 
@@ -120,7 +127,7 @@ static int folder_count(int f)
 static void menu_add_app(int m, const Item *src)
 {
 	Menu *mn = &menus[m];
-	if (mn->count >= MAX_ITEMS) return;
+	if (mn->count >= mn->cap) return;
 	Item *d = &mn->items[mn->count];
 	*d = *src;
 	d->icon = NULL; d->icon_tried = 0; d->load_state = 0; d->pending_pix = NULL;
@@ -137,7 +144,7 @@ static void fill_folder_menu(int f)
 	while (loader_busy) sceKernelDelayThread(1000);
 	if (f >= 0 && f < n_folders)
 		for (int i = 0; i < n_all; i++)
-			if (app_folder(all_apps[i].id) == f) menu_add_app(M_FOLDER, &all_apps[i]);
+			if (app_fold[i] == f) menu_add_app(M_FOLDER, &all_apps[i]);
 	if (menus[M_FOLDER].count == 0)
 		add_item(M_FOLDER, KIND_INFO, "Empty folder", "Options > Select Games", NULL, tex_folder);
 	Menu *mn = &menus[M_FOLDER];
@@ -150,6 +157,7 @@ static void fill_folder_menu(int f)
 static void rebuild_game_lists(void)
 {
 	Menu *mn = &menus[M_MEMCARD];
+	refresh_app_folders();
 	clear_menu(M_MEMCARD);
 	loader_pause = 1;
 	while (loader_busy) sceKernelDelayThread(1000);
@@ -170,7 +178,7 @@ static void rebuild_game_lists(void)
 		if (it) { it->submenu = M_FOLDER; it->value_id = f; }
 	}
 	for (int i = 0; i < n_all; i++)
-		if (app_folder(all_apps[i].id) < 0) menu_add_app(M_MEMCARD, &all_apps[i]);
+		if (app_fold[i] < 0) menu_add_app(M_MEMCARD, &all_apps[i]);
 	if (mn->count == 0)
 		add_item(M_MEMCARD, KIND_INFO, "No games found", "Nothing in ux0:app", NULL, tex_game_s);
 	if (mn->sel >= mn->count) mn->sel = mn->count - 1;
