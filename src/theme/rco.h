@@ -174,18 +174,19 @@ static vita2d_texture *rco_image_at(Rco *r, uint32_t pos)
 		if (((fc >> 16) == 0 || tmp) && src) {
 			int w, h;
 			uint8_t *pix = pt_gim_decode(src, len, &w, &h);
-			if (pix && rco_shadow_mask) {                       /* only a real mask: every pixel opaque and grey (a normal RGBA shadow stays as it is) */
+			if (pix && rco_shadow_mask) {                       /* only a real mask: its alpha is binary (opaque, or the transparent corners); a normal soft-alpha shadow stays as it is */
 				for (int k = 0; k < w * h; k++) {
-					const uint8_t *q = pix + (size_t)k * 4;
-					if (q[3] < 250 || q[0] != q[1] || q[1] != q[2]) { rco_shadow_mask = 0; break; }
+					int al = pix[(size_t)k * 4 + 3];
+					if (al > 5 && al < 250) { rco_shadow_mask = 0; break; }
 				}
 			}
 			if (pix && rco_shadow_mask)
 				for (int k = 0; k < w * h; k++) {
 					uint8_t *q = pix + (size_t)k * 4, v = q[0] > q[1] ? q[0] : q[1];
 					if (q[2] > v) v = q[2];
+					int opaque = q[3] >= 250;
 					q[0] = q[1] = q[2] = 0;
-					q[3] = v;
+					q[3] = opaque ? v : 0;
 				}
 			tex = pt_tex(pix, w, h);
 		}
