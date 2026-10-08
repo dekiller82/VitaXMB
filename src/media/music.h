@@ -483,8 +483,8 @@ static void draw_column(int m, float xoff, float amul, float grow, float sub_p)
 		const float bottom = 352.0f, cx = 480.0f + xoff;
 		draw_icon_wh(tex, cx, bottom - h / 2.0f, w, h, a);
 		if (!(themed && th >= 70.0f)) {
-			ptext_vc(cx - ptext_width(28, it->title) / 2.0f, bottom + 28.0f, WHITE(a), 28, it->title);
-			if (it->sub[0]) ptext_vc(cx - ptext_width(22, it->sub) / 2.0f, bottom + 58.0f, WHITE(a * 8 / 10), 22, it->sub);
+			ptext_vc(cx - ptext_width(PT_TITLE(28), it->title) / 2.0f, bottom + 28.0f, WHITE(a), PT_TITLE(28), it->title);
+			if (it->sub[0]) ptext_vc(cx - ptext_width(PT_SUB(22), it->sub) / 2.0f, bottom + 58.0f, WHITE(a * 8 / 10), PT_SUB(22), it->sub);
 		}
 		return;
 	}
@@ -520,7 +520,7 @@ static void draw_column(int m, float xoff, float amul, float grow, float sub_p)
 			float msc = it->icon ? 1.0f : pt_menu_scale;                 /* the theme's size for the menu's icons */
 			float isz = (it->icon ? 72.0f : lerpf(112.0f, 120.0f, sel) * msc) + 36.0f * grow * sel;
 			isz = lerpf(isz, it->icon ? 72.0f : lerpf(84.0f, 92.0f, sel) * msc, sp);
-			vita2d_texture *tex = it->icon ? it->icon : pt_swap(it->stock);
+			vita2d_texture *tex = item_pic(it, m);
 			if (tex && !it->icon && it->glow > 0.02f) draw_glow(tex, ix, y, isz, it->glow * 0.95f * (a / 255.0f));
 			draw_icon(tex, ix, y, isz, a);
 		}
@@ -531,11 +531,11 @@ static void draw_column(int m, float xoff, float amul, float grow, float sub_p)
 		float tx = text_x + xoff;
 		float maxw = SCREEN_W - 24.0f - text_x;
 		if (it->sub[0]) {
-			ptext_vc_fit(tx - text_bearing(28, it->title), y - 20, WHITE(ta), 28, it->title, maxw);
-			ptext_vc_fit(tx - text_bearing(22, it->sub), y + 22, WHITE(ta), 22, it->sub, maxw);
+			ptext_vc_fit(tx - text_bearing(PT_TITLE(28), it->title), y - 20, WHITE(ta), PT_TITLE(28), it->title, maxw);
+			ptext_vc_fit(tx - text_bearing(PT_SUB(22), it->sub), y + 22, WHITE(ta), PT_SUB(22), it->sub, maxw);
 			if (emph > 0.3f) draw_rule(tx - 1, 950, y, (int)(ta * clampf(emph * 1.4f - 0.2f, 0.0f, 1.0f)));
 		} else {
-			ptext_vc_fit(tx - text_bearing(28, it->title), y, WHITE(ta), 28, it->title, maxw);
+			ptext_vc_fit(tx - text_bearing(PT_TITLE(28), it->title), y, WHITE(ta), PT_TITLE(28), it->title, maxw);
 		}
 	}
 }

@@ -33,7 +33,8 @@ static void draw_rule(float x0, float x1, float y, int la)
 
 static void draw_glow(vita2d_texture *tex, float cx, float cy, float size, float strength)
 {
-	vita2d_texture *gl = tex ? glow_for(tex) : NULL;
+	vita2d_texture *gl = tex ? res_extra(tex, 0) : NULL;           /* the theme's own focus picture, else the blurred outline */
+	if (!gl && tex) gl = glow_for(tex);
 	if (!gl) return;
 	float ew, eh;
 	icon_dims(tex, size, &ew, &eh);
@@ -66,7 +67,7 @@ static void draw_text_rows(int m, float xoff, float amul)
 		int a = (int)(255 * fade * amul * lerpf(0.85f, 1.0f, emph));
 		if (a <= 4) continue;
 		int value = it->kind == KIND_VALUE && it->sub[0];
-		float tw = ptext_width(26, it->title), vw = value ? ptext_width(24, it->sub) : 0.0f;
+		float tw = ptext_width(26, it->title), vw = value ? ptext_width(PT_SUB(22), it->sub) : 0.0f;
 		float total = tw + (value ? 28.0f + vw : 0.0f), x0 = cx - total / 2.0f;
 		if (pt_focus && emph > 0.02f) {
 			float fw = total + 96.0f, fh = vita2d_texture_get_height(pt_focus) * 1.9f;          /* the bar reaches past the text, arrows at its ends */
@@ -74,7 +75,7 @@ static void draw_text_rows(int m, float xoff, float amul)
 			vita2d_draw_texture_tint_scale(pt_focus, cx - fw / 2.0f, y - fh / 2.0f, fw / vita2d_texture_get_width(pt_focus), 1.9f, WHITE((int)(a * emph)));
 		}
 		ptext_vc(x0, y + 2, WHITE(a), 26, it->title);
-		if (value) ptext_vc(x0 + tw + 28.0f, y + 2, WHITE(a * 9 / 10), 24, it->sub);
+		if (value) ptext_vc(x0 + tw + 28.0f, y + 2, WHITE(a * 9 / 10), PT_SUB(22), it->sub);
 	}
 }
 
@@ -105,7 +106,7 @@ static void draw_sub_list(int m, float xoff, float amul)
 		float maxw = (it->kind == KIND_VALUE ? 745.0f : 940.0f) - 303.0f - 14.0f;
 		if (two_line) {
 			ptext_vc_fit(tx - text_bearing(28, it->title), y - 20, WHITE(a), 28, it->title, maxw);
-			ptext_vc_fit(tx - text_bearing(22, it->sub), y + 22, WHITE(a), 22, it->sub, maxw);
+			ptext_vc_fit(tx - text_bearing(PT_SUB(22), it->sub), y + 22, WHITE(a), PT_SUB(22), it->sub, maxw);
 			if (sel > 0.3f) draw_rule(tx - 1, 948, y, (int)(a * clampf(sel * 1.4f - 0.2f, 0.0f, 1.0f)));
 		} else {
 			ptext_vc_fit(tx - text_bearing(28, it->title), y + 3, WHITE(a), 28, it->title, maxw);

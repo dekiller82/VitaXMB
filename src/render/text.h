@@ -372,7 +372,7 @@ static void text_draw(float x, float y, unsigned int col, unsigned int size, con
 	unsigned int a = col >> 24;
 	unsigned int shadow = RGBA8(sh_col[0], sh_col[1], sh_col[2], (unsigned int)(a * sh_alpha));
 	const float by = y;                 /* fractional on purpose: text glides with the icons */
-	const int sdx = sh_dx, sdy = sh_dy;
+	const int sdx = (int)(sh_dx * pt_shadow_kx + 0.5f), sdy = (int)(sh_dy * pt_shadow_ky + 0.5f);       /* a theme can patch the shadow offset */
 
 	for (int pass = text_flat ? 1 : 0; pass < 2; pass++) {
 		float pen = x;
@@ -467,6 +467,13 @@ static void draw_icon_wh(vita2d_texture *t, float cx, float cy, float w, float h
 	float sx = w / vita2d_texture_get_width(t), sy = h / vita2d_texture_get_height(t);
 	float x = cx - w / 2, y = cy - h / 2;
 	static const struct { float dx, dy; int w; } sh[] = { { 3, 4, 22 }, { 5, 6, 12 }, { 1, 5, 12 } };
+	vita2d_texture *own = res_extra(t, 1);                  /* the theme's own shadow picture: centred, two PSP pixels down and right */
+	if (own) {
+		float ow = vita2d_texture_get_width(own) * sx, oh = vita2d_texture_get_height(own) * sy;
+		vita2d_draw_texture_tint_scale(own, cx + 2.0f * sx - ow / 2, cy + 2.0f * sy - oh / 2, sx, sy, WHITE(a));
+		vita2d_draw_texture_tint_scale(t, x, y, sx, sy, RGBA8(255, 255, 255, a));
+		return;
+	}
 	for (int i = 0; i < 3; i++)
 		vita2d_draw_texture_tint_scale(t, x + sh[i].dx, y + sh[i].dy, sx, sy,
 		                               RGBA8(0, 0, 0, a * sh[i].w / 100));

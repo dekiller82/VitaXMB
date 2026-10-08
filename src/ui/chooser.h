@@ -18,17 +18,18 @@ static void ch_name(int i, char *out, size_t n)
 {
 	if (ch_kind == 1) snprintf(out, n, "%s", theme_names[i]);
 	else if (i == 0) snprintf(out, n, "%s", "Off");
+	else if (i == pt_n + 1) snprintf(out, n, "%s", "Random");        /* a theme picked at every start (CXMB's random.ctf) */
 	else snprintf(out, n, "%.40s", pt_list[i - 1].name);
 }
 
-static int ch_current(void) { return ch_kind == 1 ? theme : pt_active + 1; }
+static int ch_current(void) { return ch_kind == 1 ? theme : (pt_random ? pt_n + 1 : pt_active + 1); }
 
 static void ch_start(int kind)
 {
 	ch_kind = kind;
 	if (kind == 0) pt_scan();
 	for (int i = 0; i <= PT_MAX; i++) { if (ch_prev[i]) { defer_free(ch_prev[i]); ch_prev[i] = NULL; } ch_prev_tried[i] = 0; }
-	ch_n = kind == 1 ? 13 : pt_n + 1;
+	ch_n = kind == 1 ? 13 : pt_n + (pt_n > 0 ? 2 : 1);
 	ch_sel = ch_current();
 	if (ch_sel < 0 || ch_sel >= ch_n) ch_sel = 0;
 	ch_theme_before = theme;
@@ -44,7 +45,7 @@ static vita2d_texture *ch_picture(int i)
 		return month_sky_tex(mi);
 	}
 	if (i == 0) return month_sky_tex(theme_now_month);
-	if (i < 0 || i > PT_MAX) return NULL;
+	if (i < 0 || i > PT_MAX || i > pt_n) return NULL;                 /* Random has no preview */
 	if (!ch_prev_tried[i]) {
 		ch_prev_tried[i] = 1;
 		ch_prev[i] = pt_peek(i - 1);
@@ -58,7 +59,8 @@ static void ch_apply(void)
 		theme = ch_sel;
 		config_save();
 	} else {
-		if (ch_sel == 0) pt_unload(); else pt_load(ch_sel - 1);
+		pt_random = pt_n > 0 && ch_sel == pt_n + 1;
+		if (ch_sel == 0) pt_unload(); else if (pt_random) pt_pick_random(); else pt_load(ch_sel - 1);
 		pt_save_selection();
 	}
 	theme_item_update();                        /* the Settings rows show the new Color / Custom Theme name */
@@ -102,7 +104,7 @@ static void draw_chooser(float t, const Palette *pal)
 	if (ch_top > 0.5f) ptext_vc(px + 14, y0 - 30, WHITE(a * 6 / 10), 20, "...");
 	if (ch_top + visible < ch_n) ptext_vc(px + 14, y0 + visible * row - 14, WHITE(a * 6 / 10), 20, "...");
 	glyph_cross(px + 24, 506, 8, a);
-	ptext_vc(px + 40, 506, WHITE(a), 22, "Select");
+	ptext_vc(px + 40, 506, BTN_LABEL(a), 22, "Select");
 	glyph_ring(px + 150, 506, 8, a);
-	ptext_vc(px + 166, 506, WHITE(a), 22, "Back");
+	ptext_vc(px + 166, 506, BTN_LABEL(a), 22, "Back");
 }

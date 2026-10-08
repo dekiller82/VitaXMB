@@ -83,11 +83,11 @@ static void draw_picker(float t)
 		}
 	}
 	glyph_cross(200, 508, 8, a);
-	ptext_vc(219, 508, WHITE(a), 24, "Select");
+	ptext_vc(219, 508, BTN_LABEL(a), 24, "Select");
 	glyph_triangle(380, 508, 9, a);
-	ptext_vc(399, 508, WHITE(a), 24, "All / None");
+	ptext_vc(399, 508, BTN_LABEL(a), 24, "All / None");
 	glyph_ring(600, 508, 9, a);
-	ptext_vc(619, 508, WHITE(a), 24, "Done");
+	ptext_vc(619, 508, BTN_LABEL(a), 24, "Done");
 }
 
 /* The "Options" pill at the bottom right: a single rounded shape (row by row, so the translucent

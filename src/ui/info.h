@@ -99,5 +99,5 @@ static void draw_info_page(float alpha)
 		ptext_vc_fit(490 - text_bearing(28, info_rows[i].value), y, WHITE(a), 28, info_rows[i].value, 940.0f - 490.0f);
 	}
 	glyph_ring(532, 522, 10, a);
-	ptext_vc(552, 522, WHITE(a), 28, "Back");
+	ptext_vc(552, 522, BTN_LABEL(a), 28, "Back");
 }

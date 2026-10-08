@@ -59,11 +59,11 @@ static vita2d_texture *res_fg(const char *label)
 	return res_stock_fg ? rco_image_by_label(res_stock_fg, label) : NULL;
 }
 
-/* VitaXMB's own pictures that a theme's resource files can replace: (picture, file, label) */
-typedef struct { vita2d_texture **own; const char *rco, *label; } ResMap;
+/* VitaXMB's own pictures that a theme's resource files can replace: (picture, file, label, the picture's focus glow, its shadow) */
+typedef struct { vita2d_texture **own; const char *rco, *label, *focus, *shadow; } ResMap;
 static const ResMap res_map[] = {
-	{ &tex_badge,  "sysconf_plugin", "tex_sysconf_icon" },          /* the icon of every row in the Settings pages */
-	{ &tex_folder, "game_plugin",    "tex_directory" },             /* a folder in the game lists */
+	{ &tex_badge,  "sysconf_plugin", "tex_sysconf_icon", "tex_sysconf_focus",  "tex_sysconf_shadow_icon" },     /* the icon of every row in the Settings pages */
+	{ &tex_folder, "game_plugin",    "tex_directory",    "tex_directory_focus", "tex_directory_shadow" },       /* a folder in the game lists */
 };
 #define RES_MAP_N ((int)(sizeof(res_map) / sizeof(res_map[0])))
 
@@ -78,8 +78,29 @@ static vita2d_texture *res_swap(vita2d_texture *t)
 	return t;
 }
 
+/* The theme's glow (the "_focus" picture the PSP puts behind the selected row) or shadow for one of those pictures, or NULL. */
+static vita2d_texture *res_extra(vita2d_texture *t, int shadow)
+{
+	for (int i = 0; i < RES_MAP_N; i++)
+		if (*res_map[i].own && res_theme(res_map[i].rco, res_map[i].label) == t)
+			return res_theme(res_map[i].rco, shadow ? res_map[i].shadow : res_map[i].focus);
+	return NULL;
+}
+
+/* What a game or save row shows before its icon is there (loading) and when it has none (broken); only a theme's pictures,
+ * the stock rows keep the app's own icon. kind: 0 game, 1 save data. */
+static vita2d_texture *res_placeholder(int kind, int loading)
+{
+	static const char *rco[2] = { "game_plugin", "savedata_plugin" };
+	static const char *lab[2][2] = { { "tex_broken_data", "tex_loading" }, { "tex_default_icon", "icon_loading" } };
+	return res_theme(rco[kind], lab[kind][loading ? 1 : 0]);
+}
+
 static int res_owned(vita2d_texture *t)
 {
+	for (int k = 0; k < 2; k++)
+		for (int l = 0; l < 2; l++)
+			if (t && res_placeholder(k, l) == t) return 1;
 	for (int i = 0; i < RES_MAP_N; i++)
 		if (*res_map[i].own && res_theme(res_map[i].rco, res_map[i].label) == t) return 1;
 	return 0;

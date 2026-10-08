@@ -6,7 +6,11 @@ static int glyph_tex(const char *label, float cx, float cy, float r, int a)
 	vita2d_texture *t = res_theme("system_plugin_fg", label);
 	if (!t) return 0;
 	float w = (float)vita2d_texture_get_width(t), h = (float)vita2d_texture_get_height(t), s = (2.0f * r + 2.0f) / (w > h ? w : h);
-	vita2d_draw_texture_tint_scale(t, cx - w * s / 2.0f, cy - h * s / 2.0f, s, s, WHITE(a));
+	char sl[40];
+	snprintf(sl, sizeof(sl), "%s_shadow", label);                      /* tex_cross_shadow ...: centred, two pixels down and right */
+	vita2d_texture *sh = res_theme("system_plugin_fg", sl);
+	if (sh) vita2d_draw_texture_tint_scale(sh, cx + 2.0f * s - vita2d_texture_get_width(sh) * s / 2.0f, cy + 2.0f * s - vita2d_texture_get_height(sh) * s / 2.0f, s, s, WHITE(a));
+	vita2d_draw_texture_tint_scale(t, cx - w * s / 2.0f, cy - h * s / 2.0f, s, s, BTN_ICON(a));
 	return 1;
 }
 
@@ -41,6 +45,8 @@ static void glyph_arrow_left(float cx, float cy, float h, int a)
 	vita2d_texture *t = res_theme("system_plugin", "tex_arrow_left");          /* a theme's own arrow */
 	if (t) {
 		float s = h / (float)vita2d_texture_get_height(t);
+		vita2d_texture *sh = res_theme("system_plugin", "tex_arrow_left_shadow");
+		if (sh) vita2d_draw_texture_tint_scale(sh, cx + 2.0f * s - vita2d_texture_get_width(sh) * s / 2.0f, cy + 2.0f * s - vita2d_texture_get_height(sh) * s / 2.0f, s, s, WHITE(a));
 		vita2d_draw_texture_tint_scale(t, cx - vita2d_texture_get_width(t) * s / 2.0f, cy - h / 2.0f, s, s, WHITE(a));
 		return;
 	}

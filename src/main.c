@@ -876,7 +876,11 @@ int main(void)
 			}
 		}
 
-		if (opt_t > 0.0f) draw_options_panel(opt_t, opt_ids, opt_n, opt_sel, &pal, opt_menu == M_VIDEOS ? POPT_VIDEO : (opt_menu == M_TRACKS ? POPT_MUSIC : POPT_GAME));
+		if (opt_t > 0.0f) {
+				int octx = opt_menu == M_VIDEOS ? POPT_VIDEO : (opt_menu == M_TRACKS ? POPT_MUSIC : (opt_menu == M_SAVES ? POPT_ETC : POPT_GAME));
+				for (int oi = 0; oi < opt_n; oi++) if (opt_ids[oi] == OPT_DELFOLDER) octx = POPT_FOLDER;          /* a folder's own Options */
+				draw_options_panel(opt_t, opt_ids, opt_n, opt_sel, &pal, octx);
+			}
 		if (pk_t > 0.0f) draw_picker(pk_t);
 		if (ch_t > 0.0f) draw_chooser(ch_t, &pal);
 		if (dlg_t > 0.0f) draw_dialog(dlg_t, dlg_l1, dlg_l2, dlg_sel);

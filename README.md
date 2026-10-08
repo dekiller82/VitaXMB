@@ -212,13 +212,16 @@ VitaXMB can update itself from its GitHub releases (`dekiller82/VitaXMB`).
 
 What is read from a theme today:
 
-- wallpaper or the month's sky, the 12 colour pictures, text and icon colours, icon sizes, the theme's font
-- the wave (a theme's own model, or none), the boot intro, and the XMB sounds
-- icons, battery and clock, category bar spacing / gap / move speed, strip, panel and text-list layouts
-- the row spacing of every list and how fast lists scroll (the theme's code patches for `paf.prx`, `vshmain.prx` and `common_gui.prx`)
-- the status bar: mute icon, busy spinner and the charging animation, in the theme's own pictures
-- the Options panel and game list positions, the separator line, arrows and check boxes
-- a theme that turns the whole XMB in space (such as *Clear XMB Black*)
+- **Look:** wallpaper or the month's sky (the set the real XMB loads on a PSP-3000 and later), the colour pictures, text and icon colours, icon sizes and the theme's font.
+- **Background and boot:** the wave (a theme's own model, or none), the boot intro and the XMB sounds.
+- **Category bar and lists:** icons, spacing, gap and move speed of the bar, strip, panel and text-list layouts, the row spacing of every list and how fast lists scroll, and how far the bar slides aside when a list opens. These come from the theme's code patches for `paf.prx`, `vshmain.prx` and `common_gui.prx`, which VitaXMB reads and applies.
+- **Text:** the size of the sub text under a row and of the Options text, and the text shadow, as the theme sets them.
+- **Status bar:** the clock (position, size, opacity and colour), the battery and its charging animation, the mute icon and the busy spinner, in the theme's own pictures or the PSP's.
+- **Pictures:** the Options panel and game list positions (including a folder's Options), the separator line, arrows, check boxes, the glow behind the selected row, shadows, the button glyphs and their colours, and the loading and broken pictures of game and save rows.
+- **3D themes** that turn the whole XMB in space.
+- **Random:** choose *Random* at the end of the Custom Theme list to get a different theme at every start.
+
+Not supported yet: some theme layout constants whose meaning needs a real PSP to check against, the special-date skies, the game boot video, fonts other than the main one, and themes made for firmware other than 6.60 / 6.61. The PSP's keyboard, HOME menu and volume overlay are drawn by the Vita itself and are not themed.
 
 A PSP theme is partly code (patches to the PSP's own modules), which the Vita cannot run, so VitaXMB reads what the theme *says* and imitates the rest. Some themes will look different from the real PSP, and some parts are not supported yet.
 

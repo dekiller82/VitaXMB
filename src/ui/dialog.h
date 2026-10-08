@@ -21,7 +21,7 @@ static void draw_dialog(float t, const char *l1, const char *l2, int sel)
 		ptext_vc(480 - w / 2.0f, y, WHITE(oa), 28, opts[i]);
 	}
 	glyph_cross(405, 508, 8, a);
-	ptext_vc(424, 508, WHITE(a), 24, "OK");
+	ptext_vc(424, 508, BTN_LABEL(a), 24, "OK");
 	glyph_ring(515, 508, 9, a);
-	ptext_vc(534, 508, WHITE(a), 24, "Cancel");
+	ptext_vc(534, 508, BTN_LABEL(a), 24, "Cancel");
 }

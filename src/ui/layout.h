@@ -64,8 +64,9 @@ static void draw_status_pic(vita2d_texture *t, float cx, float cy, int a)
 	draw_icon_wh(t, cx, cy, 2.0f * vita2d_texture_get_width(t), 2.0f * vita2d_texture_get_height(t), a);
 }
 
-/* The PSP's busy spinner (system_plugin_fg.rco, tex_busy: 15 frames of 34 px stacked, shown 17 PSP pixels wide = 1:1 here) at the
- * bottom right, with its shadow two PSP pixels lower and to the right. It fades in and out. */
+/* The PSP's busy spinner (system_plugin_fg.rco, tex_busy): a sheet of 17 px cells, two identical columns by 30 rows, one frame
+ * per row; the plane is 17 PSP pixels wide, so it is drawn at twice that. It sits at the bottom right with its shadow two PSP
+ * pixels lower and to the right, and fades in and out. */
 static void draw_busy(float dt_s)
 {
 	static float vis;
@@ -73,15 +74,16 @@ static void draw_busy(float dt_s)
 	if (vis <= 0.01f) return;
 	vita2d_texture *t = res_fg("tex_busy"), *sh = res_fg("tex_busy_shadow");
 	if (!t) return;
-	int fw = vita2d_texture_get_width(t), fh = fw;
-	int frames = vita2d_texture_get_height(t) / (fh ? fh : 1);
-	if (frames < 1) return;
-	int frame = (int)((sceKernelGetProcessTimeWide() / 50000) % (uint64_t)frames);
+	const int cell = 17;
+	int frames = vita2d_texture_get_height(t) / cell;
+	if (frames < 1 || vita2d_texture_get_width(t) < cell) return;
+	int frame = (int)((sceKernelGetProcessTimeWide() / 33000) % (uint64_t)frames);
 	const float cx = 2.0f * (240.0f + 226.0f), cy = 2.0f * (136.0f + 122.0f);       /* the plane "busy_icon" (226, -122), centred */
 	int a = (int)(255 * vis);
-	if (sh && vita2d_texture_get_width(sh) == fw && vita2d_texture_get_height(sh) >= (frame + 1) * fh)
-		vita2d_draw_texture_tint_part_scale(sh, cx + 4.0f - fw / 2.0f, cy + 4.0f - fh / 2.0f, 0, frame * fh, fw, fh, 1.0f, 1.0f, WHITE(a));
-	vita2d_draw_texture_tint_part_scale(t, cx - fw / 2.0f, cy - fh / 2.0f, 0, frame * fh, fw, fh, 1.0f, 1.0f, WHITE(a));
+	float half = (float)cell;                                                      /* half of the 34 px it is drawn at */
+	if (sh && vita2d_texture_get_width(sh) >= cell && vita2d_texture_get_height(sh) >= (frame + 1) * cell)
+		vita2d_draw_texture_tint_part_scale(sh, cx + 4.0f - half, cy + 4.0f - half, 0, frame * cell, cell, cell, 2.0f, 2.0f, WHITE(a));
+	vita2d_draw_texture_tint_part_scale(t, cx - half, cy - half, 0, frame * cell, cell, cell, 2.0f, 2.0f, WHITE(a));
 }
 
 static void draw_status(const SceDateTime *dt)
@@ -128,16 +130,18 @@ static void draw_status(const SceDateTime *dt)
 		int h12 = dt->hour % 12 ? dt->hour % 12 : 12;
 		snprintf(buf, sizeof(buf), "%d/%d %d:%02d %s", dt->month, dt->day, h12, dt->minute, dt->hour < 12 ? "AM" : "PM");
 	}
-	float tw = ptext_width(24, buf), clock_l;
+	const int csz = (int)(24.0f * pt_clock_scale + 0.5f);
+	const unsigned int ccol = RGBA8(pt_clock_rgb[0], pt_clock_rgb[1], pt_clock_rgb[2], (int)(240.0f * pt_clock_alpha));
+	float tw = ptext_width(csz, buf), clock_l;
 	if (pt_clock_code_set) {                                                       /* the firmware's code puts the clock (vshmain 0x31038) */
 		float r = 2.0f * (240.0f + pt_clock_x) - 10.0f;
-		ptext_right_vc(r, cy, WHITE(240), 24, buf);
+		ptext_right_vc(r, pt_clock_cy, ccol, csz, buf);
 		clock_l = r - tw;
-	} else if (clock_left && pt_clock_w > 0.0f) { ptext_right_vc(942.0f, cy, WHITE(240), 24, buf); clock_l = 942.0f - tw; }       /* a clock with a text box: at the right edge */
-	else if (clock_left) { ptext_vc(56.0f, cy, WHITE(240), 24, buf); clock_l = 56.0f; }
+	} else if (clock_left && pt_clock_w > 0.0f) { ptext_right_vc(942.0f, cy, ccol, csz, buf); clock_l = 942.0f - tw; }       /* a clock with a text box: at the right edge */
+	else if (clock_left) { ptext_vc(56.0f, cy, ccol, csz, buf); clock_l = 56.0f; }
 	else {
 		float r = pt_bat ? 2.0f * (240.0f + pt_clock_x) - 10.0f : bx - 22;
-		ptext_right_vc(r, cy, WHITE(240), 24, buf);
+		ptext_right_vc(r, cy, ccol, csz, buf);
 		clock_l = r - tw;
 	}
 
@@ -145,9 +149,10 @@ static void draw_status(const SceDateTime *dt)
 	if (status_muted()) {
 		vita2d_texture *m = res_fg("tex_mute"), *ms = res_fg("tex_mute_shadow");
 		if (m) {
-			float mw = 2.0f * vita2d_texture_get_width(m), mx = clock_l - 10.0f - mw / 2.0f;
-			draw_status_pic(ms, mx + 4.0f, cy + 4.0f, 255);
-			draw_status_pic(m, mx, cy, 255);
+			float mw = 2.0f * vita2d_texture_get_width(m), mx = clock_l - pt_mute_gap - mw / 2.0f;
+			float my = pt_mute_cy;                                           /* the firmware's own line for it: 124 -> 24 */
+			draw_status_pic(ms, mx + 4.0f, my + pt_mute_sdy, (int)(255 * pt_mute_alpha));
+			draw_status_pic(m, mx, my, (int)(255 * pt_mute_alpha));
 		}
 	}
 }
@@ -236,6 +241,19 @@ static void fit_box(const vita2d_texture *t, float bw, float bh, float *w, float
  * above and below, the title left to the background art (pic_alpha fades the text). */
 static void draw_rule(float x0, float x1, float y, int la);
 
+/* The picture a row shows: its own icon once it is loaded; before that (or when it has none) a theme's loading / broken
+ * picture for a game or a save; else the app's own icon. */
+static vita2d_texture *item_pic(const Item *it, int menu)
+{
+	if (it->icon) return it->icon;
+	if (it->kind == KIND_APP || menu == M_SAVES) {
+		int loading = !it->icon_tried || (it->load_state >= 1 && it->load_state <= 3);
+		vita2d_texture *p = res_placeholder(menu == M_SAVES, loading);
+		if (p) return p;
+	}
+	return pt_swap(it->stock);
+}
+
 static void draw_folder_column(int m, float xoff, float amul, float pic_a)
 {
 	Menu *mn = &menus[m];
@@ -250,7 +268,7 @@ static void draw_folder_column(int m, float xoff, float amul, float pic_a)
 
 		const Item *it = &mn->items[j];
 		float ix = FOLDER_X + pt_list_dx + xoff;
-		vita2d_texture *tex = it->icon ? it->icon : pt_swap(it->stock);
+		vita2d_texture *tex = item_pic(it, m);
 		if (!tex) continue;
 		float w, h;
 		if (it->icon) fit_box(tex, bw, bh, &w, &h);
@@ -268,15 +286,15 @@ static void draw_folder_column(int m, float xoff, float amul, float pic_a)
 				float tx = ix + (it->icon ? bw / 2 + 24 : w / 2 + 29);      /* the small stock icons keep the label close */
 				float maxw = SCREEN_W - 24.0f - tx;
 				if (it->sub[0] && !it->icon) {                    /* like the other lists: title above the rule, subtitle below */
-					ptext_vc_fit(tx - text_bearing(28, it->title), y - 21, WHITE(ta), 28, it->title, maxw);
-					ptext_vc_fit(tx - text_bearing(22, it->sub), y + 23, WHITE(ta * 8 / 10), 22, it->sub, maxw);
+					ptext_vc_fit(tx - text_bearing(PT_TITLE(28), it->title), y - 21, WHITE(ta), PT_TITLE(28), it->title, maxw);
+					ptext_vc_fit(tx - text_bearing(PT_SUB(22), it->sub), y + 23, WHITE(ta * 8 / 10), PT_SUB(22), it->sub, maxw);
 					draw_rule(tx - 1, 948, y, ta);
 				} else if (it->sub[0]) {
-					ptext_vc_fit(tx - text_bearing(28, it->title), y - 15, WHITE(ta), 28, it->title, maxw);
-					ptext_vc_fit(tx - text_bearing(20, it->sub), y + 17, WHITE(ta * 7 / 10), 20, it->sub, maxw);
+					ptext_vc_fit(tx - text_bearing(PT_TITLE(28), it->title), y - 15, WHITE(ta), PT_TITLE(28), it->title, maxw);
+					ptext_vc_fit(tx - text_bearing(PT_SUB(20), it->sub), y + 17, WHITE(ta * 7 / 10), PT_SUB(20), it->sub, maxw);
 					draw_rule(tx - 1, 948, y, ta);
 				} else {
-					ptext_vc_fit(tx - text_bearing(28, it->title), y, WHITE(ta), 28, it->title, maxw);
+					ptext_vc_fit(tx - text_bearing(PT_TITLE(28), it->title), y, WHITE(ta), PT_TITLE(28), it->title, maxw);
 				}
 			}
 		}

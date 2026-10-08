@@ -41,13 +41,28 @@ static float pt_bat_x = 463.0f, pt_bat_y = 12.0f;
 static float pt_clock_x = 208.0f;                   /* the clock text's anchor, centre-based PSP pixels (the stock value) */    /* centre of the battery picture, in PSP pixels (the stock spot) */
 static vita2d_texture *pt_cat[CAT_COUNT];
 static vita2d_texture *pt_blade[CAT_COUNT];      /* full-height category panels (themes like Xbox 360) */
+/* Text: the list item classes set their font size in code (paf.prx: 8.1875 for the title of an icon item, 6.40625 for the sub text of an
+ * item and of a menu item); a theme patches those immediates. The app's sizes (28 / 22 px) are those sizes at 3.43 px per unit, so a
+ * theme's size is applied as the ratio to the stock one. The Text constructor's default shadow offset (2.0, -2.5) likewise. */
+static float pt_title_k = 1.0f, pt_sub_k = 1.0f, pt_opt_k = 1.0f, pt_shadow_kx = 1.0f, pt_shadow_ky = 1.0f;
+static int pt_sz(int px, float k) { int v = (int)((float)px * k + 0.5f); return v < 8 ? 8 : v; }
+#define PT_TITLE(px) pt_sz((px), pt_title_k)
+#define PT_SUB(px)   pt_sz((px), pt_sub_k)
+/* Colours and scales the theme gives the status bar's objects in system_plugin_fg.rco (redScale, greenScale, blueScale, alphaScale,
+ * scaleWidth): the clock text, the mute icon, and the button legend (icon and label). Stock: white, opaque, full size. */
+static unsigned char pt_clock_rgb[3] = { 255, 255, 255 }, pt_btn_icon_rgb[3] = { 255, 255, 255 }, pt_btn_label_rgb[3] = { 255, 255, 255 };
+static float pt_clock_alpha = 1.0f, pt_clock_scale = 1.0f, pt_mute_alpha = 1.0f;
+#define BTN_ICON(a)  RGBA8(pt_btn_icon_rgb[0], pt_btn_icon_rgb[1], pt_btn_icon_rgb[2], (a))
+#define BTN_LABEL(a) RGBA8(pt_btn_label_rgb[0], pt_btn_label_rgb[1], pt_btn_label_rgb[2], (a))
+static float pt_clock_cy = 26.0f, pt_mute_cy = 24.0f, pt_mute_gap = 10.0f, pt_mute_sdy = 4.0f;   /* clock line, mute icon line, gap clock -> mute and its shadow's drop, Vita pixels */
 static int pt_clock_code_set;                     /* the theme patches vshmain, so the clock x is the code's value (0x31108), not the RCO's */
 static float pt_clock_code_x = 203.0f;
 static float pt_sub_ratio = 1.0f, pt_fold_ratio = 1.0f;   /* how far the bar slides left for a list / a game folder, against the stock slide (vshmain states 2 and 3) */
 static float pt_gap = 5.0f;                       /* extra distance either side of the open category, PSP pixels */
 static float pt_ms_left = 200.0f, pt_ms_right = 200.0f;   /* how long a category change takes, milliseconds */
 /* The Options menu of each screen: shift (screen pixels) and size, from that screen's plugin. */
-enum { POPT_GAME, POPT_MUSIC, POPT_PHOTO, POPT_VIDEO, POPT_COUNT };
+enum { POPT_GAME, POPT_MUSIC, POPT_PHOTO, POPT_VIDEO, POPT_FOLDER, POPT_ETC, POPT_COUNT };      /* FOLDER: a game folder's Options, ETC: the other lists' */
+static int pt_opt_hidden[POPT_COUNT];              /* the theme fades the panel's dark base planes out: draw no panel behind the list */
 static struct { float dx, dy, scale; } pt_opt[POPT_COUNT] = { { 0, 0, 1 }, { 0, 0, 1 }, { 0, 0, 1 }, { 0, 0, 1 } };
 static float pt_list_dx = 0.0f;                    /* game list shift, screen pixels */
 static float pt_pitch = 80.0f;                   /* spacing of the category bar in PSP pixels (the PSP's default is 80) */
@@ -381,6 +396,26 @@ static int pt_owned(vita2d_texture *t)
 static void glow_release(vita2d_texture *src);        /* main.c */
 static vita2d_texture *glow_for(vita2d_texture *src);
 
+/* The first 12 attributes (posX, posY, posZ, red, green, blue, alpha, width, height, depth, scaleWidth, scaleHeight) of the object of
+ * a type (0x802 plane, 0x80D text) called name in an RCO's object table; 0 when there is none. */
+static int pt_obj_attrs(const uint8_t *r, uint32_t size, uint32_t type, const char *name, float out[12])
+{
+	if (size <= 0xA4) return 0;
+	uint32_t p_obj = pt_rd32(r + 12 * 4), p_label = pt_rd32(r + 16 * 4);
+	if (p_obj == 0xFFFFFFFFu || p_label >= size) return 0;
+	size_t nl = strlen(name) + 1;
+	for (uint32_t q = p_obj; q + 0x28 + 48 < size; q += 4)
+		if (pt_rd32(r + q) == type && pt_rd32(r + q + 8) == 0x28) {
+			uint32_t lab = pt_rd32(r + q + 4);
+			if (lab == 0xFFFFFFFFu || p_label + lab + nl >= size || memcmp(r + p_label + lab, name, nl) != 0) continue;
+			for (int k = 0; k < 12; k++) { uint32_t w = pt_rd32(r + q + 0x28 + 4 * k); memcpy(&out[k], &w, 4); }
+			return 1;
+		}
+	return 0;
+}
+
+static unsigned char pt_byte01(float v) { return (unsigned char)(v <= 0.0f ? 0 : (v >= 1.0f ? 255 : v * 255.0f + 0.5f)); }
+
 /* The status bar parts in system_plugin_fg.rco: the battery is one picture with four frames, full to empty. */
 static void pt_read_status(FILE *f, const PtFile *pf)
 {
@@ -390,6 +425,15 @@ static void pt_read_status(FILE *f, const PtFile *pf)
 	uint32_t p_data = 0;
 	int n = pt_parse_images(r, pf->size, imgs, 40, &p_data);
 	int w, h;
+	float at[12];
+	if (pt_obj_attrs(r, pf->size, 0x0000080D, "clock", at)) {                   /* the clock text: colour, opacity, size */
+		for (int k = 0; k < 3; k++) pt_clock_rgb[k] = pt_byte01(at[3 + k]);
+		pt_clock_alpha = at[6] < 0.0f ? 0.0f : (at[6] > 1.0f ? 1.0f : at[6]);
+		if (at[10] > 0.3f && at[10] < 3.0f) pt_clock_scale = at[10];
+	}
+	if (pt_obj_attrs(r, pf->size, 0x00000802, "mute", at) && at[6] >= 0.0f && at[6] <= 1.0f) pt_mute_alpha = at[6];
+	if (pt_obj_attrs(r, pf->size, 0x00000802, "cross_icon", at)) for (int k = 0; k < 3; k++) pt_btn_icon_rgb[k] = pt_byte01(at[3 + k]);
+	if (pt_obj_attrs(r, pf->size, 0x0000080D, "cross_label", at)) for (int k = 0; k < 3; k++) pt_btn_label_rgb[k] = pt_byte01(at[3 + k]);
 	uint8_t *px = pt_label_pixels(r, pf->size, imgs, n, p_data, "tex_battery", &w, &h, 0);
 	if (px && w <= 512 && h >= 8 && h <= 256 && h % 4 == 0) pt_bat = pt_tex(px, w, h); else free(px);      /* frames up to 64 px tall: a status bar part, not a big graphic */
 	/* where the theme puts it: the "battery" plane in the object table (centre-based coordinates, y up) */
@@ -458,6 +502,18 @@ static void pt_apply_patches(void)
 {
 	if (pt_fw_magic != 0xDEAD0660u && pt_fw_magic != 0xDEAD0661u) return;    /* the offsets are those of 6.60 / 6.61 */
 
+	float f;
+	f = pp_hilo(PM_PAF, 0x11b36c, 0x4103, 0x0a3d) / 8.1875f;       /* title size of an icon item (stock 8.1875) */
+	if (f > 0.4f && f < 2.0f) pt_title_k = f;
+	f = pp_hilo(PM_PAF, 0x1299e4, 0x40cd, 0xc28f) / 6.40625f;      /* sub text size of an item */
+	if (f > 0.4f && f < 2.0f) pt_sub_k = f;
+	f = pp_hilo(PM_PAF, 0x11c2e0, 0x40cd, 0xc28f) / 6.40625f;      /* text size of a menu item (the Options panel) */
+	if (f > 0.4f && f < 2.0f) pt_opt_k = f;
+	f = pp_hi(PM_PAF, 0xe6d18, 0x4000) / 2.0f;                      /* default text shadow offset, x (stock 2.0) */
+	if (f >= 0.0f && f < 4.0f) pt_shadow_kx = f;
+	f = pp_hi(PM_PAF, 0xe6d9c, 0xc020) / -2.5f;                     /* ... and y (stock -2.5) */
+	if (f >= 0.0f && f < 4.0f) pt_shadow_ky = f;
+
 	float v = pp_hi(PM_PAF, 0x1066f4, 0x42a0);
 	if (v >= 0.0f && v <= 2000.0f) pt_pitch = v;
 	v = pp_hi(PM_PAF, 0x106708, 0x40a0);
@@ -471,6 +527,14 @@ static void pt_apply_patches(void)
 	 * the mute and hold icons are placed to its left (0x30f58, 0x30e84). */
 	pt_clock_code_x = pp_hi(PM_VSH, 0x31108, 0x434b);
 	pt_clock_code_set = 1;
+	/* the same chain sets the clock's y (0x31044, 123: 2 * (136 - 123) = 26, the line the app has always used), the mute icon's y
+	 * and its shadow's (0x30f88 124, 0x30fd8 122), and the gap between the clock and that icon (0x310cc, 5.0) */
+	f = pp_hi(PM_VSH, 0x31044, 0x42f6);
+	if (f > -300.0f && f < 300.0f) pt_clock_cy = 2.0f * (136.0f - f);
+	float my = pp_hi(PM_VSH, 0x30f88, 0x42f8), sy = pp_hi(PM_VSH, 0x30fd8, 0x42f4);
+	if (my > -300.0f && my < 300.0f) { pt_mute_cy = 2.0f * (136.0f - my); pt_mute_sdy = 2.0f * (my - sy); }
+	f = pp_hi(PM_VSH, 0x310cc, 0x40a0);
+	if (f > -400.0f && f < 400.0f) pt_mute_gap = 2.0f * f;
 	/* vshmain 0x1d7a4 sets the bar's x for each menu state: 0 the home view (-130), 2 a list open (-190), 3 a list inside it (-240).
 	 * The slide against the home x is what VitaXMB animates, so a theme's value is taken as a ratio to the stock slide. */
 	float x0 = pp_hi(PM_VSH, 0x1d824, 0xc302), x2 = pp_hi(PM_VSH, 0x1d944, 0xc33e), x3 = pp_hi(PM_VSH, 0x1da64, 0xc370);
@@ -570,6 +634,22 @@ static void pt_read_list(FILE *f, const PtFile *pf)
 					if (x < -400.0f || x > 400.0f) continue;
 					if (strcmp(nm, "xlist_ms_game") == 0) pt_list_dx = x * 2.0f;
 					else if (strcmp(nm, "mlist_ms_all_view_option") == 0) pt_opt_fill(POPT_GAME, r + q + 0x28, -235.0f);
+					else if (strcmp(nm, "mlist_ms_folder_option") == 0) pt_opt_fill(POPT_FOLDER, r + q + 0x28, -235.0f);
+					else if (strcmp(nm, "mlist_ms_etc_view_option") == 0) pt_opt_fill(POPT_ETC, r + q + 0x28, -182.0f);
+				}
+		/* the panel's base planes (plane_ms_*_option_base_N): a theme that sets one's alpha, size or colour to 0 draws no dark panel */
+		if (p_obj != 0xFFFFFFFFu && p_label < pf->size)
+			for (uint32_t q = p_obj; q + 0x60 < pf->size; q += 4)
+				if (pt_rd32(r + q) == 0x00000802 && pt_rd32(r + q + 8) == 0x28) {
+					uint32_t lab = pt_rd32(r + q + 4);
+					if (lab == 0xFFFFFFFFu || p_label + lab + 40 >= pf->size) continue;
+					const char *nm = (const char *)r + p_label + lab;
+					int ctx = !strncmp(nm, "plane_ms_all_view_option_base", 29) ? POPT_GAME : !strncmp(nm, "plane_ms_folder_option_base", 27) ? POPT_FOLDER
+					        : !strcmp(nm, "plane_ms_etc_view_option") ? POPT_ETC : -1;
+					if (ctx < 0) continue;
+					float v[12];
+					for (int k = 0; k < 12; k++) { uint32_t w = pt_rd32(r + q + 0x28 + 4 * k); memcpy(&v[k], &w, 4); }
+					if (v[6] == 0.0f || v[10] == 0.0f || v[11] == 0.0f || (v[3] == 0.0f && v[4] == 0.0f && v[5] == 0.0f)) pt_opt_hidden[ctx] = 1;
 				}
 	}
 	free(r);
@@ -787,8 +867,11 @@ static void pt_unload(void)
 	for (int c = 0; c < CAT_COUNT; c++) if (pt_blade[c]) { defer_free(pt_blade[c]); pt_blade[c] = NULL; }
 	for (int c = 0; c < CAT_COUNT; c++) if (pt_strip[c]) { defer_free(pt_strip[c]); pt_strip[c] = NULL; }
 	pt_strip_mode = 0;
-	pt_blade_mode = 0; pt_blade_dx = 0.0f; pt_pitch = 80.0f; pt_list_dx = 0.0f; for (int i = 0; i < POPT_COUNT; i++) { pt_opt[i].dx = 0.0f; pt_opt[i].dy = 0.0f; pt_opt[i].scale = 1.0f; } pt_gap = 5.0f; pt_ms_left = pt_ms_right = 200.0f; pt_sub_ratio = pt_fold_ratio = 1.0f;
-	pp_clear(); xs_reset(); xl_ms_up = xl_ms_down = 200.0f; pt_clock_code_set = 0;
+	pt_blade_mode = 0; pt_blade_dx = 0.0f; pt_pitch = 80.0f; pt_list_dx = 0.0f; for (int i = 0; i < POPT_COUNT; i++) { pt_opt_hidden[i] = 0; pt_opt[i].dx = 0.0f; pt_opt[i].dy = 0.0f; pt_opt[i].scale = 1.0f; } pt_gap = 5.0f; pt_ms_left = pt_ms_right = 200.0f; pt_sub_ratio = pt_fold_ratio = 1.0f;
+	pp_clear(); xs_reset(); xl_ms_up = xl_ms_down = 200.0f; pt_clock_code_set = 0; pt_clock_cy = 26.0f; pt_mute_cy = 24.0f; pt_mute_gap = 10.0f; pt_mute_sdy = 4.0f;
+	for (int k = 0; k < 3; k++) pt_clock_rgb[k] = pt_btn_icon_rgb[k] = pt_btn_label_rgb[k] = 255;
+	pt_clock_alpha = pt_clock_scale = pt_mute_alpha = 1.0f;
+	pt_title_k = pt_sub_k = pt_opt_k = pt_shadow_kx = pt_shadow_ky = 1.0f;
 	for (int i = 0; i < PT_MAP_N; i++) if (pt_ov[i]) { glow_release(pt_ov[i]); defer_free(pt_ov[i]); pt_ov[i] = NULL; }
 	pt_have_colors = 0;
 	wave_set_model(NULL, 0);
@@ -995,11 +1078,27 @@ static void pt_scan(void)
 	for (int i = 0; i < pt_n; i++) if (keep[0] && !strcmp(pt_list[i].name, keep)) pt_active = i;
 }
 
+/* "Random" (CXMB's random.ctf): a theme picked from the ones found, anew at every start. It is stored as "*random". */
+static int pt_random;
+#define PT_SEL_RANDOM "*random"
+
+static void pt_pick_random(void)
+{
+	if (pt_n <= 0) return;
+	SceDateTime now;
+	sceRtcGetCurrentClockLocalTime(&now);
+	unsigned seed = (unsigned)(sceKernelGetProcessTimeWide() ^ ((uint64_t)now.second << 20) ^ ((uint64_t)now.minute << 12) ^ now.microsecond);
+	int idx = (int)(seed % (unsigned)pt_n);
+	if (pt_n > 1 && idx == pt_active) idx = (idx + 1 + (int)((seed >> 8) % (unsigned)(pt_n - 1))) % pt_n;      /* not the one already on */
+	pt_load(idx);
+}
+
 static void pt_save_selection(void)
 {
 	FILE *f = fopen(PT_SEL_PATH, "wb");
 	if (!f) return;
-	if (pt_active >= 0 && pt_active < pt_n) fprintf(f, "%s\n", pt_list[pt_active].name);
+	if (pt_random) fprintf(f, "%s\n", PT_SEL_RANDOM);
+	else if (pt_active >= 0 && pt_active < pt_n) fprintf(f, "%s\n", pt_list[pt_active].name);
 	fclose(f);
 }
 
@@ -1015,23 +1114,26 @@ static void pt_init(void)
 		fclose(f);
 	}
 	if (!name[0]) return;
+	if (!strcmp(name, PT_SEL_RANDOM)) { pt_random = 1; pt_pick_random(); return; }
 	for (int i = 0; i < pt_n; i++)
 		if (!strcmp(pt_list[i].name, name)) { pt_load(i); break; }
 }
 
-/* Settings row: Off, then every theme found, then back to Off. */
+/* Settings row: Off, then every theme found, then Random, then back to Off. */
 static void pt_cycle(int dir)
 {
 	pt_scan();
-	int cur = pt_active;                                   /* -1 = off */
-	int total = pt_n + 1;
+	int cur = pt_random ? pt_n : pt_active;                /* -1 = off, pt_n = random */
+	int total = pt_n + (pt_n > 0 ? 2 : 1);
 	int v = ((cur + 1) + dir + total) % total;
-	if (v == 0) pt_unload(); else pt_load(v - 1);
+	pt_random = pt_n > 0 && v == pt_n + 1;
+	if (v == 0) pt_unload(); else if (pt_random) pt_pick_random(); else pt_load(v - 1);
 	pt_save_selection();
 }
 
 static void pt_text(char *out, size_t n)
 {
-	if (pt_active >= 0 && pt_active < pt_n) snprintf(out, n, "%.40s", pt_list[pt_active].name);
+	if (pt_random && pt_active >= 0 && pt_active < pt_n) snprintf(out, n, "Random: %.32s", pt_list[pt_active].name);
+	else if (pt_active >= 0 && pt_active < pt_n) snprintf(out, n, "%.40s", pt_list[pt_active].name);
 	else snprintf(out, n, pt_n ? "Off" : "Off (none found)");
 }
