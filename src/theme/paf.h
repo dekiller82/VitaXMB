@@ -18,15 +18,24 @@
 
 typedef struct { float pitch, gap_above, gap_below; } XStyle;
 
-enum { XS_COLUMN = 0, XS_SETTINGS = 4, XS_MUSIC = 6, XS_VIDEO = 8, XS_GAME = 11, XS_COUNT = 24 };
+/* XS_COLUMN: the category columns are XLists left at style 1 by vshmain (the stock 65 / 60 equals the measured 130 / 120 px).
+ * A theme can change any style: pitch and gap are `lui` immediates in the style setter (see pt_apply_patches). */
+enum { XS_COLUMN = 1, XS_SETTINGS = 4, XS_MUSIC = 6, XS_VIDEO = 8, XS_GAME = 11, XS_COUNT = 24 };
 
-static const XStyle xstyles[XS_COUNT] = {
-	[0] = { 65, 65, 0 },   [1] = { 65, 60, 0 },   [2] = { 65, 65, 0 },
-	[4] = { 45, 10, 10 },  [5] = { 54, 13, 13 },  [6] = { 43, 17, 17 },  [7] = { 40, 45, 45 },  [8] = { 54, 13.0625f, 13 },
-	[9] = { 45, 30.5f, 30.5f }, [10] = { 54, 13, 13 }, [11] = { 45, 30.5f, 30.5f }, [12] = { 56, 0, 0 },
-	[15] = { 89, 0, 0 },   [16] = { 45, 30.5f, 30.5f }, [17] = { 54, 13, 13 }, [18] = { 54, 13, 13 }, [19] = { 54, 13, 13 },
-	[20] = { 54, 13, 13 }, [21] = { 45, 30.5f, 30.5f }, [22] = { 60, 0, 0 },  [23] = { 53, 13, 13 },
-};
+#define XSTYLE_STOCK { \
+	[0] = { 65, 65, 0 },   [1] = { 65, 60, 0 },   [2] = { 65, 65, 0 }, \
+	[4] = { 45, 10, 10 },  [5] = { 54, 13, 13 },  [6] = { 43, 17, 17 },  [7] = { 40, 45, 45 },  [8] = { 54, 13.1f, 13.1f }, \
+	[9] = { 45, 30.5f, 30.5f }, [10] = { 54, 13, 13 }, [11] = { 45, 30.5f, 30.5f }, [12] = { 56, 0, 0 }, \
+	[15] = { 89, 0, 0 },   [16] = { 45, 30.5f, 30.5f }, [17] = { 54, 13, 13 }, [18] = { 54, 13, 13 }, [19] = { 54, 13, 13 }, \
+	[20] = { 54, 13, 13 }, [21] = { 45, 30.5f, 30.5f }, [22] = { 60, 0, 0 },  [23] = { 53, 13, 13 }, }
+
+static const XStyle xstyles_stock[XS_COUNT] = XSTYLE_STOCK;
+static XStyle xstyles[XS_COUNT] = XSTYLE_STOCK;       /* the stock table, then the active theme's patches over it */
+
+static void xs_reset(void) { memcpy(xstyles, xstyles_stock, sizeof(xstyles)); }
+
+/* The two list scroll durations of the XList (ms): a move up and a move down (paf.prx 0x10a23c / 0x10a27c, stock 200). */
+static float xl_ms_up = 200.0f, xl_ms_down = 200.0f;
 
 /* offset (Vita pixels, down is positive) of the row k places from the selected one */
 static float xl_row(const XStyle *s, int k)
@@ -39,7 +48,7 @@ static float xl_row(const XStyle *s, int k)
 /* the same for a fractional offset d (rows are moving): a straight line between the two nearest rows */
 static float xl_offset(int style, float d)
 {
-	const XStyle *s = &xstyles[style >= 0 && style < XS_COUNT && xstyles[style].pitch > 0.0f ? style : 0];
+	const XStyle *s = &xstyles[style >= 0 && style < XS_COUNT && xstyles_stock[style].pitch > 0.0f ? style : XS_COLUMN];
 	if (d < -4.0f) d = -4.0f;
 	if (d > 4.99f) d = 4.99f;
 	int k = (int)floorf(d);

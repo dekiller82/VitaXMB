@@ -61,7 +61,7 @@ static void draw_text_rows(int m, float xoff, float amul)
 		float d = j - mn->pos;
 		if (d < -5.2f || d > 5.2f) continue;
 		const Item *it = &mn->items[j];
-		float y = ITEM_Y + d * 40.0f - 40.0f * clampf(-d, 0.0f, 1.0f), emph = it->glow;      /* rows above the selected one are pushed up by one more row */
+		float y = ITEM_Y + xl_offset(XS_COLUMN, d), emph = it->glow;      /* the column's XList style (a theme like Euphoria patches it to 20 / 20: 40 px rows, the rows above pushed up by one more) */
 		float fade = d < 0 ? clampf(1.0f + d * 0.22f, 0.0f, 1.0f) : clampf(1.0f - d * 0.08f, 0.0f, 1.0f);
 		int a = (int)(255 * fade * amul * lerpf(0.85f, 1.0f, emph));
 		if (a <= 4) continue;

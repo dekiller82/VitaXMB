@@ -13,6 +13,10 @@
 !/updater/
 !/docs/
 
+# local notes for the next session (the whitelist above already ignores them; named here so it is explicit)
+/HANDOFF.md
+/LOCAL_CHANGES.md
+
 # only the PSP icons the code actually loads
 /assets/icons/tex_camera.png
 /assets/icons/tex_cert.png

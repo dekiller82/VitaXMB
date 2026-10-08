@@ -6,12 +6,18 @@
  * their names at the very end. The layout is taken from CXMB (GPL-3.0, Poison et al.) and the RCO
  * layout from RCOMage (LGPL-2.1, ZiNgA BuRgA).
  *
- * What is used:
- *   01-12.BMP       the 60x34 background gradient the PSP stretches over the screen
- *   wallpaper       the optional 480x272 picture in the .ptf part
- *   topmenu_icon    the category icons (first run of square images in the archive)
- *   preview         the 300x170 picture shown in the settings list
- * Everything else a theme carries (plugin code, sounds, fonts, layout) is ignored.
+ * What is read (pt_load):
+ *   01-12.BMP                the twelve 60x34 month skies, and the colours taken from them
+ *   wallpaper, preview       the optional 480x272 picture and the 300x170 picture shown in the settings list
+ *   topmenu_icon.rco         the category and list icons, by label; topmenu_plugin.rco the bar position and icon scale
+ *   system_plugin_fg.rco     battery, clock and button glyphs; system_plugin.rco / savedata_plugin.rco the shared pictures (resources.h)
+ *   game_plugin.rco and the music, photo and video browser RCOs   list position and Options panel
+ *   system_plugin_bg.rco     the background wave (bgscene.h); opening_plugin.rco the boot intro (boot.h)
+ *   system_plugin.rco        also the UI sounds (themesound.h)
+ *   ltn0.pgf                 the font
+ *   paf.prx, vshmain.prx, common_gui.prx   the byte patches, read by ptpatch.h and applied in pt_apply_patches
+ * Not read yet: see the coverage list in LOCAL_CHANGES.md (the other plugins' RCOs, most patch sites, the full
+ * plugin modules a theme ships, the special skies).
  *
  * Included once from main.c (needs texture_from_rgba() and defer_free()).
  */
@@ -35,6 +41,9 @@ static float pt_bat_x = 463.0f, pt_bat_y = 12.0f;
 static float pt_clock_x = 208.0f;                   /* the clock text's anchor, centre-based PSP pixels (the stock value) */    /* centre of the battery picture, in PSP pixels (the stock spot) */
 static vita2d_texture *pt_cat[CAT_COUNT];
 static vita2d_texture *pt_blade[CAT_COUNT];      /* full-height category panels (themes like Xbox 360) */
+static int pt_clock_code_set;                     /* the theme patches vshmain, so the clock x is the code's value (0x31108), not the RCO's */
+static float pt_clock_code_x = 203.0f;
+static float pt_sub_ratio = 1.0f, pt_fold_ratio = 1.0f;   /* how far the bar slides left for a list / a game folder, against the stock slide (vshmain states 2 and 3) */
 static float pt_gap = 5.0f;                       /* extra distance either side of the open category, PSP pixels */
 static float pt_ms_left = 200.0f, pt_ms_right = 200.0f;   /* how long a category change takes, milliseconds */
 /* The Options menu of each screen: shift (screen pixels) and size, from that screen's plugin. */
@@ -69,6 +78,8 @@ static uint8_t *pt_read(FILE *f, long off, long size)
 	if (fread(b, 1, (size_t)size, f) != (size_t)size) { free(b); return NULL; }
 	return b;
 }
+
+#include "ptpatch.h"
 
 static uint8_t *pt_inflate(const uint8_t *src, uint32_t clen, uint32_t dlen)
 {
@@ -413,50 +424,81 @@ static void pt_read_status(FILE *f, const PtFile *pf)
 }
 
 /* topmenu_plugin.rco: the x position the theme gives the category bar (XMenu, type 4) -> shift from the stock -120. */
-/* paf.prx in a .ctf is a list of byte patches {u32 offset; u32 size; bytes} against the 6.60 module. The ones
- * that matter here hit `lui $at, <hi half of a float>` instructions in the constructor and the scroll handlers of
- * the screen object the category bar is built on (read from the stock code):
- *   0x1066f4  spacing between categories, PSP pixels (80.0)
+/* The patch records of the three modules are in pp_* (ptpatch.h). What VitaXMB reads from them, with the stock
+ * immediate of each site (6.61 disassembly; paf.prx unless said):
+ *   0x1066f4  spacing between categories, PSP pixels (XMenu constructor, 80.0)
  *   0x106708  gap beside the open category, both sides (5.0)
- *   0x106908  duration of a move to the previous category, ms (200.0)
- *   0x10693c  duration of a move to the next category, ms (200.0)
+ *   0x106908  duration of a move to the previous category, ms (200.0)     0x10693c  to the next one
+ *   0x10a23c  duration of an XList scroll up, ms (200.0)                  0x10a27c  down
+ *   0x10a580  the XList style setter: each case loads its row pitch and gap with `lui` (table below)
  * An item with visible rank r, when rank f is open, sits at (r - f) * spacing, plus the gap on its right
- * and minus it on its left. The half-word of each instruction is little-endian at the given offset. */
-static float pt_patched_float(const uint8_t *r, uint32_t size, uint32_t at, uint16_t stock)
-{
-	uint16_t imm = stock;
-	for (uint32_t p = 0; p + 8 <= size; ) {
-		uint32_t off = pt_rd32(r + p), sz = pt_rd32(r + p + 4);
-		if (sz > size || p + 8 + sz > size) break;
-		for (uint32_t k = 0; k < sz; k++) {
-			if (off + k == at) imm = (uint16_t)((imm & 0xFF00) | r[p + 8 + k]);
-			else if (off + k == at + 1) imm = (uint16_t)((imm & 0x00FF) | (r[p + 8 + k] << 8));
-		}
-		p += 8 + sz;
-	}
-	uint32_t bits = (uint32_t)imm << 16;
-	float v;
-	memcpy(&v, &bits, 4);
-	return v;
-}
+ * and minus it on its left. */
 
-static void pt_read_patches(FILE *f, const PtFile *pf)
+/* XList styles (paf.prx 0x10a580): the `lui` that loads a style's pitch (+0x340) and gap (+0x34c, +0x350), the
+ * stock immediates, and the styles that run that code. gap kind: 0 none (both gaps 0), 1 one value for both, 2 the
+ * pitch value is the gap above too (styles 0 and 2), 3 gap above only (style 1). */
+typedef struct { uint32_t pitch_at; uint16_t pitch_imm; uint32_t gap_at; uint16_t gap_imm, gap_lo; int kind; uint32_t styles; } PtXStyleSite;
+#define XSB(n) (1u << (n))
+static const PtXStyleSite pt_xsites[] = {
+	{ 0x10a5cc, 0x4282, 0,        0,      0,      2, XSB(0) | XSB(2) },
+	{ 0x10a6f4, 0x4282, 0x10a700, 0x4270, 0,      3, XSB(1) },
+	{ 0x10a720, 0x4234, 0x10a72c, 0x4120, 0,      1, XSB(4) },
+	{ 0x10a748, 0x4258, 0x10a754, 0x4150, 0,      1, XSB(5) | XSB(10) | XSB(17) | XSB(18) | XSB(19) | XSB(20) },
+	{ 0x10a764, 0x422c, 0x10a770, 0x4188, 0,      1, XSB(6) },
+	{ 0x10a780, 0x4220, 0x10a78c, 0x4234, 0,      1, XSB(7) },
+	{ 0x10a79c, 0x4258, 0x10a7a8, 0x4151, 0x999a, 1, XSB(8) },
+	{ 0x10a7c8, 0x4260, 0,        0,      0,      0, XSB(12) },
+	{ 0x10a8d4, 0x42b2, 0,        0,      0,      0, XSB(15) },
+	{ 0x10a9dc, 0x4234, 0x10a9e8, 0x41f4, 0,      1, XSB(9) | XSB(11) | XSB(16) | XSB(21) },
+	{ 0x10a9fc, 0x4270, 0,        0,      0,      0, XSB(22) },
+	{ 0x10aafc, 0x4254, 0x10ab08, 0x4150, 0,      1, XSB(23) },
+};
+
+static void pt_apply_patches(void)
 {
-	if (pt_fw_magic != 0xDEAD0660u || pf->size > 4096) return;
-	uint8_t *r = pt_read(f, pf->start, pf->size);
-	if (!r) return;
-	float v = pt_patched_float(r, pf->size, 0x1066f4, 0x42a0);
+	if (pt_fw_magic != 0xDEAD0660u && pt_fw_magic != 0xDEAD0661u) return;    /* the offsets are those of 6.60 / 6.61 */
+
+	float v = pp_hi(PM_PAF, 0x1066f4, 0x42a0);
 	if (v >= 0.0f && v <= 2000.0f) pt_pitch = v;
-	v = pt_patched_float(r, pf->size, 0x106708, 0x40a0);
+	v = pp_hi(PM_PAF, 0x106708, 0x40a0);
 	if (v >= -2000.0f && v <= 2000.0f) pt_gap = v;
-	v = pt_patched_float(r, pf->size, 0x106908, 0x4348);
+	v = pp_hi(PM_PAF, 0x106908, 0x4348);
 	if (v >= 0.0f && v <= 5000.0f) pt_ms_left = v;
-	v = pt_patched_float(r, pf->size, 0x10693c, 0x4348);
+	v = pp_hi(PM_PAF, 0x10693c, 0x4348);
 	if (v >= 0.0f && v <= 5000.0f) pt_ms_right = v;
-	/* Themes that change only one of the two durations (Jumbled, Clear XMB Black) are felt on the PSP in both directions: use it for both */
-	if (pt_ms_left != 200.0f && pt_ms_right == 200.0f) pt_ms_right = pt_ms_left;
-	else if (pt_ms_right != 200.0f && pt_ms_left == 200.0f) pt_ms_left = pt_ms_right;
-	free(r);
+
+	/* vshmain 0x31038 places the clock at runtime (x 203 with the battery shown, 235 without; y 123), over what the RCO says;
+	 * the mute and hold icons are placed to its left (0x30f58, 0x30e84). */
+	pt_clock_code_x = pp_hi(PM_VSH, 0x31108, 0x434b);
+	pt_clock_code_set = 1;
+	/* vshmain 0x1d7a4 sets the bar's x for each menu state: 0 the home view (-130), 2 a list open (-190), 3 a list inside it (-240).
+	 * The slide against the home x is what VitaXMB animates, so a theme's value is taken as a ratio to the stock slide. */
+	float x0 = pp_hi(PM_VSH, 0x1d824, 0xc302), x2 = pp_hi(PM_VSH, 0x1d944, 0xc33e), x3 = pp_hi(PM_VSH, 0x1da64, 0xc370);
+	v = (x2 - x0) / -60.0f;
+	if (v >= 0.0f && v <= 8.0f) pt_sub_ratio = v;
+	v = (x3 - x0) / -110.0f;
+	if (v >= 0.0f && v <= 8.0f) pt_fold_ratio = v;
+
+	v = pp_hi(PM_PAF, 0x10a23c, 0x4348);
+	if (v >= 0.0f && v <= 5000.0f) xl_ms_up = v;
+	v = pp_hi(PM_PAF, 0x10a27c, 0x4348);
+	if (v >= 0.0f && v <= 5000.0f) xl_ms_down = v;
+
+	for (unsigned i = 0; i < sizeof(pt_xsites) / sizeof(pt_xsites[0]); i++) {
+		const PtXStyleSite *s = &pt_xsites[i];
+		float pitch = pp_hi(PM_PAF, s->pitch_at, s->pitch_imm), gap = 0.0f;
+		if (s->kind == 1 || s->kind == 3)
+			gap = s->gap_lo ? pp_hilo(PM_PAF, s->gap_at, s->gap_imm, s->gap_lo) : pp_hi(PM_PAF, s->gap_at, s->gap_imm);
+		else if (s->kind == 2) gap = pitch;
+		if (pitch < 0.0f || pitch > 5000.0f || gap < -5000.0f || gap > 5000.0f) continue;
+		for (int st = 0; st < XS_COUNT; st++) {
+			if (!(s->styles & XSB(st))) continue;
+			xstyles[st].pitch = pitch;
+			xstyles[st].gap_above = gap;
+			xstyles[st].gap_below = s->kind >= 2 ? 0.0f : gap;
+		}
+	}
+	pp_report();
 }
 
 static void pt_read_layout(FILE *f, const PtFile *pf)
@@ -745,7 +787,8 @@ static void pt_unload(void)
 	for (int c = 0; c < CAT_COUNT; c++) if (pt_blade[c]) { defer_free(pt_blade[c]); pt_blade[c] = NULL; }
 	for (int c = 0; c < CAT_COUNT; c++) if (pt_strip[c]) { defer_free(pt_strip[c]); pt_strip[c] = NULL; }
 	pt_strip_mode = 0;
-	pt_blade_mode = 0; pt_blade_dx = 0.0f; pt_pitch = 80.0f; pt_list_dx = 0.0f; for (int i = 0; i < POPT_COUNT; i++) { pt_opt[i].dx = 0.0f; pt_opt[i].dy = 0.0f; pt_opt[i].scale = 1.0f; } pt_gap = 5.0f; pt_ms_left = pt_ms_right = 200.0f;
+	pt_blade_mode = 0; pt_blade_dx = 0.0f; pt_pitch = 80.0f; pt_list_dx = 0.0f; for (int i = 0; i < POPT_COUNT; i++) { pt_opt[i].dx = 0.0f; pt_opt[i].dy = 0.0f; pt_opt[i].scale = 1.0f; } pt_gap = 5.0f; pt_ms_left = pt_ms_right = 200.0f; pt_sub_ratio = pt_fold_ratio = 1.0f;
+	pp_clear(); xs_reset(); xl_ms_up = xl_ms_down = 200.0f; pt_clock_code_set = 0;
 	for (int i = 0; i < PT_MAP_N; i++) if (pt_ov[i]) { glow_release(pt_ov[i]); defer_free(pt_ov[i]); pt_ov[i] = NULL; }
 	pt_have_colors = 0;
 	wave_set_model(NULL, 0);
@@ -851,7 +894,9 @@ static int pt_load(int idx)
 	if (nf < 0) { fclose(f); return 0; }
 	pt_read_ptf(f, ptf_end);
 	if (nf > 0) {
-		PtFile *bg = pt_find(files, nf, "/vsh/resource/01-12.bmp");
+		/* a PSP-3000 and later (what Adrenaline runs as) loads 01-12_03g.bmp; its October sky fits a capture of the real XMB, 01-12.bmp's does not */
+		PtFile *bg = pt_find(files, nf, "/vsh/resource/01-12_03g.bmp");
+		if (!bg) bg = pt_find(files, nf, "/vsh/resource/01-12.bmp");
 		if (bg) {
 			pt_bmps = pt_read(f, bg->start, bg->size);
 			pt_bmps_len = pt_bmps ? bg->size : 0;
@@ -860,8 +905,13 @@ static int pt_load(int idx)
 			sceRtcGetCurrentClockLocalTime(&now);
 			pt_set_month(theme ? theme - 1 : (now.month >= 1 && now.month <= 12 ? now.month - 1 : 0));
 		}
-		PtFile *pp = pt_find(files, nf, "/vsh/module/paf.prx");
-		if (pp) pt_read_patches(f, pp);
+		static const struct { const char *name; int mod; } pmods[] = {
+			{ "/vsh/module/paf.prx", PM_PAF }, { "/vsh/module/vshmain.prx", PM_VSH }, { "/vsh/module/common_gui.prx", PM_CGUI } };
+		for (unsigned i = 0; i < sizeof(pmods) / sizeof(pmods[0]); i++) {
+			PtFile *pp = pt_find(files, nf, pmods[i].name);
+			if (pp) pp_load(f, pp->start, pp->size, pmods[i].mod);       /* size = number of records here */
+		}
+		pt_apply_patches();
 		PtFile *tl = pt_find(files, nf, "/vsh/resource/topmenu_plugin.rco");
 		if (tl) pt_read_layout(f, tl);
 		PtFile *gl = pt_find(files, nf, "/vsh/resource/game_plugin.rco");
@@ -876,6 +926,7 @@ static int pt_load(int idx)
 		if (ic) pt_read_icons(f, ic);
 		PtFile *st = pt_find(files, nf, "/vsh/resource/system_plugin_fg.rco");
 		if (st) pt_read_status(f, st);
+		if (pt_clock_code_set) pt_clock_x = pt_clock_code_x + 5.0f;       /* the code's 203 is the stock 208 of the clock text's anchor */
 		PtFile *fn = pt_find(files, nf, "/font/ltn0.pgf");
 		if (fn) {
 			uint8_t *fb = pt_read(f, fn->start, fn->size);

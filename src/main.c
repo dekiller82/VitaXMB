@@ -75,6 +75,8 @@ int main(void)
 	for (int mi = 0; mi < M_COUNT; mi++)
 		for (int ji = 0; ji < menus[mi].count; ji++)
 			if (menus[mi].items[ji].stock) glow_for(menus[mi].items[ji].stock);
+	/* the status pictures are read from their RCO on first use (79 ms on the device): do it before the first frame */
+	res_fg("tex_mute"); res_fg("tex_mute_shadow"); res_fg("tex_busy"); res_fg("tex_busy_shadow");
 	sound_play(SND_OPENING);
 
 	int cat = CAT_GAME;
@@ -681,13 +683,15 @@ int main(void)
 			if (fabsf(cat_pos - want_pos) < 0.004f) cat_pos = want_pos;
 		}
 		for (int i = 0; i < M_COUNT; i++) {
-			menus[i].pos = lerpf(menus[i].pos, (float)menus[i].sel, ease4_step(200.0f));     /* a list scrolls in 200 ms with the same curve */
+			/* a list scrolls with the same curve; 200 ms each way unless the theme patches the XList's two durations */
+			menus[i].pos = lerpf(menus[i].pos, (float)menus[i].sel, ease4_step(menus[i].sel > menus[i].pos ? xl_ms_down : xl_ms_up));
 			if (fabsf(menus[i].pos - menus[i].sel) < 0.004f) menus[i].pos = (float)menus[i].sel;
 		}
 		for (int mi = 0; mi < M_COUNT; mi++) {
 			Menu *gm = &menus[mi];
 			for (int ji = 0; ji < gm->count; ji++) {
 				Item *gi = &gm->items[ji];
+				if (ji != gm->sel && gi->glow == 0.0f) continue;             /* the game lists can have thousands of rows: skip the resting ones */
 				float tg = ji == gm->sel ? 1.0f : 0.0f;
 				gi->glow += (tg - gi->glow) * ease4_step(200.0f);
 				if (fabsf(tg - gi->glow) < 0.01f) gi->glow = tg;
@@ -792,7 +796,7 @@ int main(void)
 			if (cat_hidden[i]) continue;
 			if (pt_blade_mode || pt_strip_mode) break;
 			float d = cat_slot(i) - cat_pos;
-			float x = CAT_X + pt_row_dx + CAT_OFFSET(d) - 196.0f * fe - 118.0f * se;
+			float x = CAT_X + pt_row_dx + CAT_OFFSET(d) - 196.0f * pt_fold_ratio * fe - 118.0f * pt_sub_ratio * se;
 			x -= (1.0f - su_bar) * 240.0f;
 			float sel = 1.0f - clampf(fabsf(d), 0.0f, 1.0f);
 			float size = lerpf(98.0f, 120.0f, sel) * pt_menu_scale;
@@ -884,6 +888,8 @@ int main(void)
 			text_flat = 0;
 		}
 
+		status_busy = launching != NULL || upd_state == UPD_DOWNLOADING || upd_state == UPD_INSTALLING;
+		draw_busy(dt_s);                                                  /* the PSP's spinner, bottom right */
 		{ static float notice_s; if (page_open == PAGE_NONE && !launching) draw_update_notice(dt_s, &notice_s); }
 		if (launch_fade > 0.0f)
 			vita2d_draw_rectangle(0, 0, SCREEN_W, SCREEN_H, RGBA8(0, 0, 0, (int)(255 * launch_fade)));

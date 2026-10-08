@@ -215,6 +215,8 @@ What is read from a theme today:
 - wallpaper or the month's sky, the 12 colour pictures, text and icon colours, icon sizes, the theme's font
 - the wave (a theme's own model, or none), the boot intro, and the XMB sounds
 - icons, battery and clock, category bar spacing / gap / move speed, strip, panel and text-list layouts
+- the row spacing of every list and how fast lists scroll (the theme's code patches for `paf.prx`, `vshmain.prx` and `common_gui.prx`)
+- the status bar: mute icon, busy spinner and the charging animation, in the theme's own pictures
 - the Options panel and game list positions, the separator line, arrows and check boxes
 - a theme that turns the whole XMB in space (such as *Clear XMB Black*)
 

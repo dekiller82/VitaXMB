@@ -40,11 +40,59 @@ static void launch_request(const Item *it)
 	sceKernelExitProcess(0);
 }
 
+/* Set by main every frame: something is loading (a game starting, an update downloading) and the busy spinner shows. */
+static int status_busy;
+
+/* The Vita's system volume is 0..30 in the registry; zero is the PSP's "mute" (read twice a second at most). */
+static int status_muted(void)
+{
+	static uint64_t last;
+	static int muted;
+	uint64_t now = sceKernelGetProcessTimeWide();
+	if (last == 0 || now - last > 500000) {
+		int vol = -1;
+		last = now;
+		muted = sceRegMgrGetKeyInt("/CONFIG/SOUND", "main_volume", &vol) >= 0 && vol == 0;
+	}
+	return muted;
+}
+
+/* A status picture at its own size (the PSP's pixels are two of ours), centred on cx, cy. */
+static void draw_status_pic(vita2d_texture *t, float cx, float cy, int a)
+{
+	if (!t) return;
+	draw_icon_wh(t, cx, cy, 2.0f * vita2d_texture_get_width(t), 2.0f * vita2d_texture_get_height(t), a);
+}
+
+/* The PSP's busy spinner (system_plugin_fg.rco, tex_busy: 15 frames of 34 px stacked, shown 17 PSP pixels wide = 1:1 here) at the
+ * bottom right, with its shadow two PSP pixels lower and to the right. It fades in and out. */
+static void draw_busy(float dt_s)
+{
+	static float vis;
+	vis = clampf(vis + (status_busy ? 6.0f : -6.0f) * dt_s, 0.0f, 1.0f);
+	if (vis <= 0.01f) return;
+	vita2d_texture *t = res_fg("tex_busy"), *sh = res_fg("tex_busy_shadow");
+	if (!t) return;
+	int fw = vita2d_texture_get_width(t), fh = fw;
+	int frames = vita2d_texture_get_height(t) / (fh ? fh : 1);
+	if (frames < 1) return;
+	int frame = (int)((sceKernelGetProcessTimeWide() / 50000) % (uint64_t)frames);
+	const float cx = 2.0f * (240.0f + 226.0f), cy = 2.0f * (136.0f + 122.0f);       /* the plane "busy_icon" (226, -122), centred */
+	int a = (int)(255 * vis);
+	if (sh && vita2d_texture_get_width(sh) == fw && vita2d_texture_get_height(sh) >= (frame + 1) * fh)
+		vita2d_draw_texture_tint_part_scale(sh, cx + 4.0f - fw / 2.0f, cy + 4.0f - fh / 2.0f, 0, frame * fh, fw, fh, 1.0f, 1.0f, WHITE(a));
+	vita2d_draw_texture_tint_part_scale(t, cx - fw / 2.0f, cy - fh / 2.0f, 0, frame * fh, fw, fh, 1.0f, 1.0f, WHITE(a));
+}
+
 static void draw_status(const SceDateTime *dt)
 {
 	char buf[32];
 	int pct = scePowerGetBatteryLifePercent();
 	const float cy = 26.0f;                       /* shared centre line of clock and battery */
+	/* charging: the PSP steps the picture every 400 ms (anim_battery_charging fires OnChargeBattery in a 400 ms loop), from the
+	 * level it is at up to full */
+	int charging = scePowerIsBatteryCharging();
+	unsigned step = (unsigned)(sceKernelGetProcessTimeWide() / 400000);
 
 	float bx = 908;
 	int clock_left = 0;                           /* a battery picture as wide as the screen carries the clock at its left */
@@ -52,6 +100,7 @@ static void draw_status(const SceDateTime *dt)
 		/* a theme's own battery: four frames in one picture, full to empty, drawn at twice its size where the theme puts it */
 		int fw = vita2d_texture_get_width(pt_bat), fh = vita2d_texture_get_height(pt_bat) / 4;
 		int frame = pct > 66 ? 0 : (pct > 33 ? 1 : (pct > 8 ? 2 : 3));
+		if (charging && frame > 0) frame -= (int)(step % (unsigned)(frame + 1));
 		float w = fw * 2.0f, h = fh * 2.0f;
 		float x0 = pt_bat_x * 2.0f - w / 2.0f, y0 = pt_bat_y * 2.0f - h / 2.0f;
 		vita2d_draw_texture_part_scale(pt_bat, x0, y0, 0, frame * fh, fw, fh, 2.0f, 2.0f);
@@ -68,6 +117,7 @@ static void draw_status(const SceDateTime *dt)
 	vita2d_draw_rectangle(bx + bw - 2, by, 2, bh, line);
 	vita2d_draw_rectangle(bx - 4, cy - 5, 4, 10, line);
 	int segs = pct > 66 ? 3 : (pct > 33 ? 2 : (pct > 8 ? 1 : 0));
+	if (charging && segs < 3) segs += (int)(step % (unsigned)(4 - segs));
 	for (int k = 0; k < segs; k++)
 		vita2d_draw_rectangle(bx + bw - 6 - 8 * (k + 1) - 2 * k + 2, by + 5, 8, bh - 10, line);
 	}
@@ -78,9 +128,28 @@ static void draw_status(const SceDateTime *dt)
 		int h12 = dt->hour % 12 ? dt->hour % 12 : 12;
 		snprintf(buf, sizeof(buf), "%d/%d %d:%02d %s", dt->month, dt->day, h12, dt->minute, dt->hour < 12 ? "AM" : "PM");
 	}
-	if (clock_left && pt_clock_w > 0.0f) ptext_right_vc(942.0f, cy, WHITE(240), 24, buf);       /* a clock with a text box: at the right edge */
-	else if (clock_left) ptext_vc(56.0f, cy, WHITE(240), 24, buf);
-	else ptext_right_vc(pt_bat ? 2.0f * (240.0f + pt_clock_x) - 10.0f : bx - 22, cy, WHITE(240), 24, buf);
+	float tw = ptext_width(24, buf), clock_l;
+	if (pt_clock_code_set) {                                                       /* the firmware's code puts the clock (vshmain 0x31038) */
+		float r = 2.0f * (240.0f + pt_clock_x) - 10.0f;
+		ptext_right_vc(r, cy, WHITE(240), 24, buf);
+		clock_l = r - tw;
+	} else if (clock_left && pt_clock_w > 0.0f) { ptext_right_vc(942.0f, cy, WHITE(240), 24, buf); clock_l = 942.0f - tw; }       /* a clock with a text box: at the right edge */
+	else if (clock_left) { ptext_vc(56.0f, cy, WHITE(240), 24, buf); clock_l = 56.0f; }
+	else {
+		float r = pt_bat ? 2.0f * (240.0f + pt_clock_x) - 10.0f : bx - 22;
+		ptext_right_vc(r, cy, WHITE(240), 24, buf);
+		clock_l = r - tw;
+	}
+
+	/* mute: the speaker with a slash, five PSP pixels left of the clock (the hold switch has no counterpart on a Vita) */
+	if (status_muted()) {
+		vita2d_texture *m = res_fg("tex_mute"), *ms = res_fg("tex_mute_shadow");
+		if (m) {
+			float mw = 2.0f * vita2d_texture_get_width(m), mx = clock_l - 10.0f - mw / 2.0f;
+			draw_status_pic(ms, mx + 4.0f, cy + 4.0f, 255);
+			draw_status_pic(m, mx, cy, 255);
+		}
+	}
 }
 
 static float ease_out(float t) { t = clampf(t, 0.0f, 1.0f); return 1.0f - (1.0f - t) * (1.0f - t); }

@@ -497,9 +497,10 @@ static void draw_column(int m, float xoff, float amul, float grow, float sub_p)
 		float d = j - mn->pos;
 		if (d < -1.6f || d > 3.0f) continue;
 
-		float spacing = lerpf(ITEM_SPACING, 115.0f, sp);
+		/* the column is an XList of style 1: pitch and gap above in PSP pixels (65 / 60, which a theme can patch) */
+		float spacing = lerpf(2.0f * xstyles[XS_COLUMN].pitch, 115.0f, sp);
 		float y = ITEM_Y + d * spacing;
-		if (d < 0) y -= ITEM_ABOVE_GAP * (1.0f - sp) * clampf(-d, 0.0f, 1.0f);  /* hop over the category row */
+		if (d < 0) y -= 2.0f * xstyles[XS_COLUMN].gap_above * (1.0f - sp) * clampf(-d, 0.0f, 1.0f);  /* hop over the category row */
 		float sel = 1.0f - clampf(fabsf(d), 0.0f, 1.0f);              /* position-based: icon size only */
 		const Item *it = &mn->items[j];
 		float emph = it->glow;                                         /* selection-based: brightness, rule, glow */

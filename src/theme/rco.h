@@ -154,6 +154,11 @@ static int rco_node_at(const Rco *r, uint32_t pos)
 
 /* ---- pictures and models ---- */
 
+/* The firmware's "shadow" pictures (tex_mute_shadow ...) are 8-bit blurred blobs: the value is how dark the shadow is there,
+ * the colour is black and the alpha channel is a flat 255. Drawn as they decode they are a black box, so they become
+ * black with the value as alpha. Set by rco_image_by_label for a label that has "shadow" in it. */
+static int rco_shadow_mask;
+
 static vita2d_texture *rco_image_at(Rco *r, uint32_t pos)
 {
 	for (int i = 0; i < r->nimg; i++) if (r->img[i].pos == pos) return r->img[i].tex;
@@ -169,6 +174,13 @@ static vita2d_texture *rco_image_at(Rco *r, uint32_t pos)
 		if (((fc >> 16) == 0 || tmp) && src) {
 			int w, h;
 			uint8_t *pix = pt_gim_decode(src, len, &w, &h);
+			if (pix && rco_shadow_mask)
+				for (int k = 0; k < w * h; k++) {
+					uint8_t *q = pix + (size_t)k * 4, v = q[0] > q[1] ? q[0] : q[1];
+					if (q[2] > v) v = q[2];
+					q[0] = q[1] = q[2] = 0;
+					q[3] = v;
+				}
 			tex = pt_tex(pix, w, h);
 		}
 		free(tmp);
@@ -186,8 +198,12 @@ static vita2d_texture *rco_image_by_label(Rco *r, const char *label)
 	uint32_t count = rco_u32(r->data + r->H[9] + 16), pos = r->H[9] + 0x28;
 	for (uint32_t i = 0; i < count && pos + 0x38 <= r->size; i++) {
 		uint32_t lab = rco_u32(r->data + pos + 4), next = rco_u32(r->data + pos + 20);
-		if (lab != 0xFFFFFFFFu && r->H[16] + lab < r->size && strcmp((const char *)r->data + r->H[16] + lab, label) == 0)
-			return rco_image_at(r, pos);
+		if (lab != 0xFFFFFFFFu && r->H[16] + lab < r->size && strcmp((const char *)r->data + r->H[16] + lab, label) == 0) {
+			rco_shadow_mask = strstr(label, "shadow") != NULL;
+			vita2d_texture *t = rco_image_at(r, pos);
+			rco_shadow_mask = 0;
+			return t;
+		}
 		pos += next ? next : 0x38;
 	}
 	return NULL;

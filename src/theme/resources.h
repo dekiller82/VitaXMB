@@ -40,6 +40,25 @@ static vita2d_texture *res_theme(const char *rco, const char *label)
 	return e->r ? rco_image_by_label(e->r, label) : NULL;
 }
 
+/* The status bar's pictures (tex_mute, tex_busy ...): the theme's, else the firmware's own from assets/psp (a flat copy of
+ * the stock system_plugin_fg.rco, made with tools/make_flat_rco.py). */
+static uint8_t *boot_read_file(const char *path, size_t *n);
+static Rco *res_stock_fg;
+static int res_stock_fg_tried;
+
+static vita2d_texture *res_fg(const char *label)
+{
+	vita2d_texture *t = res_theme("system_plugin_fg", label);
+	if (t) return t;
+	if (!res_stock_fg_tried) {
+		res_stock_fg_tried = 1;
+		size_t n = 0;
+		uint8_t *d = boot_read_file("app0:assets/psp/system_plugin_fg.rco", &n);
+		if (d) res_stock_fg = rco_open(d, n);
+	}
+	return res_stock_fg ? rco_image_by_label(res_stock_fg, label) : NULL;
+}
+
 /* VitaXMB's own pictures that a theme's resource files can replace: (picture, file, label) */
 typedef struct { vita2d_texture **own; const char *rco, *label; } ResMap;
 static const ResMap res_map[] = {
