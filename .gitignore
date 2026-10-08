@@ -15,6 +15,8 @@
 
 # local notes for the next session (the whitelist above already ignores them; named here so it is explicit)
 /HANDOFF.md
+/THEMES_HANDOFF.md
+/CHANGELOG_since_1.3.4.md
 /LOCAL_CHANGES.md
 
 # only the PSP icons the code actually loads

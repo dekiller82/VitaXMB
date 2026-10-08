@@ -308,7 +308,6 @@ Everything in the tree is needed to build; nothing else is committed.
 - The PlayStation Network and "Extras" categories of the real PSP are not implemented.
 - The *Decrypt Artwork (beta)* experiment can freeze the console; it is off by default.
 - *Extra Storage (beta)* is new and lightly tested, see above.
-- **The mute icon has a black box around it** when no custom theme is on (the stock look). It shows up when the volume is at 0 and is only cosmetic; it is not fixed yet. With a custom theme the icon looks right.
 - **Custom themes are a beta**: some themes differ from the real PSP and some theme features are not implemented, see [Custom themes (beta)](#custom-themes-beta).
 - **Updating needs VitaShell's modules** in `ux0:VitaShell`; without them the update is downloaded and left for you to install with VitaShell.
 

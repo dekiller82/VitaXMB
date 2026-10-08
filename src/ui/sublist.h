@@ -105,13 +105,13 @@ static void draw_sub_list(int m, float xoff, float amul)
 		int two_line = it->sub[0] && it->kind != KIND_VALUE;
 		float maxw = (it->kind == KIND_VALUE ? 745.0f : 940.0f) - 303.0f - 14.0f;
 		if (two_line) {
-			ptext_vc_fit(tx - text_bearing(28, it->title), y - 20, WHITE(a), 28, it->title, maxw);
-			ptext_vc_fit(tx - text_bearing(PT_SUB(22), it->sub), y + 22, WHITE(a), PT_SUB(22), it->sub, maxw);
+			ptext_vc_row(tx - text_bearing(28, it->title), y - 20, WHITE(a), 28, it->title, maxw, sel > 0.5f);
+			ptext_vc_row(tx - text_bearing(PT_SUB(22), it->sub), y + 22, WHITE(a), PT_SUB(22), it->sub, maxw, sel > 0.5f);
 			if (sel > 0.3f) draw_rule(tx - 1, 948, y, (int)(a * clampf(sel * 1.4f - 0.2f, 0.0f, 1.0f)));
 		} else {
-			ptext_vc_fit(tx - text_bearing(28, it->title), y + 3, WHITE(a), 28, it->title, maxw);
+			ptext_vc_row(tx - text_bearing(28, it->title), y + 3, WHITE(a), 28, it->title, maxw, sel > 0.5f);
 			if (it->kind == KIND_VALUE)
-				ptext_vc_fit(760.0f + xoff, y + 7, WHITE(a * 9 / 10), 24, it->sub, 180.0f);
+				ptext_vc_row(760.0f + xoff, y + 7, WHITE(a * 9 / 10), 24, it->sub, 180.0f, sel > 0.5f);
 			if (sel > 0.3f) draw_rule(tx - 1, 948, y + 22, (int)(a * clampf(sel * 1.4f - 0.2f, 0.0f, 1.0f)));
 		}
 	}

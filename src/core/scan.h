@@ -5,6 +5,7 @@ static void scan_apps(void)
 	clear_menu(M_MEMCARD);
 	Menu *mn = &menus[M_MEMCARD];
 	if (!all_apps) all_apps = (Item *)calloc(GAME_MAX, sizeof(Item));
+	appdb_begin();                                   /* a fresh copy of LiveArea's database for this scan, if a title needs it */
 
 	SceUID dfd = sceIoDopen("ux0:app");
 	if (dfd >= 0) {
@@ -16,6 +17,11 @@ static void scan_apps(void)
 				char path[128], title[64] = "", tid[16] = "";
 				snprintf(path, sizeof(path), "ux0:app/%s/sce_sys/param.sfo", ent.d_name);
 				if (sfo_get_string(path, "TITLE", title, sizeof(title))) {
+					/* the bubbles Adrenaline's tools make for PSP and PS1 games keep one letter in param.sfo; LiveArea's own database has the name */
+					if (strlen(title) <= 1 || !strncmp(ent.d_name, "PSPEMU", 6)) {
+						char real[64];
+						if (appdb_title(ent.d_name, real, sizeof(real))) snprintf(title, sizeof(title), "%s", real);
+					}
 					clean_title(title);
 					if (!sfo_get_string(path, "TITLE_ID", tid, sizeof(tid)))
 						snprintf(tid, sizeof(tid), "%s", ent.d_name);

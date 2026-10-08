@@ -34,6 +34,7 @@
 #include "core/appinfo.h"
 #include "core/artwork.h"
 #include "core/folders.h"
+#include "core/appdb.h"
 #include "core/scan.h"
 #include "core/settings.h"
 #include "core/updater.h"
@@ -77,6 +78,7 @@ int main(void)
 			if (menus[mi].items[ji].stock) glow_for(menus[mi].items[ji].stock);
 	/* the status pictures are read from their RCO on first use (79 ms on the device): do it before the first frame */
 	res_fg("tex_mute"); res_fg("tex_mute_shadow"); res_fg("tex_busy"); res_fg("tex_busy_shadow");
+	res_hires("battery"); res_hires("battery_shadow"); res_hires("mute"); res_hires("mute_shadow"); res_hires("busy"); res_hires("busy_shadow");
 	sound_play(SND_OPENING);
 
 	int cat = CAT_GAME;
@@ -708,7 +710,7 @@ int main(void)
 		if (fabsf(sub_t - (lay == LAY_SUB)) < 0.002f) sub_t = (float)(lay == LAY_SUB);
 		page_t = lerpf(page_t, page_open != PAGE_NONE ? 1.0f : 0.0f, page_open != PAGE_NONE ? 0.25f : 0.45f);
 		if (page_t < 0.01f) page_t = 0.0f; else if (page_t > 0.99f) page_t = 1.0f;
-		dlg_t = lerpf(dlg_t, dlg_open ? 1.0f : 0.0f, 0.3f);
+		dlg_t = lerpf(dlg_t, dlg_open ? 1.0f : 0.0f, pt_dlg_rate);
 		if (dlg_t < 0.01f) dlg_t = 0.0f; else if (dlg_t > 0.99f) dlg_t = 1.0f;
 		ch_t = lerpf(ch_t, ch_open ? 1.0f : 0.0f, 0.3f);
 		if (ch_t < 0.01f) ch_t = 0.0f; else if (ch_t > 0.99f) ch_t = 1.0f;
@@ -766,6 +768,16 @@ int main(void)
 		/* Category row: the open category slides left for sub lists / game folders, the rest fade */
 		float fe = ease_out(folder_t), se = ease_out(sub_t);
 		float hide = fmaxf(fe, se);
+		/* A game's Options: the PSP (game_plugin OnPushOptionListCascade) sends the XMB to bar state 4 and moves the game list
+		 * to x -94 (0x11828, 0x117e4; 188 Vita px); closing them returns to state 2. A folder's own Options stay in state 2. */
+		float osb = 0.0f, osl = 0.0f;
+		int opt_folder = 0;
+		for (int oi = 0; oi < opt_n; oi++) if (opt_ids[oi] == OPT_DELFOLDER) opt_folder = 1;
+		if (opt_t > 0.0f && !opt_folder && opt_menu != M_VIDEOS && opt_menu != M_TRACKS && opt_menu != M_SAVES) {
+			float oe = ease_out(opt_t);
+			osb = -pt_opt_bar_px * oe;
+			osl = -fmaxf(188.0f + pt_list_dx, 0.0f) * oe;
+		}
 		if (pt_blade_mode) {
 			/* A theme that draws the category bar as full-height panels (one per category, the tabs painted in).
 			 * They are placed like the icons would be: at the bar's anchor plus the category's distance times the
@@ -796,7 +808,7 @@ int main(void)
 			if (cat_hidden[i]) continue;
 			if (pt_blade_mode || pt_strip_mode) break;
 			float d = cat_slot(i) - cat_pos;
-			float x = CAT_X + pt_row_dx + CAT_OFFSET(d) - 196.0f * pt_fold_ratio * fe - 118.0f * pt_sub_ratio * se;
+			float x = CAT_X + pt_row_dx + CAT_OFFSET(d) - 196.0f * pt_fold_ratio * fe - 118.0f * pt_sub_ratio * se + osb;
 			x -= (1.0f - su_bar) * 240.0f;
 			float sel = 1.0f - clampf(fabsf(d), 0.0f, 1.0f);
 			float size = lerpf(98.0f, 120.0f, sel) * pt_menu_scale;
@@ -817,11 +829,12 @@ int main(void)
 			float cur_x = pt_row_dx + CAT_OFFSET(dc);
 			float cur_a = (1.0f - clampf(fabsf(dc), 0.0f, 1.0f)) * su_bar;
 			cur_x -= (1.0f - su_bar) * 240.0f;
+			cur_x += osl;
 
 			if (lay == LAY_SUB) {
 				int par = depth > 0 ? stack[depth - 1] : menu_owner(cur);
 				draw_column(par, cur_x, cur_a, 0.0f, sub_t);                 /* icon-only parent column */
-				float cx = (folder_trans ? slide_dir * slide_px * (1.0f - ease_out(in_t)) : 0.0f) - (1.0f - su_bar) * 240.0f;
+				float cx = (folder_trans ? slide_dir * slide_px * (1.0f - ease_out(in_t)) : 0.0f) - (1.0f - su_bar) * 240.0f + osl;
 				draw_sub_list(cur, cx, folder_trans ? ease_out(in_t) : 1.0f);
 				if (prev_menu >= 0 && menu_layout(prev_menu) == LAY_SUB && out_t < 1.0f)
 					draw_sub_list(prev_menu, -slide_dir * slide_px * ease_out(out_t), 1.0f - ease_out(out_t));
@@ -893,6 +906,9 @@ int main(void)
 		}
 
 		status_busy = launching != NULL || upd_state == UPD_DOWNLOADING || upd_state == UPD_INSTALLING;
+#ifdef VITAXMB_DEBUG
+		{ static int fb_n, fb; if (fb_n++ % 30 == 0) { SceIoStat fst; fb = sceIoGetstat(CONFIG_DIR "/forcebusy", &fst) >= 0; } if (fb) status_busy = 1; }      /* debug: a file forces the spinner */
+#endif
 		draw_busy(dt_s);                                                  /* the PSP's spinner, bottom right */
 		{ static float notice_s; if (page_open == PAGE_NONE && !launching) draw_update_notice(dt_s, &notice_s); }
 		if (launch_fade > 0.0f)

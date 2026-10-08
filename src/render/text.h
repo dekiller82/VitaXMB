@@ -444,6 +444,40 @@ static void ptext_vc_fit(float x, float cy, unsigned int col, unsigned int size,
 	}
 }
 
+/* Text of a list row. When it does not fit, an unselected row keeps the "..." cut; the selected row shows all of it by scrolling like a
+ * ticker: it waits a moment, runs left until the end is in view, waits again and starts over (the text follows itself after a gap, so
+ * the loop has no jump). The PSP's own timing is not in its resources (no scroll attributes in any RCO text object) so these are
+ * the usual ones: 1 s wait, 60 px/s, 1 s hold. Each text is timed from the moment it became the selected one. */
+#define MQ_WAIT 1.0f
+#define MQ_SPEED 60.0f
+#define MQ_HOLD 1.0f
+#define MQ_GAP 80.0f
+static struct { const char *key; uint64_t t0, last; } mq[6];
+
+static void ptext_vc_row(float x, float cy, unsigned int col, unsigned int size, const char *s, float maxw, int selected)
+{
+	float tw = ptext_width(size, s);
+	if (!selected || tw <= maxw) { ptext_vc_fit(x, cy, col, size, s, maxw); return; }
+	uint64_t now = sceKernelGetProcessTimeWide();
+	int k = -1, oldest = 0;
+	for (int i = 0; i < 6; i++) {
+		if (mq[i].key == s) k = i;
+		if (mq[i].last < mq[oldest].last) oldest = i;
+	}
+	if (k < 0) { k = oldest; mq[k].key = s; mq[k].t0 = now; }
+	else if (now - mq[k].last > 300000) mq[k].t0 = now;             /* it was not on screen a moment ago: start from the beginning */
+	mq[k].last = now;
+	float t = (float)(now - mq[k].t0) / 1000000.0f;
+	float run = tw - maxw + 12.0f;                                  /* how far it has to move for the end to show */
+	float period = MQ_WAIT + run / MQ_SPEED + MQ_HOLD;
+	t = fmodf(t, period);
+	float off = t < MQ_WAIT ? 0.0f : (t < MQ_WAIT + run / MQ_SPEED ? (t - MQ_WAIT) * MQ_SPEED : run);
+	vita2d_enable_clipping();
+	vita2d_set_clip_rectangle((int)x - 2, (int)(cy - 1.2f * (float)size), (int)(x + maxw + 2), (int)(cy + 1.2f * (float)size));
+	ptext_vc(x - off, cy, col, size, s);
+	vita2d_disable_clipping();
+}
+
 static void ptext_right_vc(float xr, float cy, unsigned int col, unsigned int size, const char *s)
 {
 	ptext_vc(xr - ptext_width(size, s), cy, col, size, s);

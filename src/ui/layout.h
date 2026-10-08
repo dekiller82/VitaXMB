@@ -53,6 +53,10 @@ static int status_muted(void)
 		int vol = -1;
 		last = now;
 		muted = sceRegMgrGetKeyInt("/CONFIG/SOUND", "main_volume", &vol) >= 0 && vol == 0;
+#ifdef VITAXMB_DEBUG
+		SceIoStat st;                                                      /* debug builds: an empty ux0:data/VitaXMB/forcemute shows the icon */
+		if (sceIoGetstat(CONFIG_DIR "/forcemute", &st) >= 0) muted = 1;
+#endif
 	}
 	return muted;
 }
@@ -72,6 +76,18 @@ static void draw_busy(float dt_s)
 	static float vis;
 	vis = clampf(vis + (status_busy ? 6.0f : -6.0f) * dt_s, 0.0f, 1.0f);
 	if (vis <= 0.01f) return;
+	vita2d_texture *tt = res_theme("system_plugin_fg", "tex_busy"), *hr = tt ? NULL : res_hires("busy");
+	if (hr) {                                               /* the PSP's spinner redrawn at 4x: 68 px cells drawn at half size */
+		vita2d_texture *hs = res_hires("busy_shadow");
+		int frames = vita2d_texture_get_height(hr) / 68;
+		if (frames < 1) return;
+		int frame = (int)((sceKernelGetProcessTimeWide() / 33000) % (uint64_t)frames), a = (int)(255 * vis);
+		const float cx = 2.0f * (240.0f + 226.0f), cy = 2.0f * (136.0f + 122.0f);
+		if (hs && vita2d_texture_get_height(hs) >= (frame + 1) * 68)
+			vita2d_draw_texture_tint_part_scale(hs, cx + 4.0f - 17.0f, cy + 4.0f - 17.0f, 0, frame * 68, 68, 68, 0.5f, 0.5f, WHITE(a));
+		vita2d_draw_texture_tint_part_scale(hr, cx - 17.0f, cy - 17.0f, 0, frame * 68, 68, 68, 0.5f, 0.5f, WHITE(a));
+		return;
+	}
 	vita2d_texture *t = res_fg("tex_busy"), *sh = res_fg("tex_busy_shadow");
 	if (!t) return;
 	const int cell = 17;
@@ -91,8 +107,8 @@ static void draw_status(const SceDateTime *dt)
 	char buf[32];
 	int pct = scePowerGetBatteryLifePercent();
 	const float cy = 26.0f;                       /* shared centre line of clock and battery */
-	/* charging: the PSP steps the picture every 400 ms (anim_battery_charging fires OnChargeBattery in a 400 ms loop), from the
-	 * level it is at up to full */
+	/* charging: anim_battery_charging fires OnChargeBattery every 400 ms; its handler (vshmain 0x31158) shows frame `counter` of the
+	 * four-frame sheet and counts down 3, 2, 1, 0, 3, ... (empty, one bar, two, full), whatever the real level is */
 	int charging = scePowerIsBatteryCharging();
 	unsigned step = (unsigned)(sceKernelGetProcessTimeWide() / 400000);
 
@@ -102,12 +118,39 @@ static void draw_status(const SceDateTime *dt)
 		/* a theme's own battery: four frames in one picture, full to empty, drawn at twice its size where the theme puts it */
 		int fw = vita2d_texture_get_width(pt_bat), fh = vita2d_texture_get_height(pt_bat) / 4;
 		int frame = pct > 66 ? 0 : (pct > 33 ? 1 : (pct > 8 ? 2 : 3));
-		if (charging && frame > 0) frame -= (int)(step % (unsigned)(frame + 1));
+		if (charging) frame = 3 - (int)(step % 4u);                       /* vshmain's OnChargeBattery: 3, 2, 1, 0 (empty to full), then 3 again, whatever the level */
 		float w = fw * 2.0f, h = fh * 2.0f;
 		float x0 = pt_bat_x * 2.0f - w / 2.0f, y0 = pt_bat_y * 2.0f - h / 2.0f;
 		vita2d_draw_texture_part_scale(pt_bat, x0, y0, 0, frame * fh, fw, fh, 2.0f, 2.0f);
 		bx = x0;
 		clock_left = fw >= 300;
+	} else if (res_hires("battery")) {
+		/* the firmware's battery redrawn at 4x (vector shapes fitted to its frames): frames of 176 x 64, drawn at half size = twice the PSP's
+		 * 44 x 16 where the PSP puts it (plane 223, 124); a capture of the real XMB matches it in size, shape and place. Its shadow is two PSP
+		 * pixels down and right. The clock keeps the old anchor (bx). */
+		vita2d_texture *hb = res_hires("battery"), *hs = res_hires("battery_shadow");
+		int frame = pct > 66 ? 0 : (pct > 33 ? 1 : (pct > 8 ? 2 : 3));
+		if (charging) frame = 3 - (int)(step % 4u);                       /* vshmain's OnChargeBattery: 3, 2, 1, 0 (empty to full), then 3 again, whatever the level */
+		/* the redrawn picture has no soft baked-in glow below its body, so it looks higher than the PSP's: measured against a capture of the
+		 * real XMB its centre sat 3 px above the clock text's, the PSP's 0.6 px; two pixels down puts it back */
+		float bcx = pt_bat_x * 2.0f, bcy = pt_bat_y * 2.0f + 2.0f;
+		if (hs && vita2d_texture_get_height(hs) >= 4 * 68)
+			vita2d_draw_texture_tint_part_scale(hs, bcx + 4.0f - 45.0f, bcy + 4.0f - 17.0f, 0, frame * 68, 180, 68, 0.5f, 0.5f, WHITE(255));
+		vita2d_draw_texture_part_scale(hb, bcx - 44.0f, bcy - 16.0f, 0, frame * 64, 176, 64, 0.5f, 0.5f);
+	} else if (res_fg("tex_battery") && vita2d_texture_get_height(res_fg("tex_battery")) >= 64) {
+		/* the firmware's own battery (system_plugin_fg.rco, 44 x 16 frames: three segments, two, one, empty) at twice its size where the
+		 * PSP puts it (plane 223, 124); a capture of the real XMB matches it in size, shape and place. Its shadow sheet is 4 frames of
+		 * 17 rows, two PSP pixels down and right. The clock keeps the old anchor (bx). */
+		vita2d_texture *bt = res_fg("tex_battery"), *bs = res_fg("tex_battery_shadow");
+		int fw = vita2d_texture_get_width(bt), fh = vita2d_texture_get_height(bt) / 4;
+		int frame = pct > 66 ? 0 : (pct > 33 ? 1 : (pct > 8 ? 2 : 3));
+		if (charging) frame = 3 - (int)(step % 4u);                       /* vshmain's OnChargeBattery: 3, 2, 1, 0 (empty to full), then 3 again, whatever the level */
+		float bcx = pt_bat_x * 2.0f, bcy = pt_bat_y * 2.0f;
+		if (bs && vita2d_texture_get_height(bs) >= 4 * 17) {
+			int sw = vita2d_texture_get_width(bs);
+			vita2d_draw_texture_tint_part_scale(bs, bcx + 4.0f - sw, bcy + 4.0f - 17.0f, 0, frame * 17, sw, 17, 2.0f, 2.0f, WHITE(255));
+		}
+		vita2d_draw_texture_part_scale(bt, bcx - fw, bcy - fh, 0, frame * fh, fw, fh, 2.0f, 2.0f);
 	} else {
 	/* PSP battery: outlined body, nub on the LEFT, up to three segments filling from the right */
 	const float bw = 42, bh = 24, by = cy - bh / 2;
@@ -119,7 +162,7 @@ static void draw_status(const SceDateTime *dt)
 	vita2d_draw_rectangle(bx + bw - 2, by, 2, bh, line);
 	vita2d_draw_rectangle(bx - 4, cy - 5, 4, 10, line);
 	int segs = pct > 66 ? 3 : (pct > 33 ? 2 : (pct > 8 ? 1 : 0));
-	if (charging && segs < 3) segs += (int)(step % (unsigned)(4 - segs));
+	if (charging) segs = (int)(step % 4u);                           /* the same sequence: no bar, one, two, three */
 	for (int k = 0; k < segs; k++)
 		vita2d_draw_rectangle(bx + bw - 6 - 8 * (k + 1) - 2 * k + 2, by + 5, 8, bh - 10, line);
 	}
@@ -147,7 +190,16 @@ static void draw_status(const SceDateTime *dt)
 
 	/* mute: the speaker with a slash, five PSP pixels left of the clock (the hold switch has no counterpart on a Vita) */
 	if (status_muted()) {
-		vita2d_texture *m = res_fg("tex_mute"), *ms = res_fg("tex_mute_shadow");
+		vita2d_texture *tm = res_theme("system_plugin_fg", "tex_mute"), *hm = tm ? NULL : res_hires("mute");
+		if (hm) {                                                          /* the PSP's icon redrawn at 4x, drawn at half size */
+			vita2d_texture *hms = res_hires("mute_shadow");
+			float mw = 0.5f * vita2d_texture_get_width(hm), mh = 0.5f * vita2d_texture_get_height(hm);
+			float mx = clock_l - pt_mute_gap - mw / 2.0f, my = pt_mute_cy + 2.0f;                   /* two pixels down, like the battery */
+			int ma = (int)(255 * pt_mute_alpha);
+			if (hms) vita2d_draw_texture_tint_scale(hms, mx + 4.0f - 0.25f * vita2d_texture_get_width(hms), my + pt_mute_sdy - 0.25f * vita2d_texture_get_height(hms), 0.5f, 0.5f, WHITE(ma));
+			vita2d_draw_texture_tint_scale(hm, mx - mw / 2.0f, my - mh / 2.0f, 0.5f, 0.5f, WHITE(ma));
+		}
+		vita2d_texture *m = hm ? NULL : res_fg("tex_mute"), *ms = res_fg("tex_mute_shadow");
 		if (m) {
 			float mw = 2.0f * vita2d_texture_get_width(m), mx = clock_l - pt_mute_gap - mw / 2.0f;
 			float my = pt_mute_cy;                                           /* the firmware's own line for it: 124 -> 24 */
@@ -286,15 +338,15 @@ static void draw_folder_column(int m, float xoff, float amul, float pic_a)
 				float tx = ix + (it->icon ? bw / 2 + 24 : w / 2 + 29);      /* the small stock icons keep the label close */
 				float maxw = SCREEN_W - 24.0f - tx;
 				if (it->sub[0] && !it->icon) {                    /* like the other lists: title above the rule, subtitle below */
-					ptext_vc_fit(tx - text_bearing(PT_TITLE(28), it->title), y - 21, WHITE(ta), PT_TITLE(28), it->title, maxw);
-					ptext_vc_fit(tx - text_bearing(PT_SUB(22), it->sub), y + 23, WHITE(ta * 8 / 10), PT_SUB(22), it->sub, maxw);
+					ptext_vc_row(tx - text_bearing(PT_TITLE(28), it->title), y - 21, WHITE(ta), PT_TITLE(28), it->title, maxw, 1);
+					ptext_vc_row(tx - text_bearing(PT_SUB(22), it->sub), y + 23, WHITE(ta * 8 / 10), PT_SUB(22), it->sub, maxw, 1);
 					draw_rule(tx - 1, 948, y, ta);
 				} else if (it->sub[0]) {
-					ptext_vc_fit(tx - text_bearing(PT_TITLE(28), it->title), y - 15, WHITE(ta), PT_TITLE(28), it->title, maxw);
-					ptext_vc_fit(tx - text_bearing(PT_SUB(20), it->sub), y + 17, WHITE(ta * 7 / 10), PT_SUB(20), it->sub, maxw);
+					ptext_vc_row(tx - text_bearing(PT_TITLE(28), it->title), y - 15, WHITE(ta), PT_TITLE(28), it->title, maxw, 1);
+					ptext_vc_row(tx - text_bearing(PT_SUB(20), it->sub), y + 17, WHITE(ta * 7 / 10), PT_SUB(20), it->sub, maxw, 1);
 					draw_rule(tx - 1, 948, y, ta);
 				} else {
-					ptext_vc_fit(tx - text_bearing(PT_TITLE(28), it->title), y, WHITE(ta), PT_TITLE(28), it->title, maxw);
+					ptext_vc_row(tx - text_bearing(PT_TITLE(28), it->title), y, WHITE(ta), PT_TITLE(28), it->title, maxw, 1);
 				}
 			}
 		}

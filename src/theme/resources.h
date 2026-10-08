@@ -59,6 +59,29 @@ static vita2d_texture *res_fg(const char *label)
 	return res_stock_fg ? rco_image_by_label(res_stock_fg, label) : NULL;
 }
 
+/* The firmware's status pictures redrawn at four times their size (assets/psp/status_*.png, made by tools/make_hires_status.py): the
+ * PSP's are tiny bitmaps (the battery's content is 26 x 14 pixels), so at the Vita's 2x they are soft. They are drawn at half size here.
+ * names: battery (4 frames of 176 x 64), battery_shadow (4 of 180 x 68), mute, mute_shadow, busy and busy_shadow (30 cells of 68 x 68).
+ * NULL when the file is not there; a theme's own pictures are used before these. */
+static vita2d_texture *res_hires(const char *name)
+{
+	static const char *names[6] = { "battery", "battery_shadow", "mute", "mute_shadow", "busy", "busy_shadow" };
+	static vita2d_texture *tex[6];
+	static unsigned char tried[6];
+	for (int i = 0; i < 6; i++) {
+		if (strcmp(names[i], name) != 0) continue;
+		if (!tried[i]) {
+			tried[i] = 1;
+			char path[64];
+			snprintf(path, sizeof(path), "app0:assets/psp/status_%s.png", name);
+			tex[i] = vita2d_load_PNG_file(path);
+			if (tex[i]) vita2d_texture_set_filters(tex[i], SCE_GXM_TEXTURE_FILTER_LINEAR, SCE_GXM_TEXTURE_FILTER_LINEAR);
+		}
+		return tex[i];
+	}
+	return NULL;
+}
+
 /* VitaXMB's own pictures that a theme's resource files can replace: (picture, file, label, the picture's focus glow, its shadow) */
 typedef struct { vita2d_texture **own; const char *rco, *label, *focus, *shadow; } ResMap;
 static const ResMap res_map[] = {

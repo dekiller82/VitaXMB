@@ -58,6 +58,8 @@ static float pt_clock_cy = 26.0f, pt_mute_cy = 24.0f, pt_mute_gap = 10.0f, pt_mu
 static int pt_clock_code_set;                     /* the theme patches vshmain, so the clock x is the code's value (0x31108), not the RCO's */
 static float pt_clock_code_x = 203.0f;
 static float pt_sub_ratio = 1.0f, pt_fold_ratio = 1.0f;   /* how far the bar slides left for a list / a game folder, against the stock slide (vshmain states 2 and 3) */
+static float pt_opt_bar_px = 180.0f;               /* how far the bar slides left while a game's Options are open (vshmain state 4 = state 3's x - 40 against state 2), Vita pixels */
+static float pt_dlg_rate = 0.3f;                  /* per-frame easing of the confirmation dialog (common_gui 0x3db0: its move takes 100 ms, a theme may slow it) */
 static float pt_gap = 5.0f;                       /* extra distance either side of the open category, PSP pixels */
 static float pt_ms_left = 200.0f, pt_ms_right = 200.0f;   /* how long a category change takes, milliseconds */
 /* The Options menu of each screen: shift (screen pixels) and size, from that screen's plugin. */
@@ -542,7 +544,16 @@ static void pt_apply_patches(void)
 	if (v >= 0.0f && v <= 8.0f) pt_sub_ratio = v;
 	v = (x3 - x0) / -110.0f;
 	if (v >= 0.0f && v <= 8.0f) pt_fold_ratio = v;
+	/* game_plugin OnPushOptionListCascade (0x11828) calls state 4 when a game's Options open and OnScrollInOptionListCascade
+	 * (0x11ad8) state 2 when they close. State 4 (0x1db14) runs state 3 (x3) and moves the bar 40 further left, so the Options
+	 * slide the bar by (x3 - 40) - x2 (stock -280 - -190 = 90 PSP px). */
+	v = 2.0f * (x2 - (x3 - 40.0f));
+	if (v >= 0.0f && v <= 1600.0f) pt_opt_bar_px = v;
 
+	/* common_gui 0x3c54 builds the dialogs: the plane moves in with a 100 ms step (0x3db0, 0x3d40); Clear XMB Black / Jumbled 800,
+	 * Organ 500, Xbox 1200. The stock rate of 0.3 per frame is that 100 ms. */
+	v = pp_hi(PM_CGUI, 0x3db0, 0x42c8);
+	if (v >= 20.0f && v <= 5000.0f) pt_dlg_rate = 1.0f - powf(0.7f, 100.0f / v);
 	v = pp_hi(PM_PAF, 0x10a23c, 0x4348);
 	if (v >= 0.0f && v <= 5000.0f) xl_ms_up = v;
 	v = pp_hi(PM_PAF, 0x10a27c, 0x4348);
@@ -867,7 +878,7 @@ static void pt_unload(void)
 	for (int c = 0; c < CAT_COUNT; c++) if (pt_blade[c]) { defer_free(pt_blade[c]); pt_blade[c] = NULL; }
 	for (int c = 0; c < CAT_COUNT; c++) if (pt_strip[c]) { defer_free(pt_strip[c]); pt_strip[c] = NULL; }
 	pt_strip_mode = 0;
-	pt_blade_mode = 0; pt_blade_dx = 0.0f; pt_pitch = 80.0f; pt_list_dx = 0.0f; for (int i = 0; i < POPT_COUNT; i++) { pt_opt_hidden[i] = 0; pt_opt[i].dx = 0.0f; pt_opt[i].dy = 0.0f; pt_opt[i].scale = 1.0f; } pt_gap = 5.0f; pt_ms_left = pt_ms_right = 200.0f; pt_sub_ratio = pt_fold_ratio = 1.0f;
+	pt_blade_mode = 0; pt_blade_dx = 0.0f; pt_pitch = 80.0f; pt_list_dx = 0.0f; for (int i = 0; i < POPT_COUNT; i++) { pt_opt_hidden[i] = 0; pt_opt[i].dx = 0.0f; pt_opt[i].dy = 0.0f; pt_opt[i].scale = 1.0f; } pt_gap = 5.0f; pt_ms_left = pt_ms_right = 200.0f; pt_sub_ratio = pt_fold_ratio = 1.0f; pt_opt_bar_px = 180.0f; pt_dlg_rate = 0.3f;
 	pp_clear(); xs_reset(); xl_ms_up = xl_ms_down = 200.0f; pt_clock_code_set = 0; pt_clock_cy = 26.0f; pt_mute_cy = 24.0f; pt_mute_gap = 10.0f; pt_mute_sdy = 4.0f;
 	for (int k = 0; k < 3; k++) pt_clock_rgb[k] = pt_btn_icon_rgb[k] = pt_btn_label_rgb[k] = 255;
 	pt_clock_alpha = pt_clock_scale = pt_mute_alpha = 1.0f;

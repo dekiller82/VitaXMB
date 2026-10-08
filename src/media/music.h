@@ -531,11 +531,11 @@ static void draw_column(int m, float xoff, float amul, float grow, float sub_p)
 		float tx = text_x + xoff;
 		float maxw = SCREEN_W - 24.0f - text_x;
 		if (it->sub[0]) {
-			ptext_vc_fit(tx - text_bearing(PT_TITLE(28), it->title), y - 20, WHITE(ta), PT_TITLE(28), it->title, maxw);
-			ptext_vc_fit(tx - text_bearing(PT_SUB(22), it->sub), y + 22, WHITE(ta), PT_SUB(22), it->sub, maxw);
+			ptext_vc_row(tx - text_bearing(PT_TITLE(28), it->title), y - 20, WHITE(ta), PT_TITLE(28), it->title, maxw, emph > 0.5f);
+			ptext_vc_row(tx - text_bearing(PT_SUB(22), it->sub), y + 22, WHITE(ta), PT_SUB(22), it->sub, maxw, emph > 0.5f);
 			if (emph > 0.3f) draw_rule(tx - 1, 950, y, (int)(ta * clampf(emph * 1.4f - 0.2f, 0.0f, 1.0f)));
 		} else {
-			ptext_vc_fit(tx - text_bearing(PT_TITLE(28), it->title), y, WHITE(ta), PT_TITLE(28), it->title, maxw);
+			ptext_vc_row(tx - text_bearing(PT_TITLE(28), it->title), y, WHITE(ta), PT_TITLE(28), it->title, maxw, emph > 0.5f);
 		}
 	}
 }
