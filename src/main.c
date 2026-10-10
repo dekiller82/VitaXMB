@@ -43,6 +43,7 @@
 #include "core/icons.h"
 #include "render/draw.h"
 #include "render/text.h"
+#include "render/swave.h"
 #include "render/background.h"
 #include "ui/layout.h"
 #include "ui/sublist.h"
@@ -63,6 +64,7 @@ int main(void)
 	wave_set_model(NULL, 0);
 	vita2d_set_clear_color(RGBA8(0, 0, 0, 255));
 	text_init("app0:assets/font.otf");
+	pt_font = pt_stock_font = stock_clock_font();            /* the PSP's own font for all Latin text */
 	load_icons();
 	sound_load_all();
 	SceUID athread = sceKernelCreateThread("xmb_audio", audio_thread, 0x10000100, 0x10000, 0, 0, NULL);

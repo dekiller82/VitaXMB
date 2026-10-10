@@ -188,7 +188,7 @@ An experimental *Decrypt Artwork (beta)* setting (off by default, asks for confi
 
 ## Folders
 
-Organise your games and homebrew in **Game > Memory Card**. Press **Triangle** for Options:
+Organise your games and homebrew in **Game > Memory Stick™**. Press **Triangle** for Options:
 
 - **New Folder** asks for a name with the Vita's own keyboard, then opens the picker.
 - The **picker** lists every installed app with a tick box. **Cross** ticks or unticks, **L / R** jump five rows, **Triangle** selects all or none, **Circle** saves and closes. A game that is already in another folder shows where; ticking it moves it.

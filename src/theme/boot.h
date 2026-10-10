@@ -83,8 +83,12 @@ static void boot_play(int month, void (*backdrop)(float, float), const unsigned 
 		if (atoi(sb) > 0) shot_ms = (float)atoi(sb);
 	}
 	float ms = 0.0f;
+	int rec = 0, rec_i = 0;                                     /* debug: an empty ux0:data/VitaXMB/bootrec makes the start-up run in steps of 1/12 s and save every frame (br000.png...) */
+#ifdef VITAXMB_DEBUG
+	if (shot) { FILE *rf = fopen("ux0:data/VitaXMB/bootrec", "rb"); if (rf) { rec = 1; fclose(rf); } }
+#endif
 	for (;;) {
-		ms = (float)(sceKernelGetProcessTimeWide() - t0) / 1000.0f;
+		ms = rec ? rec_i * (1000.0f / 12.0f) : (float)(sceKernelGetProcessTimeWide() - t0) / 1000.0f;
 		rco_play_step(&logo, ms);
 		rco_play_step(&mon, ms);
 		rco_play_step(&model, ms);
@@ -133,7 +137,8 @@ static void boot_play(int month, void (*backdrop)(float, float), const unsigned 
 #endif
 		vita2d_end_drawing();
 		text_prewarm(8);                                           /* the first menu frame would otherwise build every letter at once: a visible hitch at the hand-over */
-		if (shot && shot_i < 1 && ms >= shot_ms) {
+		if (rec) { char nm[24]; snprintf(nm, sizeof(nm), "br%03d", rec_i++); shot(nm); }
+		else if (shot && shot_i < 1 && ms >= shot_ms) {
 			char nm[24];
 			snprintf(nm, sizeof(nm), "bs%d", shot_i++);
 			shot(nm);

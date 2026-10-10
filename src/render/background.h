@@ -79,6 +79,8 @@ static void wave_strip(float base0, float base1, float t, const float p[3], unsi
 	vita2d_draw_array(SCE_GXM_PRIMITIVE_TRIANGLE_STRIP, v, cols * 2);
 }
 
+static int sw_solid = -1;                      /* the default is the model wave (as before); an empty ux0:data/VitaXMB/solidwave switches to the SolidWave */
+
 static void draw_background(float t, int month)
 {
 	if (pt_active >= 0) pt_set_month(month);                  /* a theme has a sky picture for every month */
@@ -112,6 +114,15 @@ static void draw_background(float t, int month)
 	}
 
 	if (bg_no_wave) return;
+#ifdef VITAXMB_DEBUG
+	if (sw_solid < 0) { SceIoStat cst; sw_solid = sceIoGetstat(CONFIG_DIR "/solidwave", &cst) >= 0; }
+#else
+	sw_solid = 0;
+#endif
+	if (sw_solid) {                                /* the SolidWave, drawn the way the firmware's code does */
+		sw_draw(month < 0 || month > 11 ? 0 : month, bg_alpha);
+		return;
+	}
 	if (wave_m.ok) {                               /* the firmware's own moving wave (or the theme's) */
 		static const unsigned char white[3] = { 255, 255, 255 };     /* the same model and material as the boot's ribbon: white, translucent, shaded by its folds */
 		if (wave_off) return;

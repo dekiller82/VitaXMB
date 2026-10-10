@@ -51,7 +51,7 @@ static void sysinfo_gather(void)
 
 	uint64_t mx = 0, fr = 0;
 	if (sceAppMgrGetDevInfo("ux0:", &mx, &fr) >= 0 && mx)
-		info_add("Memory Card", "%.1f GB free of %.1f GB", fr / 1073741824.0, mx / 1073741824.0);
+		info_add("Memory Stick™", "%.1f GB free of %.1f GB", fr / 1073741824.0, mx / 1073741824.0);
 	if (extra_storage) {
 		char devs[4][8];
 		int nd = extra_devs(devs);

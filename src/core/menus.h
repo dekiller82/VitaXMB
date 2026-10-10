@@ -39,12 +39,12 @@ static void build_menus(void)
 
 	/* Photo / Music / Video open the Vita's own apps */
 	{
-		Item *ph = add_uri(CAT_PHOTO, "Memory Card", "photo:browse?category=ALL", tex_ms_s);
+		Item *ph = add_uri(CAT_PHOTO, "Memory Stick™", "photo:browse?category=ALL", tex_ms_s);
 		if (ph) snprintf(ph->sub, sizeof(ph->sub), "Open in Photos");
 	}
-	add_folder(CAT_MUSIC, "Memory Card", "", M_TRACKS, tex_ms_s);
+	add_folder(CAT_MUSIC, "Memory Stick™", "", M_TRACKS, tex_ms_s);
 	scan_music_wrapper();
-	add_folder(CAT_VIDEO, "Memory Card", "", M_VIDEOS, tex_ms_s);
+	add_folder(CAT_VIDEO, "Memory Stick™", "", M_VIDEOS, tex_ms_s);
 	scan_videos();
 
 	/* Network: the Vita's online apps */
@@ -59,7 +59,7 @@ static void build_menus(void)
 	Item *it;
 	it = add_item(CAT_GAME, KIND_FOLDER, "Saved Data Utility", "", NULL, tex_savedata_s);
 	if (it) it->submenu = M_SAVES;
-	it = add_item(CAT_GAME, KIND_FOLDER, "Memory Card", "", NULL, tex_ms_s);
+	it = add_item(CAT_GAME, KIND_FOLDER, "Memory Stick™", "", NULL, tex_ms_s);
 	if (it) it->submenu = M_MEMCARD;
 	menus[CAT_GAME].sel = 1;
 

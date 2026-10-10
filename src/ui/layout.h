@@ -102,6 +102,20 @@ static void draw_busy(float dt_s)
 	vita2d_draw_texture_tint_part_scale(t, cx - half, cy - half, 0, frame * cell, cell, cell, 2.0f, 2.0f, WHITE(a));
 }
 
+/* The firmware's own Latin font (flash0:/font/ltn0.pgf, 6.61): the PSP draws all its Latin text in it; its letters are narrower and lighter than
+ * the UI font's (FOT-NewRodin), which stays as the fallback for characters the PGF font lacks. Loaded once at start. */
+static PtFont *stock_clock_font(void)
+{
+	static PtFont *f; static int tried;
+	if (!tried) {
+		tried = 1;
+		size_t n = 0;
+		uint8_t *b = boot_read_file("app0:assets/psp/ltn0.pgf", &n);
+		if (b) { f = pt_font_parse(b, n); if (!f) free(b); }
+	}
+	return f;
+}
+
 static void draw_status(const SceDateTime *dt)
 {
 	char buf[32];
@@ -173,7 +187,7 @@ static void draw_status(const SceDateTime *dt)
 		int h12 = dt->hour % 12 ? dt->hour % 12 : 12;
 		snprintf(buf, sizeof(buf), "%d/%d %d:%02d %s", dt->month, dt->day, h12, dt->minute, dt->hour < 12 ? "AM" : "PM");
 	}
-	const int csz = (int)(24.0f * pt_clock_scale + 0.5f);
+	const int csz = (int)((pt_font && pt_font == pt_stock_font ? 28.0f : 24.0f) * pt_clock_scale + 0.5f);   /* the PSP's font: digits 20 px tall, as in a photo of the real thing */
 	const unsigned int ccol = RGBA8(pt_clock_rgb[0], pt_clock_rgb[1], pt_clock_rgb[2], (int)(240.0f * pt_clock_alpha));
 	float tw = ptext_width(csz, buf), clock_l;
 	if (pt_clock_code_set) {                                                       /* the firmware's code puts the clock (vshmain 0x31038) */

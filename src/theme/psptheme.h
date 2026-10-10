@@ -500,6 +500,9 @@ static const PtXStyleSite pt_xsites[] = {
 	{ 0x10aafc, 0x4254, 0x10ab08, 0x4150, 0,      1, XSB(23) },
 };
 
+static void sw_apply_patches(void);       /* render/swave.h: the SolidWave's constants */
+static void sw_reset_stock(void);
+
 static void pt_apply_patches(void)
 {
 	if (pt_fw_magic != 0xDEAD0660u && pt_fw_magic != 0xDEAD0661u) return;    /* the offsets are those of 6.60 / 6.61 */
@@ -573,6 +576,7 @@ static void pt_apply_patches(void)
 			xstyles[st].gap_below = s->kind >= 2 ? 0.0f : gap;
 		}
 	}
+	sw_apply_patches();
 	pp_report();
 }
 
@@ -734,7 +738,8 @@ static void pt_font_destroy(PtFont *f)
 	free(f->charmap); free(f->charptr); free(f->file); free(f);
 }
 
-static void pt_font_free(void) { pt_font_destroy(pt_font); pt_font = NULL; }
+static PtFont *pt_stock_font;       /* the firmware's own ltn0.pgf: the font of the UI whenever a theme does not bring one */
+static void pt_font_free(void) { if (pt_font != pt_stock_font) pt_font_destroy(pt_font); pt_font = pt_stock_font; }
 
 static int32_t *pt_tab(const uint8_t *p, int n, int k)
 {
@@ -872,14 +877,14 @@ static void pt_unload(void)
 	if (pt_bat) { defer_free(pt_bat); pt_bat = NULL; }
 	if (pt_focus) { defer_free(pt_focus); pt_focus = NULL; }
 	pt_bat_x = 463.0f; pt_bat_y = 12.0f; pt_clock_x = 208.0f; pt_clock_w = 0.0f;
-	if (pt_font) { pt_font_free(); text_cache_flush(); }
+	if (pt_font != pt_stock_font) { pt_font_free(); text_cache_flush(); }
 	if (pt_preview) { defer_free(pt_preview); pt_preview = NULL; }
 	for (int c = 0; c < CAT_COUNT; c++) if (pt_cat[c]) { defer_free(pt_cat[c]); pt_cat[c] = NULL; }
 	for (int c = 0; c < CAT_COUNT; c++) if (pt_blade[c]) { defer_free(pt_blade[c]); pt_blade[c] = NULL; }
 	for (int c = 0; c < CAT_COUNT; c++) if (pt_strip[c]) { defer_free(pt_strip[c]); pt_strip[c] = NULL; }
 	pt_strip_mode = 0;
 	pt_blade_mode = 0; pt_blade_dx = 0.0f; pt_pitch = 80.0f; pt_list_dx = 0.0f; for (int i = 0; i < POPT_COUNT; i++) { pt_opt_hidden[i] = 0; pt_opt[i].dx = 0.0f; pt_opt[i].dy = 0.0f; pt_opt[i].scale = 1.0f; } pt_gap = 5.0f; pt_ms_left = pt_ms_right = 200.0f; pt_sub_ratio = pt_fold_ratio = 1.0f; pt_opt_bar_px = 180.0f; pt_dlg_rate = 0.3f;
-	pp_clear(); xs_reset(); xl_ms_up = xl_ms_down = 200.0f; pt_clock_code_set = 0; pt_clock_cy = 26.0f; pt_mute_cy = 24.0f; pt_mute_gap = 10.0f; pt_mute_sdy = 4.0f;
+	pp_clear(); xs_reset(); sw_reset_stock(); xl_ms_up = xl_ms_down = 200.0f; pt_clock_code_set = 0; pt_clock_cy = 26.0f; pt_mute_cy = 24.0f; pt_mute_gap = 10.0f; pt_mute_sdy = 4.0f;
 	for (int k = 0; k < 3; k++) pt_clock_rgb[k] = pt_btn_icon_rgb[k] = pt_btn_label_rgb[k] = 255;
 	pt_clock_alpha = pt_clock_scale = pt_mute_alpha = 1.0f;
 	pt_title_k = pt_sub_k = pt_opt_k = pt_shadow_kx = pt_shadow_ky = 1.0f;
@@ -1025,8 +1030,8 @@ static int pt_load(int idx)
 		if (fn) {
 			uint8_t *fb = pt_read(f, fn->start, fn->size);
 			if (fb) {
-				pt_font = pt_font_parse(fb, fn->size);
-				if (!pt_font) free(fb);
+				PtFont *nf = pt_font_parse(fb, fn->size);
+				if (nf) pt_font = nf; else free(fb);
 				text_cache_flush();
 			}
 		}

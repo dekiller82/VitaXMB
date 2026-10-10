@@ -28,6 +28,8 @@ typedef struct {
 	int n_mor;
 	const uint8_t *tex;                             /* reflection map, 8-bit grey, 256 wide */
 	int tex_h;
+	float *refl;                                    /* the reflection map decoded from its 8-bit palette TGA: brightness 0..1, rw x rw */
+	int rw;
 	float end;                                      /* loop length in frames */
 	float fps;
 	uint8_t *own;                                   /* copy of the model bytes */
@@ -61,7 +63,7 @@ static void wv_basis(const float *kn, int nk, int n, float u, float *out)
 
 static void wv_free(WaveModel *m)
 {
-	free(m->mat); free(m->mor); free(m->own);
+	free(m->mat); free(m->mor); free(m->own); free(m->refl);
 	memset(m, 0, sizeof(*m));
 }
 
@@ -151,6 +153,21 @@ static int wv_parse(WaveModel *M, const uint8_t *g, size_t n)
 	if (tex_n < 8 + 24 + 256 * 8) return 0;
 	M->tex = tex + 8 + 24;
 	M->tex_h = (int)((tex_n - 8 - 24) / 256);
+	/* The texture chunk is really a size and then a colour-mapped TGA (the file name says reflection_white_09_s4_8bit.tga): 128 x 128 indices into a
+	 * 24-bit palette whose brightest entry is 63. It is a sphere map: black in the middle, a faint rim. */
+	if (tex_n > 8 + 4 + 18 + 768 + 128 * 128) {
+		const uint8_t *t = tex + 8 + 4;
+		int idl = t[0], cmt = t[1], it = t[2], cml = t[5] | (t[6] << 8), cmd = t[7], w = t[12] | (t[13] << 8), h = t[14] | (t[15] << 8), bpp = t[16];
+		if (cmt == 1 && it == 1 && cmd == 24 && bpp == 8 && cml > 0 && cml <= 256 && w == h && w >= 16 && w <= 256 && !idl &&
+		    tex_n >= (size_t)(8 + 4 + 18 + cml * 3 + w * h)) {
+			float *r = malloc(sizeof(float) * (size_t)w * h);
+			if (r) {
+				const uint8_t *pal = t + 18, *px = pal + cml * 3;
+				for (int i = 0; i < w * h; i++) { int ix = px[i] < cml ? px[i] : cml - 1; r[i] = (pal[ix * 3] + pal[ix * 3 + 1] + pal[ix * 3 + 2]) / (3.0f * 255.0f); }
+				M->refl = r; M->rw = w;
+			}
+		}
+	}
 	M->end = end;
 	M->fps = fps;
 	return 1;
@@ -249,6 +266,26 @@ static void wv_draw(const WaveModel *M, float frame, const unsigned char col[3],
 			p->x = 480.0f + Q[i][j][0] * s;
 			p->y = 272.0f - Q[i][j][1] * s;
 			p->z = 0.5f;
+			if (smooth == 2 && M->refl) {
+				/* the firmware's material: ADD, SRC_ALPHA, ONE - the reflection (about 0.87 of the map's grey, from a capture of the real XMB) is added to what is behind */
+				int W = M->rw;
+				float fx = (0.5f - 0.5f * n[0] / len) * (W - 1), fy = (0.5f - 0.5f * n[1] / len) * (W - 1);
+				int x0 = (int)fx, y0 = (int)fy;
+				if (x0 < 0) x0 = 0;
+				if (y0 < 0) y0 = 0;
+				if (x0 > W - 2) x0 = W - 2;
+				if (y0 > W - 2) y0 = W - 2;
+				float ax = fx - x0, ay = fy - y0;
+				if (ax < 0.0f) ax = 0.0f;
+				if (ax > 1.0f) ax = 1.0f;
+				if (ay < 0.0f) ay = 0.0f;
+				if (ay > 1.0f) ay = 1.0f;
+				float b = (M->refl[y0 * W + x0] * (1 - ax) + M->refl[y0 * W + x0 + 1] * ax) * (1 - ay) +
+				          (M->refl[(y0 + 1) * W + x0] * (1 - ax) + M->refl[(y0 + 1) * W + x0 + 1] * ax) * ay;
+				b *= 0.87f * alpha;
+				p->color = RGBA8((int)(col[0] * b), (int)(col[1] * b), (int)(col[2] * b), 255);
+				continue;
+			}
 			int a = (int)((26.0f + 46.0f * (1.0f - g)) * alpha);
 			int mix = (int)(g * 120.0f);                            /* bright parts lean to white */
 			if (smooth) {                                           /* the reflection photo is cloudy: use the facing angle instead, so the ribbon is smooth with lit creases */
@@ -270,7 +307,9 @@ static void wv_draw(const WaveModel *M, float frame, const unsigned char col[3],
 			v[k++] = *a; v[k++] = *b; v[k++] = *c;
 			v[k++] = *a; v[k++] = *c; v[k++] = *d;
 		}
+	if (smooth == 2 && M->refl) vita2d_set_blend_mode_add(1);
 	vita2d_draw_array(SCE_GXM_PRIMITIVE_TRIANGLES, v, nv_out);
+	if (smooth == 2 && M->refl) vita2d_set_blend_mode_add(0);
 }
 
 /* The background wave at time t seconds. */

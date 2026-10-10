@@ -343,7 +343,7 @@ static void text_prewarm(int steps)
 {
 	static int idx;
 	static const unsigned int sizes[3] = { 28, 22, 24 };
-	if (!atlas || pt_font) return;
+	if (!atlas) return;
 	while (steps-- > 0 && idx < 3 * 95) {                  /* phase 0 only: it owns the shadow; the other phases are cheap and the atlas has to stay roomy */
 		int si = idx / 95, ci = idx % 95, ph = 0;
 		idx++;
