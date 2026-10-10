@@ -154,6 +154,8 @@ static void fill_folder_menu(int f)
 	loader_pause = 0;
 }
 
+static void lastplayed_refresh(void);
+
 static void rebuild_game_lists(void)
 {
 	Menu *mn = &menus[M_MEMCARD];
@@ -186,4 +188,5 @@ static void rebuild_game_lists(void)
 	mn->pos = (float)mn->sel;
 	loader_pause = 0;
 	fill_folder_menu(open_folder);
+	lastplayed_refresh();                                     /* the disc under Memory Stick follows the installed apps */
 }

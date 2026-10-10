@@ -14,7 +14,7 @@ static vita2d_texture *xicon(const char *name)
 }
 
 static vita2d_texture *cat_tex[CAT_COUNT];
-static vita2d_texture *tex_theme, *tex_psp, *tex_exit, *tex_photo_s, *tex_music_s, *tex_video_s, *tex_net_s, *tex_game_s, *tex_savedata_s, *tex_ms_s, *tex_launch, *tex_badge, *tex_browser, *tex_remote, *tex_sharing, *tex_date, *tex_usb, *tex_rss, *tex_manual, *tex_lftv, *tex_folder;
+static vita2d_texture *tex_theme, *tex_psp, *tex_exit, *tex_photo_s, *tex_music_s, *tex_video_s, *tex_net_s, *tex_game_s, *tex_savedata_s, *tex_ms_s, *tex_launch, *tex_badge, *tex_browser, *tex_remote, *tex_sharing, *tex_date, *tex_usb, *tex_rss, *tex_manual, *tex_lftv, *tex_folder, *tex_umd;
 
 static void load_icons(void)
 {
@@ -45,4 +45,5 @@ static void load_icons(void)
 	tex_rss     = xicon("rss");
 	tex_manual  = xicon("manual");
 	tex_lftv    = xicon("lftv");
+	tex_umd     = xicon("umd");                 /* the disc under Memory Stick: the game started last */
 }

@@ -130,6 +130,7 @@ static void launch_uri(const char *uri)
 
 static int item_has_options(int m, const Item *it)
 {
+	if (m == CAT_GAME) return it->kind == KIND_APP;             /* the last played game */
 	if (m == M_MEMCARD) return it->kind == KIND_APP || it->kind == KIND_FOLDER;
 	if (m == M_FOLDER) return 1;
 	return m == M_SAVES && it->id[0];

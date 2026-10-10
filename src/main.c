@@ -34,6 +34,7 @@
 #include "core/appinfo.h"
 #include "core/artwork.h"
 #include "core/folders.h"
+#include "core/lastplayed.h"
 #include "core/appdb.h"
 #include "core/scan.h"
 #include "core/settings.h"
@@ -54,6 +55,7 @@
 #include "ui/options.h"
 #include "ui/chooser.h"
 #include "ui/picker.h"
+#include "ui/touch.h"
 #include "media/music.h"
 #include "core/remote.h"
 #include "ui/ime.h"
@@ -190,6 +192,33 @@ int main(void)
 			hold_frames = 0;
 		}
 		pressed |= remote_step();
+		{	/* the touch screen: its taps and drags arrive as the same button presses */
+			TouchCtx tc;
+			memset(&tc, 0, sizeof(tc));
+			if (launching || startup_t < 0.45f || ime_active) tc.mode = TM_NONE;
+			else if (dlg_open) { tc.mode = TM_DLG; tc.dlg_sel = dlg_sel; }
+			else if (ch_open) tc.mode = TM_CHOOSER;
+			else if (pk_open) { tc.mode = TM_PICKER; tc.pk_sel = pk_sel; tc.pk_top = pk_top; }
+			else if (page_open == PAGE_PLAYER) tc.mode = TM_PLAYER;
+			else if (page_open == PAGE_UPDATE) tc.mode = TM_PAGE_UPDATE;
+			else if (page_open != PAGE_NONE) tc.mode = TM_PAGE;
+			else if (opt_open) {
+				int octx = opt_menu == M_VIDEOS ? POPT_VIDEO : (opt_menu == M_TRACKS ? POPT_MUSIC : (opt_menu == M_SAVES ? POPT_ETC : POPT_GAME));
+				for (int oi = 0; oi < opt_n; oi++) if (opt_ids[oi] == OPT_DELFOLDER) octx = POPT_FOLDER;
+				float os = pt_opt[octx].scale > 0.1f ? pt_opt[octx].scale : 1.0f;
+				tc.mode = TM_OPT;
+				tc.opt_n = opt_n; tc.opt_sel = opt_sel;
+				tc.opt_px = clampf(640.0f + pt_opt[octx].dx, 480.0f, 760.0f);
+				tc.opt_row = 40.0f * os;
+				tc.opt_y0 = 353.0f + pt_opt[octx].dy - (opt_n - 1) * tc.opt_row / 2.0f;
+			} else {
+				tc.mode = TM_XMB;
+				tc.lay = menu_layout(cur); tc.menu = cur;
+				tc.sel = menus[cur].sel; tc.count = menus[cur].count; tc.pos = menus[cur].pos;
+				tc.depth = depth; tc.cat = cat; tc.cat_n = cat_slot(cat);
+			}
+			pressed |= touch_poll(&tc);
+		}
 		if (launching || startup_t < 0.45f || ime_active) pressed = 0;
 
 		int act = ACT_NONE;
@@ -444,6 +473,9 @@ int main(void)
 					opt_ids[opt_n++] = OPT_RENAME;
 					opt_ids[opt_n++] = OPT_DELFOLDER;
 					opt_ids[opt_n++] = OPT_NEWFOLDER;
+				} else if (cur == CAT_GAME) {                      /* the last played game under Memory Stick */
+					opt_ids[opt_n++] = OPT_START;
+					opt_ids[opt_n++] = OPT_INFO;
 				} else if (cur == M_MEMCARD) {
 					opt_ids[opt_n++] = OPT_START;
 					opt_ids[opt_n++] = OPT_INFO;

@@ -51,6 +51,8 @@
 **Made for the Vita**
 
 - **Game** lists every installed title and homebrew bubble (and your saved data), reads each app's own LiveArea artwork, and starts it. *Information* shows title, ID, version and location.
+- **Last played:** the game you started last sits under Memory Stick with the PSP's UMD icon, like the disc in a PSP's drive. Select it to start the game again.
+- **Touch screen** support for the whole XMB (see [Controls](#controls)).
 - **Hide categories** you don't use (Photo, Music, Video, Network) in *Settings > VitaXMB Settings*; the bar closes up and left/right skip them.
 - **Folders** keep a big library tidy: create folders in the game list and tick the games and homebrew that belong in each one (see [Folders](#folders)).
 - **Settings** has real, working pages: *System Information* (firmware, nickname, MAC address, model, memory card, battery, CPU clock), plus VitaXMB's own settings (theme color, clock format, sound effects, startup animation, confirmation dialogs, launch method).
@@ -90,6 +92,12 @@
 | **Cross** | Open / start / change a value |
 | **Circle** | Back, close a page or dialog |
 | **Triangle** | Options (on a game, a folder or saved data) |
+
+**Touch screen.** Everything also works with a finger:
+
+- **Drag up or down** scrolls the list, **drag left or right** changes the category; in a folder or a Settings page a swipe to the right goes back.
+- **Tap** a row to select it and tap it again to open or start it; tap a category icon to go there; tap the arrow or the column at the left to go back.
+- **Press and hold** a row for its Options. In the Options panel tap an entry (a tap outside closes it); in a dialog tap **Yes** or **No**; a tap closes an information page.
 
 Music player: **Cross** play/pause, **L / R** previous/next track, **Left / Right** seek 10 s, **Circle** leave the player (the music keeps playing).
 

@@ -24,7 +24,6 @@
 /assets/icons/tex_cert.png
 /assets/icons/tex_cnf_password.png
 /assets/icons/tex_cnf_rss.png
-/assets/icons/tex_umd.png
 /assets/icons/tex_update.png
 
 # third_party: just the headers and the import stub that the build uses

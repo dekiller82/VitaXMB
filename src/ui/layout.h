@@ -26,6 +26,7 @@ static void launch_request(const Item *it)
 	static const int flags[4] = { 0xFFFFF, 0x20000, 0x40000, 0xFFFFF };
 	char uri[64];
 	snprintf(uri, sizeof(uri), "psgm:play?titleid=%s", it->id);
+	lastplayed_save(it->id);
 	vs_shutdown();
 	sceKernelDelayThread(10000);
 	int r = sceAppMgrLaunchAppByUri(flags[launch_mode], uri);
