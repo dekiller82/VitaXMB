@@ -114,6 +114,8 @@ VitaXMB is an *unsafe* homebrew (it reads other apps' folders and launches other
 
 Two small community plugins make VitaXMB the first thing you see: **AutoBoot** starts an app as soon as the Vita has booted, and **NoLockScreen** removes the swipe-to-unlock screen. Neither is part of VitaXMB and both are optional.
 
+**Using the NoLiveArea plugin?** VitaXMB's own [NoLiveArea plugin](#nolivearea-plugin-beta) also starts VitaXMB about 8 seconds after the Vita turns on, so AutoBoot becomes optional; keeping it as a fallback does no harm (the plugin skips its launch once an app is already running). NoLockScreen is still needed, because the plugin does not touch the lock screen.
+
 **1. Install the plugins.** The easiest way is [**AutoPlugin 2**](https://github.com/ONElua/AutoPlugin2), a plugin manager: install AutoBoot and NoLockScreen through it and it registers them for you, so you do not have to edit `tai/config.txt`. Both are also on [VitaDB](https://www.rinnegatamante.eu/vitadb/#/).
 
 **2. Tell AutoBoot to start VitaXMB.** In AutoPlugin 2 open **Extras > AutoBoot > Select App** and pick **VitaXMB** from the list. That is all.
