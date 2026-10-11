@@ -6,9 +6,24 @@ static void draw_dialog(float t, const char *l1, const char *l2, int sel)
 	int a = (int)(255 * t);
 	if (a <= 3) return;
 	vita2d_draw_rectangle(0, 0, SCREEN_W, SCREEN_H, RGBA8(0, 0, 0, (int)(195 * t)));
-	float cy = 200.0f;
+	int nl = 0;                                                  /* l2 may hold several lines, split by \n */
+	for (const char *c = l2 ? l2 : ""; *c; c++) if (*c == '\n') nl++;
+	if (l2 && l2[0]) nl++;
+	float cy = nl > 1 ? 200.0f - 22.0f * (nl - 1) : 200.0f;
+	float pitch = nl > 1 ? 32.0f : 40.0f;
 	ptext_vc(480 - ptext_width(28, l1) / 2.0f, cy, WHITE(a), 28, l1);
-	if (l2 && l2[0]) ptext_vc(480 - ptext_width(24, l2) / 2.0f, cy + 40, WHITE(a * 8 / 10), 24, l2);
+	if (nl) {
+		char ln[128];
+		const char *c = l2;
+		for (int k = 0; k < nl && *c; k++) {
+			const char *e = strchr(c, '\n');
+			size_t n = e ? (size_t)(e - c) : strlen(c);
+			if (n >= sizeof(ln)) n = sizeof(ln) - 1;
+			memcpy(ln, c, n); ln[n] = 0;
+			ptext_vc(480 - ptext_width(24, ln) / 2.0f, cy + 38.0f + k * pitch, WHITE(a * 8 / 10), 24, ln);
+			c = e ? e + 1 : c + n;
+		}
+	}
 	static const char *opts[2] = { "Yes", "No" };
 	for (int i = 0; i < 2; i++) {
 		float y = 330.0f + i * 56.0f;

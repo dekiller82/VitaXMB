@@ -11,6 +11,7 @@
 !/assets/
 !/third_party/
 !/updater/
+!/plugin/
 !/docs/
 
 # local notes for the next session (the whitelist above already ignores them; named here so it is explicit)

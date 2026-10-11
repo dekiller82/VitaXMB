@@ -37,6 +37,7 @@
 #include "core/lastplayed.h"
 #include "core/appdb.h"
 #include "core/scan.h"
+#include "core/nolivearea.h"
 #include "core/settings.h"
 #include "core/updater.h"
 #include "media/media_scan.h"
@@ -76,6 +77,7 @@ int main(void)
 	ensure_dirs();
 	config_load();
 	pt_init();
+	nla_on = nla_enabled();
 	build_menus();
 	for (int mi = 0; mi < M_COUNT; mi++)
 		for (int ji = 0; ji < menus[mi].count; ji++)
@@ -118,7 +120,7 @@ int main(void)
 	int page_open = PAGE_NONE; float page_t = 0.0f;       /* System Information / game Information */
 	int page_shown = PAGE_NONE;                           /* last page opened, kept while it fades out */
 	int dlg_open = 0; float dlg_t = 0.0f;                 /* confirmation dialog */
-	char dlg_l1[96] = "", dlg_l2[96] = "";
+	char dlg_l1[96] = "", dlg_l2[320] = "";
 	int dlg_sel = 0, dlg_action = ACT_NONE;
 	const Item *dlg_item = NULL;
 	int opt_open = 0; float opt_t = 0.0f;                 /* Options panel */
@@ -145,7 +147,7 @@ int main(void)
 
 	{
 		FILE *nb = fopen(CONFIG_DIR "/noboot", "rb");      /* an empty file called noboot turns the start-up animation off */
-		if (nb || !startup_anim) { if (nb) fclose(nb); }
+		if (nb || !startup_anim || !console_first_run()) { if (nb) fclose(nb); }      /* the animation plays once per console start, not every time VitaXMB opens */
 		else {
 			SceDateTime bdt;
 			sceRtcGetCurrentClockLocalTime(&bdt);
@@ -163,6 +165,13 @@ int main(void)
 	}
 
 	upd_read_result();
+	if (!nla_asked && nla_bundled() && !nla_on) {      /* first start: offer the NoLiveArea plugin once */
+		nla_asked = 1;
+		config_save();
+		snprintf(dlg_l1, sizeof(dlg_l1), "Install the NoLiveArea plugin?");
+		snprintf(dlg_l2, sizeof(dlg_l2), "%s", NLA_ASK_TEXT);
+		dlg_action = ACT_NLA_DO; dlg_item = NULL; dlg_sel = 1; dlg_open = 1;
+	}
 	for (;;) {
 		uint64_t prof_t0 = sceKernelGetProcessTimeWide();
 		/* ---------------- input ---------------- */
@@ -418,6 +427,8 @@ int main(void)
 					sound_play(it->value_id == SET_ART && !art_decrypt ? SND_CONFIRM : SND_CURSOR);
 					if (it->value_id == SET_ART && !art_decrypt) {
 						act = ACT_ARTDEC_ASK;      /* kernel modules: ask first */
+					} else if (it->value_id == SET_NOLA && !nla_on) {
+						if (nla_bundled()) act = ACT_NLA_ASK;      /* it edits the system's plugin list: ask first */
 					} else if (it->value_id == SET_THEME || it->value_id == SET_CUSTOM) {
 						ch_start(it->value_id == SET_THEME ? 1 : 0);        /* a list with a picture, like the PSP's */
 					} else {
@@ -539,11 +550,23 @@ int main(void)
 				dlg_action = ACT_DELFOLDER_DO; dlg_item = NULL; dlg_sel = 1; dlg_open = 1;
 			}
 			act = ACT_NONE;
+		} else if (act == ACT_NLA_ASK) {
+			snprintf(dlg_l1, sizeof(dlg_l1), "Install the NoLiveArea plugin?");
+			snprintf(dlg_l2, sizeof(dlg_l2), "%s", NLA_ASK_TEXT);
+			dlg_action = ACT_NLA_DO; dlg_item = NULL; dlg_sel = 1; dlg_open = 1;
+			act = ACT_NONE;
 		} else if (act == ACT_ARTDEC_ASK) {
 			snprintf(dlg_l1, sizeof(dlg_l1), "Decrypt game artwork?");
 			snprintf(dlg_l2, sizeof(dlg_l2), "Loads VitaShell's kernel modules. Experimental.");
 			dlg_action = ACT_ARTDEC_DO; dlg_item = NULL; dlg_sel = 1; dlg_open = 1;
 			act = ACT_NONE;
+		}
+
+		if (nla_reboot_ask && !dlg_open && act == ACT_NONE) {      /* the plugin list changed: taiHEN only reads it at start */
+			nla_reboot_ask = 0;
+			snprintf(dlg_l1, sizeof(dlg_l1), "Restart the Vita now?");
+			snprintf(dlg_l2, sizeof(dlg_l2), "The plugin change applies after a restart.");
+			dlg_action = ACT_REBOOT_DO; dlg_item = NULL; dlg_sel = 0; dlg_open = 1;
 		}
 
 		switch (act) {
@@ -555,6 +578,16 @@ int main(void)
 			break;
 		case ACT_ARTDEC_DO:
 			setting_change(SET_ART, 1);
+			break;
+		case ACT_NLA_DO:
+			setting_change(SET_NOLA, 1);
+			break;
+		case ACT_REBOOT_DO:
+			config_save();
+			sceKernelDelayThread(300 * 1000);
+			audio_run = 0;
+			vs_shutdown();
+			scePowerRequestColdReset();
 			break;
 		case ACT_URI:
 			if (act_item) launch_uri(act_item->uri);
@@ -945,6 +978,7 @@ int main(void)
 #endif
 		draw_busy(dt_s);                                                  /* the PSP's spinner, bottom right */
 		{ static float notice_s; if (page_open == PAGE_NONE && !launching) draw_update_notice(dt_s, &notice_s); }
+		draw_note(dt_s);
 		if (launch_fade > 0.0f)
 			vita2d_draw_rectangle(0, 0, SCREEN_W, SCREEN_H, RGBA8(0, 0, 0, (int)(255 * launch_fade)));
 		if (startup_t < 0.6f && !boot_played)         /* fade in from black */

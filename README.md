@@ -53,6 +53,7 @@
 - **Game** lists every installed title and homebrew bubble (and your saved data), reads each app's own LiveArea artwork, and starts it. *Information* shows title, ID, version and location.
 - **Last played:** the game you started last sits under Memory Stick with the PSP's UMD icon, like the disc in a PSP's drive. Select it to start the game again.
 - **Touch screen** support for the whole XMB (see [Controls](#controls)).
+- **NoLiveArea plugin (beta):** an optional plugin, offered at the first start, that keeps the LiveArea out of sight: VitaXMB opens by itself when the Vita turns on, the screen stays black while a game loads, and VitaXMB comes back when a game closes (see [NoLiveArea plugin](#nolivearea-plugin-beta)).
 - **Hide categories** you don't use (Photo, Music, Video, Network) in *Settings > VitaXMB Settings*; the bar closes up and left/right skip them.
 - **Folders** keep a big library tidy: create folders in the game list and tick the games and homebrew that belong in each one (see [Folders](#folders)).
 - **Settings** has real, working pages: *System Information* (firmware, nickname, MAC address, model, memory card, battery, CPU clock), plus VitaXMB's own settings (theme color, clock format, sound effects, startup animation, confirmation dialogs, launch method).
@@ -261,14 +262,25 @@ Tested on one console: an SD2Vita as `ux0:` plus a real memory card mounted as `
 | Setting | Values | Notes |
 |---|---|---|
 | Clock Format | 24-hour / 12-hour | status bar |
+| Battery Percentage | Off / On | shows the battery level as a number (for example 86%) beside the clock; off by default |
 | Sound Effects | On / Off | UI sounds and music mixing are independent |
-| Startup Animation | On / Off | fade in + slide in |
+| Startup Animation | On / Off | the PSP boot animation, played once each time the console starts (not every time VitaXMB opens), then fade in + slide in |
+| No LiveArea Plugin (beta) | On / Off | installs / removes the bundled NoLiveArea plugin, see [NoLiveArea plugin](#nolivearea-plugin-beta); needs a restart |
 | Confirmation Dialogs | On / Off | asks before leaving the XMB |
 | Game Launch Method | A-D | the system call and flag used to start a title |
 | Photo / Music / Video / Network Category | Shown / Hidden | hides that category from the bar; Settings and Game always stay |
 | Check for Updates at Start | On / Off | looks for a new release a few seconds after startup, see [Updates](#updates) |
 | Extra Storage (beta) | On / Off | experimental, see above |
 | Decrypt Artwork (beta) | On / Off | experimental, see above |
+
+## NoLiveArea plugin (beta)
+
+VitaXMB carries an optional taiHEN plugin, **NoLiveArea** (source in `plugin/nolivearea`, built file in `assets/plugin`). It runs inside the system shell and keeps the LiveArea out of sight: the screen stays black while a game starts or closes, VitaXMB is started about 8 seconds after the console turns on, and it comes back when a game ends.
+
+- The first time VitaXMB runs it asks whether to install the plugin. Install or remove it any time in *Settings > VitaXMB Settings > No LiveArea Plugin (beta)*.
+- Installing copies `NoLiveArea.suprx` to `ur0:tai/`, adds one line under `*main` in `ur0:tai/config.txt` (the first copy of your config is kept as `config.txt.bak_nolivearea`) and creates its switch files in `ux0:data/NoLiveArea`. Restart the Vita afterwards; taiHEN reads the list at start.
+- Kill switch: an empty file named `disable` in `ux0:data/NoLiveArea` stops it. Removing it from the Settings row deletes the config line again.
+- Limits: tested on firmware 3.65 only. Pressing the PS button inside a game still opens the stock LiveArea. A plugin that edits the system shell can in the worst case make the console crash at start: keep a way to edit `ur0:tai/config.txt` from a PC (or use Safe Mode) before trying it.
 
 **Settings > Theme Settings > Custom Theme (beta)**: Off or one of the PSP themes found, see [Custom themes (beta)](#custom-themes-beta).
 

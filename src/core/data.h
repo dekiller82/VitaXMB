@@ -9,7 +9,7 @@ static const char *cat_names[CAT_COUNT] = { "Settings", "Photo", "Music", "Video
 
 enum { KIND_INFO, KIND_APP, KIND_EXIT, KIND_FOLDER, KIND_VALUE, KIND_URI, KIND_PAGE, KIND_TRACK };
 /* values for KIND_VALUE rows */
-enum { SET_THEME, SET_CLOCK, SET_SOUND, SET_STARTUP, SET_CONFIRM, SET_LAUNCH, SET_ART, SET_EXTRA, SET_CUSTOM, SET_AUTOUPDATE, SET_SHOW };   /* SET_SHOW + category: show / hide that category */
+enum { SET_THEME, SET_CLOCK, SET_SOUND, SET_STARTUP, SET_CONFIRM, SET_LAUNCH, SET_ART, SET_EXTRA, SET_CUSTOM, SET_AUTOUPDATE, SET_BATTPCT, SET_NOLA, SET_SHOW };   /* SET_SHOW + category: show / hide that category */
 /* values for KIND_PAGE rows */
 enum { PAGE_NONE, PAGE_SYSINFO, PAGE_GAMEINFO, PAGE_PLAYER, PAGE_UPDATE };
 
@@ -73,6 +73,9 @@ static int launch_mode = 0;   /* see launch_request() */
 static int art_decrypt = 0;   /* opt-in: decrypt missing LiveArea art via VitaShell modules */
 static int clock24 = 1;       /* 24-hour clock like the PSP capture */
 static int sound_on = 1;      /* UI sound effects */
+static int nla_asked = 0;     /* the first-run offer of the NoLiveArea plugin was shown */
+static int nla_on = 0;        /* the NoLiveArea plugin is installed (its line is in ur0:tai/config.txt) */
+static int batt_pct = 0;      /* show the battery's percentage beside the clock */
 static int auto_update = 1;   /* look for a newer VitaXMB at start-up */
 static int startup_anim = 1;  /* fade-in / slide-in at launch */
 static int confirm_dialogs = 1; /* ask before leaving the XMB */

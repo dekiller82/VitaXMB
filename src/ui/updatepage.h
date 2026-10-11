@@ -203,3 +203,16 @@ static void draw_update_notice(float t_now, float *shown_for)
 	vita2d_draw_rectangle(480 - w / 2 - 16, 6, w + 32, 34, RGBA8(0, 0, 0, a * 45 / 100));
 	ptext_vc(480 - w / 2, 24, WHITE(a), 22, buf);
 }
+
+/* One line at the top of the screen for about 6 seconds (note_show). */
+static void draw_note(float t_now)
+{
+	if (!note_msg[0] || note_s > 6.0f) return;
+	note_s += t_now;
+	float fade = note_s < 0.4f ? note_s / 0.4f : (note_s > 5.4f ? (6.0f - note_s) / 0.6f : 1.0f);
+	if (fade <= 0.0f) return;
+	int a = (int)(235 * (fade > 1.0f ? 1.0f : fade));
+	float w = ptext_width(22, note_msg);
+	vita2d_draw_rectangle(480 - w / 2 - 16, 6, w + 32, 34, RGBA8(0, 0, 0, a * 45 / 100));
+	ptext_vc(480 - w / 2, 24, WHITE(a), 22, note_msg);
+}

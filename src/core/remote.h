@@ -107,7 +107,7 @@ static void save_screenshot(const char *name)
 
 /* Actions queued by the UI and carried out once per frame, after input. */
 enum { ACT_NONE, ACT_EXIT_ASK, ACT_EXIT_DO, ACT_ARTDEC_ASK, ACT_ARTDEC_DO, ACT_URI, ACT_START, ACT_INFO, ACT_REFRESH,
-       ACT_NEWFOLDER, ACT_SELECT, ACT_RENAME, ACT_DELFOLDER_ASK, ACT_DELFOLDER_DO, ACT_REMOVE };
+       ACT_NEWFOLDER, ACT_SELECT, ACT_RENAME, ACT_DELFOLDER_ASK, ACT_DELFOLDER_DO, ACT_REMOVE, ACT_NLA_ASK, ACT_NLA_DO, ACT_REBOOT_DO };
 
 static void launch_uri(const char *uri)
 {

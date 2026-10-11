@@ -191,14 +191,19 @@ static void draw_status(const SceDateTime *dt)
 	const int csz = (int)((pt_font && pt_font == pt_stock_font ? 28.0f : 24.0f) * pt_clock_scale + 0.5f);   /* the PSP's font: digits 20 px tall, as in a photo of the real thing */
 	const unsigned int ccol = RGBA8(pt_clock_rgb[0], pt_clock_rgb[1], pt_clock_rgb[2], (int)(240.0f * pt_clock_alpha));
 	float tw = ptext_width(csz, buf), clock_l;
+	char pb[8] = "";
+	float pw = 0.0f;                                                               /* Settings > VitaXMB Settings > Battery Percentage: "86%" beside the clock, the clock moves over */
+	if (batt_pct) { snprintf(pb, sizeof(pb), "%d%%", pct < 0 ? 0 : (pct > 100 ? 100 : pct)); pw = ptext_width(csz, pb) + 14.0f; }
 	if (pt_clock_code_set) {                                                       /* the firmware's code puts the clock (vshmain 0x31038) */
 		float r = 2.0f * (240.0f + pt_clock_x) - 10.0f;
+		if (pw > 0.0f) { ptext_right_vc(r, pt_clock_cy, ccol, csz, pb); r -= pw; }
 		ptext_right_vc(r, pt_clock_cy, ccol, csz, buf);
 		clock_l = r - tw;
 	} else if (clock_left && pt_clock_w > 0.0f) { ptext_right_vc(942.0f, cy, ccol, csz, buf); clock_l = 942.0f - tw; }       /* a clock with a text box: at the right edge */
 	else if (clock_left) { ptext_vc(56.0f, cy, ccol, csz, buf); clock_l = 56.0f; }
 	else {
 		float r = pt_bat ? 2.0f * (240.0f + pt_clock_x) - 10.0f : bx - 22;
+		if (pw > 0.0f) { ptext_right_vc(r, cy, ccol, csz, pb); r -= pw; }
 		ptext_right_vc(r, cy, ccol, csz, buf);
 		clock_l = r - tw;
 	}
