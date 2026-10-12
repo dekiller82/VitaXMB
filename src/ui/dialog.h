@@ -24,8 +24,10 @@ static void draw_dialog(float t, const char *l1, const char *l2, int sel)
 			c = e ? e + 1 : c + n;
 		}
 	}
+	int force = sel == 2;                                        /* sel 2: a single "Restart now" button, no way to cancel */
 	static const char *opts[2] = { "Yes", "No" };
-	for (int i = 0; i < 2; i++) {
+	if (force) { opts[0] = "Restart now"; sel = 0; }
+	for (int i = 0; i < (force ? 1 : 2); i++) {
 		float y = 330.0f + i * 56.0f;
 		int oa = i == sel ? a : a * 5 / 10;
 		float w = ptext_width(28, opts[i]);
@@ -37,6 +39,7 @@ static void draw_dialog(float t, const char *l1, const char *l2, int sel)
 	}
 	glyph_cross(405, 508, 8, a);
 	ptext_vc(424, 508, BTN_LABEL(a), 24, "OK");
+	if (force) return;
 	glyph_ring(515, 508, 9, a);
 	ptext_vc(534, 508, BTN_LABEL(a), 24, "Cancel");
 }

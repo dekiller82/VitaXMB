@@ -78,6 +78,7 @@ int main(void)
 	config_load();
 	pt_init();
 	nla_on = nla_enabled();
+	if (nla_on && nla_bundled()) nla_refresh();          /* a VitaXMB update brings a new plugin file: copy it over, a restart follows */
 	build_menus();
 	for (int mi = 0; mi < M_COUNT; mi++)
 		for (int ji = 0; ji < menus[mi].count; ji++)
@@ -121,7 +122,7 @@ int main(void)
 	int page_shown = PAGE_NONE;                           /* last page opened, kept while it fades out */
 	int dlg_open = 0; float dlg_t = 0.0f;                 /* confirmation dialog */
 	char dlg_l1[96] = "", dlg_l2[320] = "";
-	int dlg_sel = 0, dlg_action = ACT_NONE;
+	int dlg_sel = 0, dlg_action = ACT_NONE, dlg_force = 0;      /* dlg_force: a single "Restart now" button, no cancel */
 	const Item *dlg_item = NULL;
 	int opt_open = 0; float opt_t = 0.0f;                 /* Options panel */
 	int opt_ids[8], opt_n = 0, opt_sel = 0;
@@ -171,6 +172,14 @@ int main(void)
 		snprintf(dlg_l1, sizeof(dlg_l1), "Install the NoLiveArea plugin?");
 		snprintf(dlg_l2, sizeof(dlg_l2), "%s", NLA_ASK_TEXT);
 		dlg_action = ACT_NLA_DO; dlg_item = NULL; dlg_sel = 1; dlg_open = 1;
+	}
+	if (nla_on && nla_restart_pending()) {              /* the plugin file was replaced by an update: the old build is still loaded */
+		snprintf(dlg_l1, sizeof(dlg_l1), "Restart required");
+		snprintf(dlg_l2, sizeof(dlg_l2), "%s", "VitaXMB was updated and replaced the NoLiveArea plugin.\n"
+			"The old version stays loaded until the Vita restarts\n"
+			"and can freeze it (Adrenaline 8.0.2 on its second launch).\n"
+			"Restart now to load the new version.");
+		dlg_action = ACT_REBOOT_DO; dlg_item = NULL; dlg_sel = 0; dlg_open = 1; dlg_force = 1;
 	}
 	for (;;) {
 		uint64_t prof_t0 = sceKernelGetProcessTimeWide();
@@ -260,6 +269,9 @@ int main(void)
 					rebuild_game_lists();
 				}
 			}
+		} else if (dlg_open && dlg_force) {
+			/* ---- forced restart: one button, no way out ---- */
+			if (pressed & SCE_CTRL_CROSS) { act = dlg_action; act_item = dlg_item; dlg_open = 0; }
 		} else if (dlg_open) {
 			/* ---- confirmation dialog ---- */
 			if (pressed & (SCE_CTRL_UP | SCE_CTRL_DOWN)) { dlg_sel = !dlg_sel; sound_play(SND_CURSOR); }
@@ -963,7 +975,7 @@ int main(void)
 			}
 		if (pk_t > 0.0f) draw_picker(pk_t);
 		if (ch_t > 0.0f) draw_chooser(ch_t, &pal);
-		if (dlg_t > 0.0f) draw_dialog(dlg_t, dlg_l1, dlg_l2, dlg_sel);
+		if (dlg_t > 0.0f) draw_dialog(dlg_t, dlg_l1, dlg_l2, dlg_force ? 2 : dlg_sel);
 
 		if (test_page) {
 			vita2d_draw_rectangle(0, 0, SCREEN_W, SCREEN_H, RGBA8(40, 40, 48, 255));

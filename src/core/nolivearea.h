@@ -207,6 +207,39 @@ static int nla_remove(void)
 	return 0;
 }
 
+/* ---- plugin refresh after a VitaXMB update ----
+ * The plugin is a separate file in ur0:tai. When VitaXMB is updated (VitaShell installs the new app) the old plugin file
+ * stays. If the plugin is installed and the bundled one differs, it is copied over (and read back). taiHEN keeps the old
+ * build loaded until the next console start, so a restart is then required. The marker lives in tmp0:, which is cleared when
+ * the console starts: while it exists the restart has not happened yet. */
+#define NLA_SWAPPED "tmp0:/VitaXMB_plugin_swapped"
+static int nla_restart_needed;
+
+static void nla_refresh(void)
+{
+	int bl, il;
+	char *b = nla_read(NLA_BUNDLED, &bl);
+	if (!b) return;
+	char *i = nla_read(NLA_PLUGIN, &il);
+	int same = i && il == bl && memcmp(i, b, (size_t)bl) == 0;
+	free(i);
+	if (!same && nla_write(NLA_PLUGIN, b, bl) == 0) {
+		char *chk = nla_read(NLA_PLUGIN, &il);
+		if (chk && il == bl && memcmp(chk, b, (size_t)bl) == 0) {
+			nla_restart_needed = 1;
+			nla_write(NLA_SWAPPED, "1", 1);
+		}
+		free(chk);
+	}
+	free(b);
+}
+
+static int nla_restart_pending(void)
+{
+	SceIoStat st;
+	return nla_restart_needed || sceIoGetstat(NLA_SWAPPED, &st) >= 0;
+}
+
 /* The toggle: returns the message to show. */
 static void nla_toggle(void)
 {
