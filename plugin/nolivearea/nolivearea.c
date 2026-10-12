@@ -451,6 +451,11 @@ static void fresh_note(void) { unsigned t = now_ms(); fresh_t[fresh_n++ & 7] = t
 static int game_active(void) { for (int i = 0; i < 16; i++) if (act[i] && !is_vx(act[i])) return 1; return 0; }
 OBSA(Activate, act_add(a); pendingAt = 0; vxSeen = 1; vx_left_at = 0; early_ok(); hide_release(); cover_release())
 OBSA(Deactivate, act_del(a); if (is_vx(a)) vx_left_at = now_ms())
+/* VitaXMB writes ADR_FLAG just before it starts Adrenaline (PSPEMUCFW). Adrenaline 8.0.2 froze the Vita on
+ * its second launch (kernel module loaded) after the display cover switched the screen off and on again, so
+ * for 30 s after the flag no cover is started. LiveArea may show briefly instead of a black screen. */
+#define ADR_FLAG LOGDIR "/adrenaline"
+static volatile unsigned adr_until;
 OBSA(Destroy, act_del(a); if (a != vxId && !is_vx(a)) { pendingAt = now_ms() + 400; cover_request(15000); })
 OBS(LiveBoard, 0, 0)
 OBS(LaunchShell, 0, 0) OBS(LaunchName2, 0, 0) OBS(Quit, 0, 0) OBS(SuspendBg, 0, 0)
@@ -500,6 +505,8 @@ static int watchdog(SceSize args, void *argp) {
     if (ready && !cgd_done && now_ms() - readyAt > 1500) { cgd_done = 1; cgd_install(); }
     cgd_flush();
     hl_flush();
+    { SceUID af = sceIoOpen(ADR_FLAG, SCE_O_RDONLY, 0);
+      if (af >= 0) { sceIoClose(af); sceIoRemove(ADR_FLAG); adr_until = now_ms() + 30000; put("adrenaline launch flagged: no cover for 30 s\n"); } }
     if (psconfirm_clear_at && now_ms() >= psconfirm_clear_at) { psconfirm_clear_at = 0; sceIoRemove(PSCONFIRM_RUN); put("psconfirm: shell survived 8 s, guard cleared\n"); }
     if (probe_marker && now_ms() >= 40000) { probe_marker = 0; sceIoRemove(PROBE_RUN); put("probes survived 40 s, guard cleared\n"); }
     /* Early boot launch (optional, file EARLY_FLAG holds the time in ms, default 8000). Launching at
@@ -528,6 +535,7 @@ static int watchdog(SceSize args, void *argp) {
     }
     if (cover_want && !covering) {
       cover_want = 0;
+      if (adr_until && now_ms() < adr_until) { put("cover skipped (adrenaline)\n"); goto nocover; }
       SceUID cf = sceIoOpen(COVER_FLAG, SCE_O_RDONLY, 0), df = sceIoOpen(DISABLE_FILE, SCE_O_RDONLY, 0);
       if (cf >= 0) sceIoClose(cf);
       if (df >= 0) sceIoClose(df);
@@ -537,6 +545,7 @@ static int watchdog(SceSize args, void *argp) {
         scePowerRequestDisplayOff(); covering = 1; put("cover on\n");
       }
     }
+    nocover:
     if (covering && ((release_at && now_ms() >= release_at) || now_ms() >= cover_until)) {
       scePowerRequestDisplayOn(); covering = 0; release_at = 0; sceIoRemove(COVER_PENDING); put("cover off\n");
     }

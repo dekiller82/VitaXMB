@@ -27,6 +27,10 @@ static void launch_request(const Item *it)
 	char uri[64];
 	snprintf(uri, sizeof(uri), "psgm:play?titleid=%s", it->id);
 	lastplayed_save(it->id);
+	if (nla_on && !strcmp(it->id, "PSPEMUCFW")) {                      /* Adrenaline 8 restarts itself once; tell the NoLiveArea plugin not to react (see plugin/nolivearea) */
+		SceUID af = sceIoOpen("ux0:data/NoLiveArea/adrenaline", SCE_O_WRONLY | SCE_O_CREAT, 0777);
+		if (af >= 0) sceIoClose(af);
+	}
 	vs_shutdown();
 	sceKernelDelayThread(10000);
 	int r = sceAppMgrLaunchAppByUri(flags[launch_mode], uri);
