@@ -326,22 +326,106 @@ Everything in the tree is needed to build; nothing else is committed.
 
 Every release has its own notes and VPK on the [Releases page](https://github.com/dekiller82/VitaXMB/releases). Each version includes everything from the ones before it.
 
-| Version | Date | Highlights |
-| --- | --- | --- |
-| [1.5.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.5.1) | 2026-10-12 | Fixed a freeze when Adrenaline 8.0.2 was started a second time with the NoLiveArea plugin installed. Updating now also updates the plugin and shows a "Restart required" screen. |
-| [1.5.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.5.0) | 2026-10-11 | NoLiveArea plugin (beta): VitaXMB opens at power-on and after a game closes, black screen while a game loads. Start-up animation plays once per boot. Optional battery percentage. |
-| [1.4.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.4.0) | 2026-10-10 | Touch screen support for the whole XMB. "Last played" game under Memory Stick with the UMD icon. |
-| [1.3.6](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.6) | 2026-10-10 | The PSP's own Latin font (ltn0.pgf), "Memory Stick" naming, Options slide and dialog fade follow the theme. |
-| [1.3.5](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.5) | 2026-10-08 | Real names for PSP/PS1 (Adrenaline) bubbles, scrolling ticker for long text, stock mute/battery/charging icon fixes, more theme support. |
-| [1.3.4](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.4) | 2026-10-08 | Themes control the clock, sub text, Options text, glows and shadows. "Random" theme choice. Busy spinner fix. |
-| [1.3.3](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.3) | 2026-10-08 | Theme code patches read correctly (row spacing, scroll speed). Status bar: mute icon, busy spinner, charging animation. PSP-3000 month skies. |
-| [1.3.2](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.2) | 2026-10-08 | Game, Saved Data and folder lists hold up to 2048 entries (was 256). |
-| [1.3.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.1) | 2026-10-05 | Softer PSP-like text shadow, list spacing and settling from the PSP firmware's UI engine, no hitch after the start-up animation. |
-| [1.3.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.0) | 2026-10-05 | In-app updates (Settings > Network Update), the PSP's real wave and boot intro, PSP custom themes (beta). |
-| [1.2.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.2.0) | 2026-10-05 | Hide the Photo, Music, Video and Network categories. |
-| [1.1.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.1.1) | 2026-10-05 | Game list and folder icon polish, D-pad Left goes back one level inside lists. |
-| [1.1.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.1.0) | 2026-10-05 | Folders for games and homebrew. Extra Storage (experimental). |
-| [1.0.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.0.0) | 2026-10-05 | First release: six categories, themes with animated waves, game list with Options, Settings, System Information, MP3 player, video list. |
+### [1.5.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.5.1) (2026-10-12)
+
+**Fixed**
+
+- Adrenaline 8.0.2 (isage) could freeze the Vita when it was launched a second time from VitaXMB while the NoLiveArea plugin was installed. The plugin's black screen between apps ran while Adrenaline's kernel module was loaded. VitaXMB now tells the plugin when it starts Adrenaline, and the plugin skips the black screen for that launch (the LiveArea may show for a moment instead).
+
+**Changed**
+
+- Updating VitaXMB now also updates the NoLiveArea plugin file if you had installed it. The Vita keeps the plugin loaded in memory, so the new version only works after a restart. After updating, VitaXMB shows a "Restart required" screen with one button (Restart now) and no way to cancel, and shows it again each time VitaXMB opens until the console has restarted. Later updates that change the plugin do the same.
+
+### [1.5.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.5.0) (2026-10-11)
+
+- **NoLiveArea plugin (beta).** VitaXMB can install a small taiHEN plugin that keeps the LiveArea out of sight: VitaXMB opens by itself when the Vita turns on, the screen stays black while a game loads, and VitaXMB opens again when a game closes. It is offered once at the first start and can be installed or removed any time in Settings > VitaXMB Settings > No LiveArea Plugin (beta). The Vita asks to restart afterwards, because taiHEN only reads its plugin list at start. Tested on firmware 3.65 only; pressing the PS button inside a game still shows the stock LiveArea.
+- The PSP start-up animation now plays once each time the console starts, not every time VitaXMB opens (after a game closes, for example).
+- **Battery Percentage** (Settings > VitaXMB Settings): shows the battery level as a number beside the clock, off by default.
+
+### [1.4.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.4.0) (2026-10-10)
+
+- **Touch screen support** for the whole XMB. Drag up or down to scroll a list, drag sideways to change the category (a swipe to the right goes back inside a folder or a Settings page), tap a row to select it and tap it again to open it, tap a category icon to go there, and press and hold a row for its Options. The Options panel, dialogs, the folder picker, the Color and Custom Theme chooser, information pages and the music player can be used by touch as well.
+- **Last played:** the game you started last now sits under Memory Stick in the Game column with the PSP's UMD icon, like the disc in a PSP's drive. Select it to start the game again, or press Triangle for Start and Information.
+
+### [1.3.6](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.6) (2026-10-10)
+
+- All Latin text now uses the PSP's own font (ltn0.pgf), and the clock is drawn in it at size 28. A custom theme's font still replaces it; text with a character the PSP font lacks falls back to the previous font.
+- "Memory Card" is now "Memory Stick™" in the Game, Photo, Music and Video lists and in System Information.
+- Opening Options on a game slides the bar and the game list to the left like the PSP does; the slide distance comes from the theme.
+- The confirmation dialog fades in at the speed the theme sets.
+
+### [1.3.5](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.5) (2026-10-08)
+
+- Fixed: PSP and PS1 games (Adrenaline bubbles) showed only their first letter. VitaXMB now reads the real name from LiveArea's database.
+- Fixed: the stock mute icon had a black box around it. The stock status pictures are now redrawn at 4x.
+- Fixed: the charging animation did not move at higher battery levels. It now plays the firmware's sequence (empty, one bar, two, full) at every level.
+- Fixed: the battery and mute icon sat about 2 px too high.
+- New: long text in a row scrolls like the PSP's ticker on the selected row (Settings rows, game and category columns, folders).
+- Custom themes: opening Options on a game slides the bar and the game list to the left using the theme's own patched values, and the confirmation dialog fades in at the speed the theme sets.
+- The stock battery, mute icon and busy spinner use the firmware's pictures at higher resolution; a theme's own pictures are still used first.
+
+### [1.3.4](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.4) (2026-10-08)
+
+- Fixed: the busy spinner showed four copies of itself.
+- The clock follows the theme: its position, size, opacity and colour. The mute icon sits next to it as the theme places it, and the legend text and button glyphs take the theme's colour.
+- Text: the size of the sub text under a row, the Options text and the text shadow follow the theme.
+- Pictures: a theme's glow behind the selected row, its shadows, its loading and broken pictures for games and save data, shadows behind the button glyphs.
+- A folder's Options and the other lists' Options have their own positions, and a theme that hides the Options panel background is respected.
+- New: choose Random at the end of the Custom Theme list to get a different theme at every start.
+- README: the custom theme section lists what is supported and what is not yet.
+
+### [1.3.3](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.3) (2026-10-08)
+
+- Theme code patches are read correctly now (a bug made the app see only the first few). Row spacing of every list, list scroll speed, category move speed and how far the bar slides for a list follow the theme.
+- The clock follows the position the PSP's own code gives it.
+- Status bar: mute icon (volume at 0), a busy spinner while a game starts or an update downloads, and the battery charging animation. The pictures come from the theme, or from the PSP's own set.
+- Month skies: the set the real XMB loads on a PSP-3000 and later (01-12_03g.bmp), for the stock look and for themes.
+- Game lists hold up to 2048 entries.
+
+### [1.3.2](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.2) (2026-10-08)
+
+- Fixes games missing from the list on big libraries: the Games, Saved Data and folder lists now hold up to 2048 entries (was 256), and folder handling stays fast with that many apps.
+
+### [1.3.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.1) (2026-10-05)
+
+- **Text looks more like the PSP's.** The shadow behind the text is now a wide, soft, faint glow instead of a small hard one, and the letters have slightly softer edges.
+- **Lists use the PSP's own numbers.** The row spacing in the Settings pages, the game list, the music list and the video list, and the way lists and the highlight settle after you move, now come from the PSP firmware's UI engine instead of measurements from screenshots. Scrolling settles a little faster.
+- **No hitch after the start-up animation.** The letters the menus need are prepared while the animation plays, so the first menu frame does not stall.
+
+### [1.3.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.0) (2026-10-05)
+
+- **Updates inside VitaXMB.** *Settings > Network Update* (the first item, like the PSP's System Update) checks GitHub for a newer release, shows its release notes and installs it for you. A small bundled app (VitaXMB Updater) does the install and starts VitaXMB again. *Check for Updates at Start* (VitaXMB Settings) shows a notice when a new release exists. Installing needs VitaShell's modules in `ux0:VitaShell`; without them the update is downloaded and left for you to install with VitaShell. This release itself has to be installed by hand once; updating from 1.3.0 on works inside VitaXMB.
+- **The PSP's real wave and boot intro.** The moving background is now the PSP firmware's own wave model, and the app starts with the PSP's boot animation (logo, ribbon, glow tinted by the month). Cross, Circle or Start skips it, and *Startup Animation* in VitaXMB Settings turns it off.
+- **PSP custom themes (beta).** Put `.ctf` / `.ptf` themes in `ux0:data/VitaXMB/themes` and choose one in *Settings > Theme Settings > Custom Theme (beta)*. Backgrounds, colours, icons, fonts, sounds, waves, boot intros and many layouts are read from the theme. Some themes will not look like they do on a real PSP.
+
+### [1.2.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.2.0) (2026-10-05)
+
+- **Hide categories.** In Settings > VitaXMB Settings you can hide Photo, Music, Video and Network. The bar closes up and Left/Right skip the hidden ones. Settings and Game always stay so you can't lock yourself out.
+
+### [1.1.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.1.1) (2026-10-05)
+
+- The game list shows the PSP's rule between a selected title and its subtitle.
+- Folder rows use a flat PSP-style folder icon, and the label sits next to it with the PSP's spacing.
+- Inside a game list (Memory Card, Saved Data, a folder), D-pad Left goes back one level and D-pad Right does nothing. Before, both jumped to another category.
+- The Options panel fits long entries such as "Remove from Folder".
+- README: removed a fixed firmware version.
+
+### [1.1.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.1.0) (2026-10-05)
+
+- **Folders.** In Game > Memory Card press Triangle > New Folder, name it, then tick the games and homebrew that belong in it. Folders can be renamed, deleted, and edited later (Select Games). Saved in `ux0:data/VitaXMB/folders.txt`.
+- **Extra Storage (experimental)** in Settings > VitaXMB Settings. When a second card is mounted as `uma0:`, `imc0:`, `xmc0:` or `grw0:` (StorageMgr, YAMT, ...), music, videos and a storage row in System Information are read from it too. Off by default. Games and saved data on the second card are not listed yet.
+- "Decrypt Artwork" is now labelled beta.
+
+### [1.0.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.0.0) (2026-10-05)
+
+First release.
+
+- The PSP's cross media bar rebuilt for the Vita: six categories, monthly color themes with animated waves, glow, drop shadows, the XMB sound set, startup animation and confirmation dialogs.
+- **Game:** every installed title and homebrew bubble, plus saved data, in the wide-tile game list. Rest on a game and its background art fades in. Triangle opens the Options panel (Start, Information, Refresh).
+- **Settings:** the PSP's two-level settings layout, a real System Information page, and VitaXMB's own settings (theme color, clock format, sound, startup animation, confirmations, launch method).
+- **Music:** an MP3 player with the PSP's player screen and a live LED spectrum analyzer.
+- **Network / Photo / Video:** shortcuts to the Vita's own apps and settings pages, and a video list.
+- Smooth scrolling on large libraries: art loads on worker threads, text is kerned and sub-pixel positioned.
 
 ## Known issues
 
