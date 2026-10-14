@@ -34,6 +34,7 @@
 - [Extra storage (experimental)](#extra-storage-experimental)
 - [Settings reference](#settings-reference)
 - [Repository layout](#repository-layout)
+- [Changelog](#changelog)
 - [Known issues](#known-issues)
 - [Credits and licenses](#credits-and-licenses)
 
@@ -320,6 +321,27 @@ docs/                     README images
 ```
 
 Everything in the tree is needed to build; nothing else is committed.
+
+## Changelog
+
+Every release has its own notes and VPK on the [Releases page](https://github.com/dekiller82/VitaXMB/releases). Each version includes everything from the ones before it.
+
+| Version | Date | Highlights |
+| --- | --- | --- |
+| [1.5.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.5.1) | 2026-10-12 | Fixed a freeze when Adrenaline 8.0.2 was started a second time with the NoLiveArea plugin installed. Updating now also updates the plugin and shows a "Restart required" screen. |
+| [1.5.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.5.0) | 2026-10-11 | NoLiveArea plugin (beta): VitaXMB opens at power-on and after a game closes, black screen while a game loads. Start-up animation plays once per boot. Optional battery percentage. |
+| [1.4.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.4.0) | 2026-10-10 | Touch screen support for the whole XMB. "Last played" game under Memory Stick with the UMD icon. |
+| [1.3.6](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.6) | 2026-10-10 | The PSP's own Latin font (ltn0.pgf), "Memory Stick" naming, Options slide and dialog fade follow the theme. |
+| [1.3.5](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.5) | 2026-10-08 | Real names for PSP/PS1 (Adrenaline) bubbles, scrolling ticker for long text, stock mute/battery/charging icon fixes, more theme support. |
+| [1.3.4](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.4) | 2026-10-08 | Themes control the clock, sub text, Options text, glows and shadows. "Random" theme choice. Busy spinner fix. |
+| [1.3.3](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.3) | 2026-10-08 | Theme code patches read correctly (row spacing, scroll speed). Status bar: mute icon, busy spinner, charging animation. PSP-3000 month skies. |
+| [1.3.2](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.2) | 2026-10-08 | Game, Saved Data and folder lists hold up to 2048 entries (was 256). |
+| [1.3.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.1) | 2026-10-05 | Softer PSP-like text shadow, list spacing and settling from the PSP firmware's UI engine, no hitch after the start-up animation. |
+| [1.3.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.3.0) | 2026-10-05 | In-app updates (Settings > Network Update), the PSP's real wave and boot intro, PSP custom themes (beta). |
+| [1.2.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.2.0) | 2026-10-05 | Hide the Photo, Music, Video and Network categories. |
+| [1.1.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.1.1) | 2026-10-05 | Game list and folder icon polish, D-pad Left goes back one level inside lists. |
+| [1.1.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.1.0) | 2026-10-05 | Folders for games and homebrew. Extra Storage (experimental). |
+| [1.0.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.0.0) | 2026-10-05 | First release: six categories, themes with animated waves, game list with Options, Settings, System Information, MP3 player, video list. |
 
 ## Known issues
 
