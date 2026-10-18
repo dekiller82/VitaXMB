@@ -373,6 +373,11 @@ def make_start(base, font):
     return img.resize((280, 158), Image.LANCZOS).convert('RGB')
 
 
+def save_p(im, path):
+    """the Vita's installer only accepts 8-bit palette PNGs for LiveArea pictures (error 0x8010113D otherwise), like pngquant makes them"""
+    im.quantize(256, Image.Quantize.MEDIANCUT, dither=Image.Dither.FLOYDSTEINBERG).save(path, optimize=True)
+
+
 def main():
     if sys.argv[1] == '--sheet':
         month = int(sys.argv[3]) if len(sys.argv) > 3 else 8
@@ -389,9 +394,9 @@ def main():
     os.makedirs(out, exist_ok=True)
     base = background(month, seconds)
     font = Pgf(os.path.join(ROOT, 'assets', 'psp', 'ltn0.pgf'))
-    make_bg(base).save(os.path.join(out, 'bg.png'), optimize=True)
-    make_icon(base, font).save(os.path.join(out, 'icon0.png'), optimize=True)
-    make_start(base, font).save(os.path.join(out, 'startup.png'), optimize=True)
+    save_p(make_bg(base), os.path.join(out, 'bg.png'))
+    save_p(make_icon(base, font), os.path.join(out, 'icon0.png'))
+    save_p(make_start(base, font), os.path.join(out, 'startup.png'))
     print('wrote icon0.png, bg.png, startup.png to', out)
 
 
