@@ -354,7 +354,7 @@ Everything in the tree is needed to build (apart from the FFmpeg libraries you b
 
 Every release has its own notes and VPK on the [Releases page](https://github.com/dekiller82/VitaXMB/releases). Each version includes everything from the ones before it.
 
-### [1.6.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.6.0) (2026-10-19)
+### [1.6.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.6.0) (2026-10-18)
 
 **Added**
 
