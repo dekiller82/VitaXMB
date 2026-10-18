@@ -47,11 +47,27 @@
 #define MINIMP3_NO_STDIO
 #define MINIMP3_IMPLEMENTATION
 #include "minimp3_ex.h"
+#define DR_FLAC_IMPLEMENTATION
+#define DR_FLAC_NO_STDIO
+#define DR_FLAC_NO_OGG
+#include "dr_flac.h"
+#define STB_VORBIS_NO_STDIO
+#define STB_VORBIS_NO_PUSHDATA_API
+#define STB_VORBIS_HEADER_ONLY
+#include "stb_vorbis.c"
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
 #include <harfbuzz/hb.h>
 #include <vita2d.h>
+#include <pthread.h>
+#include <psp2/avplayer.h>
+#include <libavformat/avformat.h>
+#include <libavcodec/avcodec.h>
+#include <libswscale/swscale.h>
+#include <libswresample/swresample.h>
+#include <libavutil/channel_layout.h>
+#include <libavutil/opt.h>
 
 #define SCREEN_W   960
 #define SCREEN_H   544

@@ -14,7 +14,7 @@
  *   press and hold    Options of the row under the finger
  * Panels, dialogs and pages get their own taps (a row of the Options panel, Yes / No, a tap to close). */
 
-enum { TM_NONE, TM_XMB, TM_OPT, TM_DLG, TM_PAGE, TM_PAGE_UPDATE, TM_PLAYER, TM_PICKER, TM_CHOOSER };
+enum { TM_NONE, TM_XMB, TM_OPT, TM_DLG, TM_PAGE, TM_PAGE_UPDATE, TM_PLAYER, TM_PICKER, TM_CHOOSER, TM_VIDEO };
 
 typedef struct {
 	int mode;                       /* what is on top of the screen: one of TM_* */
@@ -122,6 +122,7 @@ static void touch_tap(const TouchCtx *c, float tx, float ty)
 		tq_push(ty > 470.0f && tx < 480.0f ? SCE_CTRL_CROSS : SCE_CTRL_CIRCLE);
 		break;
 	case TM_PLAYER: tq_push(ty < 50.0f ? SCE_CTRL_CIRCLE : SCE_CTRL_CROSS); break;
+	case TM_VIDEO: tq_push(SCE_CTRL_TRIANGLE); break;                            /* a tap shows or hides the display */
 	case TM_PICKER:
 		if (ty < 80.0f) { tq_push(SCE_CTRL_CIRCLE); break; }                         /* the heading saves and closes */
 		{
@@ -164,7 +165,7 @@ static unsigned touch_poll(const TouchCtx *c)
 			lx = x; ly = y;
 			ax += dx; ay += dy;
 			if (!locked && (fabsf(x - sx) > 16.0f || fabsf(y - sy) > 16.0f)) locked = fabsf(x - sx) > fabsf(y - sy) ? 2 : 1;
-			if (locked == 1 && c->mode != TM_PAGE && c->mode != TM_PAGE_UPDATE && c->mode != TM_DLG && c->mode != TM_PLAYER) {
+			if (locked == 1 && c->mode != TM_PAGE && c->mode != TM_PAGE_UPDATE && c->mode != TM_DLG && c->mode != TM_PLAYER && c->mode != TM_VIDEO) {
 				float pitch = 40.0f;                                   /* one row of finger travel per row */
 				if (c->mode == TM_XMB) pitch = c->lay == LAY_COLUMN ? 100.0f : 80.0f;
 				else if (c->mode == TM_PICKER) pitch = 38.0f;
@@ -175,6 +176,7 @@ static unsigned touch_poll(const TouchCtx *c)
 					while (ax <= -140.0f) { ax += 140.0f; if (tq_room()) tq_push(SCE_CTRL_RIGHT); }    /* drag left: the next category */
 					while (ax >=  140.0f) { ax -= 140.0f; if (tq_room()) tq_push(SCE_CTRL_LEFT); }
 				} else if (c->mode == TM_XMB && !fired && ax >= 120.0f && c->depth > 0) { fired = 1; tq_push(SCE_CTRL_CIRCLE); }    /* swipe right: back */
+				else if (c->mode == TM_VIDEO && !fired && fabsf(ax) >= 90.0f) { fired = 1; tq_push(ax < 0 ? SCE_CTRL_LEFT : SCE_CTRL_RIGHT); }     /* drag: seek */
 				else if (c->mode == TM_PLAYER && !fired && fabsf(ax) >= 120.0f) { fired = 1; tq_push(ax < 0 ? SCE_CTRL_RTRIGGER : SCE_CTRL_LTRIGGER); }
 			}
 			if (!locked && !fired && c->mode == TM_XMB && now - t_down > 650000) {             /* press and hold: Options of that row */

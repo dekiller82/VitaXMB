@@ -13,12 +13,13 @@ include("${VITASDK}/share/vita.cmake" REQUIRED)
 
 set(VITA_APP_NAME "VitaXMB")
 set(VITA_TITLEID  "VXMB00001")
-set(VITA_VERSION  "01.51")
-set(APP_VERSION   "1.5.1")      # the same release as VITA_VERSION, as the updater compares it with the GitHub tag
+set(VITA_VERSION  "01.60")
+set(APP_VERSION   "1.6.0")      # the same release as VITA_VERSION, as the updater compares it with the GitHub tag
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2 -std=gnu11")
 
-add_executable(${PROJECT_NAME} src/main.c)
+add_executable(${PROJECT_NAME} src/main.c third_party/dr_libs/stb_vorbis.c)
+set_source_files_properties(third_party/dr_libs/stb_vorbis.c PROPERTIES COMPILE_DEFINITIONS "STB_VORBIS_NO_STDIO;STB_VORBIS_NO_PUSHDATA_API")
 
 # Development only: trace.txt, a file-based remote control and screenshots. Off in releases.
 option(VITAXMB_DEBUG "Enable debug tracing and the remote-control file" OFF)
@@ -26,14 +27,18 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE APP_VERSION="${APP_VERSION}")
 if(VITAXMB_DEBUG)
   target_compile_definitions(${PROJECT_NAME} PRIVATE VITAXMB_DEBUG)
 endif()
-target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/third_party/vitashell_stub" "${CMAKE_SOURCE_DIR}/third_party/minimp3")
-target_link_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/third_party/vitashell_stub")
+target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/third_party/vitashell_stub" "${CMAKE_SOURCE_DIR}/third_party/minimp3" "${CMAKE_SOURCE_DIR}/third_party/dr_libs")
+# FFmpeg for the video player: build it once with tools/build_ffmpeg.sh into third_party/ffmpeg-vita (or point FFMPEG_DIR elsewhere)
+set(FFMPEG_DIR "${CMAKE_SOURCE_DIR}/third_party/ffmpeg-vita" CACHE PATH "FFmpeg install prefix built by tools/build_ffmpeg.sh")
+target_include_directories(${PROJECT_NAME} PRIVATE "${FFMPEG_DIR}/include")
+target_link_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/third_party/vitashell_stub" "${FFMPEG_DIR}/lib")
 target_include_directories(${PROJECT_NAME} PRIVATE "${VITASDK}/arm-vita-eabi/include/freetype2")
 
 target_link_libraries(${PROJECT_NAME}
   vita2d
+  avformat avcodec swscale swresample avutil
   mbedtls mbedx509 mbedcrypto harfbuzz freetype png jpeg z bz2 m c stdc++ pthread
-  SceDisplay_stub SceGxm_stub SceSysmodule_stub SceCtrl_stub
+  SceDisplay_stub SceGxm_stub SceSysmodule_stub SceCtrl_stub SceAvPlayer_stub
   ScePgf_stub ScePvf_stub SceCommonDialog_stub
   SceAppMgr_stub SceRtc_stub ScePower_stub SceIofilemgr_stub
   SceKernelThreadMgr_stub SceProcessmgr_stub SceAudio_stub

@@ -7,11 +7,11 @@
 enum { CAT_SETTINGS, CAT_PHOTO, CAT_MUSIC, CAT_VIDEO, CAT_GAME, CAT_NETWORK, CAT_COUNT };
 static const char *cat_names[CAT_COUNT] = { "Settings", "Photo", "Music", "Video", "Game", "Network" };
 
-enum { KIND_INFO, KIND_APP, KIND_EXIT, KIND_FOLDER, KIND_VALUE, KIND_URI, KIND_PAGE, KIND_TRACK };
+enum { KIND_INFO, KIND_APP, KIND_EXIT, KIND_FOLDER, KIND_VALUE, KIND_URI, KIND_PAGE, KIND_TRACK, KIND_VIDEO };
 /* values for KIND_VALUE rows */
 enum { SET_THEME, SET_CLOCK, SET_SOUND, SET_STARTUP, SET_CONFIRM, SET_LAUNCH, SET_ART, SET_EXTRA, SET_CUSTOM, SET_AUTOUPDATE, SET_BATTPCT, SET_NOLA, SET_SHOW };   /* SET_SHOW + category: show / hide that category */
 /* values for KIND_PAGE rows */
-enum { PAGE_NONE, PAGE_SYSINFO, PAGE_GAMEINFO, PAGE_PLAYER, PAGE_UPDATE };
+enum { PAGE_NONE, PAGE_SYSINFO, PAGE_GAMEINFO, PAGE_PLAYER, PAGE_UPDATE, PAGE_VIDEO };
 
 /* Menus: the first CAT_COUNT are the category roots, the rest are nested lists. */
 enum { M_MEMCARD = CAT_COUNT, M_SAVES, M_FOLDER, M_VITAXMB, M_SYSSET, M_THEMESET, M_NETSET, M_VIDEOS, M_TRACKS, M_COUNT };
@@ -42,7 +42,7 @@ typedef struct {
 	int value_id;              /* KIND_VALUE: SET_*, KIND_PAGE: PAGE_* */
 	float glow;                /* 0..1, eases to 1 on the selected row (snappier than the scroll animation) */
 	char uri[96];              /* KIND_URI: what to launch */
-	char path[112];            /* files: where it lives (videos, ...) */
+	char path[256];            /* files: where it lives (videos, ...) */
 } Item;
 
 typedef struct {

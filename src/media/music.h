@@ -6,7 +6,7 @@
 
 enum { MC_NONE, MC_LOAD, MC_SEEK, MC_STOP };
 static volatile int mus_cmd;
-static char mus_req_path[128];
+static char mus_req_path[256];
 static volatile int mus_req_seek_ms;
 static volatile int mus_total_ms;
 static volatile int mus_ready;          /* a file is open and being played/paused */
@@ -15,13 +15,267 @@ static volatile unsigned mus_base_ms;   /* where playback started (after a seek)
 static volatile int mus_run = 1;
 static int music_index = -1;            /* index of the playing row in menus[M_TRACKS] */
 
+/* ---- streamed file reader: a 64 KB window over the file, so decoders never need the whole file in RAM ---- */
+#define BF_WIN (64 * 1024)
+typedef struct { SceUID fd; int size, pos, wstart, wlen, err; uint8_t *win; } BFile;
+
+static int bf_open(BFile *b, const char *path)
+{
+	memset(b, 0, sizeof(*b));
+	b->fd = sceIoOpen(path, SCE_O_RDONLY, 0);
+	if (b->fd < 0) return -1;
+	b->size = sceIoLseek32(b->fd, 0, SCE_SEEK_END);
+	b->win = malloc(BF_WIN);
+	if (!b->win || b->size <= 0) { sceIoClose(b->fd); free(b->win); b->win = NULL; b->fd = -1; return -1; }
+	return 0;
+}
+static void bf_close(BFile *b)
+{
+	if (b->fd >= 0 && b->win) sceIoClose(b->fd);
+	free(b->win); b->win = NULL; b->fd = -1;
+}
+static void bf_seek(BFile *b, int64_t pos) { b->pos = pos < 0 ? 0 : pos > b->size ? b->size : (int)pos; }
+static int bf_read(BFile *b, void *dst, int n)
+{
+	uint8_t *o = dst;
+	int got = 0;
+	while (got < n && b->pos < b->size) {
+		if (b->pos < b->wstart || b->pos >= b->wstart + b->wlen) {
+			int r = 0;
+			for (int tries = 0; tries < 4; tries++) {          /* a failed SD read is retried rather than ending the song */
+				sceIoLseek32(b->fd, b->pos, SCE_SEEK_SET);
+				r = sceIoRead(b->fd, b->win, BF_WIN);
+				if (r > 0) break;
+				b->err = r;
+				sceKernelDelayThread(20000);
+			}
+			if (r <= 0) break;
+			b->wstart = b->pos; b->wlen = r;
+		}
+		int off = b->pos - b->wstart, k = b->wlen - off;
+		if (k > n - got) k = n - got;
+		memcpy(o + got, b->win + off, k);
+		got += k; b->pos += k;
+	}
+	return got;
+}
+static size_t bf_mp3_read(void *buf, size_t size, void *u) { return (size_t)bf_read(u, buf, (int)size); }
+static int bf_mp3_seek(uint64_t pos, void *u) { bf_seek(u, (int64_t)pos); return 0; }
+static size_t bf_flac_read(void *u, void *buf, size_t n) { return (size_t)bf_read(u, buf, (int)n); }
+static drflac_bool32 bf_flac_seek(void *u, int off, drflac_seek_origin o)
+{
+	BFile *b = u;
+	bf_seek(b, o == DRFLAC_SEEK_SET ? (int64_t)off : o == DRFLAC_SEEK_END ? (int64_t)b->size + off : (int64_t)b->pos + off);
+	return 1;
+}
+static drflac_bool32 bf_flac_tell(void *u, drflac_int64 *cur) { *cur = ((BFile *)u)->pos; return 1; }
+
+/* ---- decoders: MP3 (minimp3), FLAC (dr_flac), Ogg Vorbis (stb_vorbis), WAV / AIFF (raw PCM, parsed here) ---- */
+enum { DF_NONE, DF_MP3, DF_FLAC, DF_OGG, DF_PCM };
+#define PCM_MAX_CH 8
+typedef struct {
+	int fmt, hz, ch;
+	uint64_t total_frames;
+	BFile bf;
+	uint64_t pos_frames;                                 /* frames decoded so far, for the early-end log */
+	mp3dec_io_t io;
+	mp3dec_ex_t mp3;
+	drflac *flac; int flac_retry;
+	stb_vorbis *ogg; uint8_t *ogg_mem;                  /* Ogg is small, so it is decoded from memory */
+	int64_t pcm_off; uint64_t pcm_frames, pcm_pos;       /* DF_PCM: where the sample data sits in the file */
+	int bytes, big, is_float, unsigned8, src_ch;
+} MusDec;
+
+static uint32_t rd_le(const uint8_t *p, int n) { uint32_t v = 0; for (int i = n - 1; i >= 0; i--) v = (v << 8) | p[i]; return v; }
+static uint32_t rd_be(const uint8_t *p, int n) { uint32_t v = 0; for (int i = 0; i < n; i++) v = (v << 8) | p[i]; return v; }
+
+static int pcm_open(MusDec *d)
+{
+	BFile *bf = &d->bf;
+	uint8_t h[12], c[8], b[64];
+	if (bf_read(bf, h, 12) != 12) return -1;
+	int aiff = !memcmp(h, "FORM", 4);
+	if (!aiff && (memcmp(h, "RIFF", 4) || memcmp(h + 8, "WAVE", 4))) return -1;
+	int have_fmt = 0, tag = 0, bits = 0;
+	int64_t data_off = 0, dlen = -1;
+	d->big = aiff;
+	for (int64_t pos = 12; pos + 8 <= bf->size;) {
+		bf_seek(bf, pos);
+		if (bf_read(bf, c, 8) != 8) break;
+		int64_t cl = aiff ? rd_be(c + 4, 4) : rd_le(c + 4, 4);
+		if (pos + 8 + cl > bf->size) cl = bf->size - pos - 8;      /* truncated file: take what is there */
+		int rn = cl < (int64_t)sizeof(b) ? (int)cl : (int)sizeof(b);
+		if (!aiff && !memcmp(c, "fmt ", 4) && cl >= 16) {
+			bf_read(bf, b, rn);
+			tag = rd_le(b, 2); d->src_ch = rd_le(b + 2, 2); d->hz = rd_le(b + 4, 4); bits = rd_le(b + 14, 2);
+			if (tag == 0xFFFE && rn >= 26) tag = rd_le(b + 24, 2);
+			have_fmt = 1;
+		} else if (aiff && !memcmp(c, "COMM", 4) && cl >= 18) {
+			bf_read(bf, b, rn);
+			d->src_ch = rd_be(b, 2); bits = rd_be(b + 6, 2);
+			uint32_t ex = rd_be(b + 8, 2) & 0x7FFF;
+			uint64_t mant = ((uint64_t)rd_be(b + 10, 4) << 32) | rd_be(b + 14, 4);
+			d->hz = (int)ldexp((double)mant, (int)ex - 16383 - 63);
+			tag = 1;
+			if (!memcmp(h + 8, "AIFC", 4) && rn >= 22) {
+				if (!memcmp(b + 18, "sowt", 4)) d->big = 0;
+				else if (!memcmp(b + 18, "fl32", 4) || !memcmp(b + 18, "FL32", 4)) tag = 3;
+				else if (memcmp(b + 18, "NONE", 4) && memcmp(b + 18, "none", 4)) return -1;   /* compressed AIFC */
+			}
+			have_fmt = 1;
+		} else if (!memcmp(c, aiff ? "SSND" : "data", 4)) {
+			data_off = pos + 8; dlen = cl;
+			if (aiff && cl >= 8) {
+				bf_read(bf, b, 8);
+				uint32_t off = rd_be(b, 4);
+				data_off += 8 + off; dlen = cl - 8 - (int64_t)off;
+			}
+			if (have_fmt) break;
+		}
+		pos += 8 + cl + (cl & 1);
+	}
+	if (!have_fmt || dlen <= 0 || d->src_ch < 1 || d->src_ch > PCM_MAX_CH || d->hz < 1000 || bits < 8 || bits > 32 || (bits & 7)) return -1;
+	if (tag != 1 && !(tag == 3 && bits == 32)) return -1;
+	d->is_float = tag == 3;
+	d->bytes = bits / 8;
+	d->unsigned8 = !aiff && bits == 8;
+	d->ch = d->src_ch > 1 ? 2 : 1;
+	d->pcm_off = data_off;
+	d->pcm_frames = (uint64_t)dlen / ((uint64_t)d->bytes * d->src_ch);
+	d->pcm_pos = 0;
+	d->total_frames = d->pcm_frames;
+	return d->pcm_frames ? 0 : -1;
+}
+
+static int16_t pcm_sample(const MusDec *d, const uint8_t *p)
+{
+	int n = d->bytes;
+	if (d->is_float) {
+		union { uint32_t u; float f; } v;
+		v.u = d->big ? rd_be(p, 4) : rd_le(p, 4);
+		float x = v.f * 32767.0f;
+		return (int16_t)(x > 32767.0f ? 32767 : x < -32768.0f ? -32768 : x);
+	}
+	if (n == 1) return d->unsigned8 ? (int16_t)((p[0] - 128) << 8) : (int16_t)((int8_t)p[0] << 8);
+	return (int16_t)(d->big ? rd_be(p, 2) : rd_le(p + n - 2, 2));   /* keep the top 16 bits */
+}
+
+static void dec_close(MusDec *d)
+{
+	if (d->fmt == DF_MP3) mp3dec_ex_close(&d->mp3);
+	else if (d->fmt == DF_FLAC && d->flac) drflac_close(d->flac);
+	else if (d->fmt == DF_OGG && d->ogg) stb_vorbis_close(d->ogg);
+	free(d->ogg_mem);
+	bf_close(&d->bf);
+	memset(d, 0, sizeof(*d));
+	d->bf.fd = -1;
+}
+
+static int dec_open(MusDec *d, const char *path)
+{
+	memset(d, 0, sizeof(*d));
+	const char *dot = strrchr(path, '.');
+	if (!dot || bf_open(&d->bf, path)) { d->bf.fd = -1; return -1; }
+	int ok = 0;
+	if (!strcasecmp(dot, ".mp3")) {
+		d->io.read = bf_mp3_read; d->io.read_data = &d->bf;
+		d->io.seek = bf_mp3_seek; d->io.seek_data = &d->bf;
+		if (mp3dec_ex_open_cb(&d->mp3, &d->io, MP3D_SEEK_TO_SAMPLE) == 0) {
+			d->fmt = DF_MP3;
+			d->hz = d->mp3.info.hz ? d->mp3.info.hz : 44100;
+			d->ch = d->mp3.info.channels ? d->mp3.info.channels : 2;
+			d->total_frames = d->mp3.samples / d->ch;
+			ok = 1;
+		}
+	} else if (!strcasecmp(dot, ".flac")) {
+		d->flac = drflac_open(bf_flac_read, bf_flac_seek, bf_flac_tell, &d->bf, NULL);
+		if (d->flac && d->flac->channels <= 2) {
+			d->fmt = DF_FLAC;
+			d->hz = (int)d->flac->sampleRate; d->ch = d->flac->channels;
+			d->total_frames = d->flac->totalPCMFrameCount;
+			ok = 1;
+		} else if (d->flac) { drflac_close(d->flac); d->flac = NULL; }
+	} else if (!strcasecmp(dot, ".ogg")) {
+		d->ogg_mem = malloc(d->bf.size);
+		if (d->ogg_mem && bf_read(&d->bf, d->ogg_mem, d->bf.size) == d->bf.size) {
+			int err = 0;
+			d->ogg = stb_vorbis_open_memory(d->ogg_mem, d->bf.size, &err, NULL);
+			if (d->ogg) {
+				stb_vorbis_info vi = stb_vorbis_get_info(d->ogg);
+				d->fmt = DF_OGG;
+				d->hz = (int)vi.sample_rate; d->ch = vi.channels > 1 ? 2 : 1;   /* more channels are downmixed by stb_vorbis */
+				d->total_frames = stb_vorbis_stream_length_in_samples(d->ogg);
+				ok = d->hz > 0;
+			}
+		}
+	} else if (pcm_open(d) == 0) {
+		d->fmt = DF_PCM;
+		ok = 1;
+	}
+	if (!ok) { dec_close(d); return -1; }
+	return 0;
+}
+
+/* Reads up to `frames` frames of interleaved s16 (d->ch channels). Returns frames read, 0 at the end. */
+static int dec_read_raw(MusDec *d, int16_t *out, int frames)
+{
+	if (d->fmt == DF_MP3) return (int)(mp3dec_ex_read(&d->mp3, out, (size_t)frames * d->ch) / d->ch);
+	if (d->fmt == DF_FLAC) {
+		int n = (int)drflac_read_pcm_frames_s16(d->flac, frames, out);
+		/* A good file sometimes made the decoder return nothing in the middle of a song (no read error behind it; the same file decodes
+		 * fine elsewhere). Open it again at the same frame and go on, a few times at most. */
+		if (n <= 0 && d->total_frames && d->pos_frames + 44100 < d->total_frames && d->flac_retry < 4) {
+			uint64_t at = d->pos_frames;
+			d->flac_retry++;
+			drflac_close(d->flac);
+			d->flac = drflac_open(bf_flac_read, bf_flac_seek, bf_flac_tell, &d->bf, NULL);
+			if (d->flac && drflac_seek_to_pcm_frame(d->flac, at)) {
+				n = (int)drflac_read_pcm_frames_s16(d->flac, frames, out);
+				xlog("flac: stopped at frame %llu of %llu, reopened (try %d): %s\n", (unsigned long long)at, (unsigned long long)d->total_frames, d->flac_retry, n > 0 ? "continuing" : "no better");
+			} else xlog("flac: stopped at frame %llu and could not be reopened\n", (unsigned long long)at);
+		}
+		return n;
+	}
+	if (d->fmt == DF_OGG) return stb_vorbis_get_samples_short_interleaved(d->ogg, d->ch, out, frames * d->ch);
+	if (d->fmt == DF_PCM) {
+		static uint8_t raw[1152 * PCM_MAX_CH * 4];
+		int fs = d->bytes * d->src_ch;
+		if (d->pcm_pos + frames > d->pcm_frames) frames = (int)(d->pcm_frames - d->pcm_pos);
+		bf_seek(&d->bf, d->pcm_off + (int64_t)d->pcm_pos * fs);
+		frames = bf_read(&d->bf, raw, frames * fs) / fs;
+		const uint8_t *p = raw;
+		for (int i = 0; i < frames; i++, p += fs) {
+			out[i * d->ch] = pcm_sample(d, p);
+			if (d->ch > 1) out[i * d->ch + 1] = pcm_sample(d, p + d->bytes);
+		}
+		d->pcm_pos += frames;
+		return frames;
+	}
+	return 0;
+}
+
+static int dec_read(MusDec *d, int16_t *out, int frames)
+{
+	int n = dec_read_raw(d, out, frames);
+	if (n > 0) d->pos_frames += n;
+	return n;
+}
+
+static void dec_seek(MusDec *d, uint64_t frame)
+{
+	d->pos_frames = frame;
+	if (d->fmt == DF_MP3) mp3dec_ex_seek(&d->mp3, frame * d->ch);
+	else if (d->fmt == DF_FLAC) drflac_seek_to_pcm_frame(d->flac, frame);
+	else if (d->fmt == DF_OGG) stb_vorbis_seek(d->ogg, (unsigned)frame);
+	else if (d->fmt == DF_PCM) d->pcm_pos = frame < d->pcm_frames ? frame : d->pcm_frames;
+}
+
 static int music_thread(SceSize args, void *argp)
 {
 	(void)args; (void)argp;
 	trace("music thread running\n");
-	static mp3dec_ex_t dec;
+	static MusDec dec;
 	static int16_t pcm[2304 * 2];
-	uint8_t *file = NULL;
 	int open = 0, hz = 44100, ch = 2;
 	double rpos = 0;
 	int16_t prev_l = 0, prev_r = 0;
@@ -33,35 +287,23 @@ static int music_thread(SceSize args, void *argp)
 			if (cmd == MC_LOAD || cmd == MC_STOP) {
 				mus_playing = 0;
 				sceKernelDelayThread(50000);                  /* let the mixer finish its current grain */
-				if (open) { mp3dec_ex_close(&dec); open = 0; }
-				free(file); file = NULL;
+				if (open) { dec_close(&dec); open = 0; }
 				mus_w = mus_r = 0; mus_consumed = 0; mus_ready = 0; mus_eof = 0; mus_total_ms = 0; mus_base_ms = 0;
 			}
 			if (cmd == MC_LOAD) {
-				SceUID fd = sceIoOpen(mus_req_path, SCE_O_RDONLY, 0);
-				trace("music load %s -> fd %08x\n", mus_req_path, fd);
-				if (fd >= 0) {
-					int size = sceIoLseek32(fd, 0, SCE_SEEK_END);
-					sceIoLseek32(fd, 0, SCE_SEEK_SET);
-					file = size > 0 ? malloc(size) : NULL;
-					if (file && sceIoRead(fd, file, size) == size &&
-					    mp3dec_ex_open_buf(&dec, file, size, MP3D_SEEK_TO_SAMPLE) == 0) {
-						open = 1;
-						hz = dec.info.hz ? dec.info.hz : 44100;
-						ch = dec.info.channels ? dec.info.channels : 2;
-						mus_total_ms = (int)(dec.samples / ch * 1000ULL / hz);
-						trace("mp3 opened: %d ms, %d Hz, %d ch\n", (int)mus_total_ms, hz, ch);
-						rpos = 0; prev_l = prev_r = 0;
-						mus_ready = 1;
-						mus_playing = 1;
-					} else {
-						trace("mp3 open FAILED (alloc %p size %d)\n", (void *)file, size);
-						xlog("mp3 open failed %s\n", mus_req_path);
-						free(file); file = NULL;
-						mus_eof = 1;
-					}
-					sceIoClose(fd);
+				trace("music load %s\n", mus_req_path);
+				if (dec_open(&dec, mus_req_path) == 0) {
+					open = 1;
+					hz = dec.hz;
+					ch = dec.ch;
+					mus_total_ms = (int)(dec.total_frames * 1000ULL / hz);
+					trace("audio opened: %d ms, %d Hz, %d ch\n", (int)mus_total_ms, hz, ch);
+					rpos = 0; prev_l = prev_r = 0;
+					mus_ready = 1;
+					mus_playing = 1;
 				} else {
+					trace("audio open FAILED\n");
+					xlog("audio open failed %s\n", mus_req_path);
 					mus_eof = 1;
 				}
 			} else if (cmd == MC_SEEK && open) {
@@ -72,7 +314,7 @@ static int music_thread(SceSize args, void *argp)
 				int ms = mus_req_seek_ms;
 				if (ms < 0) ms = 0;
 				if (ms > mus_total_ms - 200) ms = mus_total_ms > 200 ? mus_total_ms - 200 : 0;
-				mp3dec_ex_seek(&dec, (uint64_t)ms * hz / 1000 * ch);
+				dec_seek(&dec, (uint64_t)ms * hz / 1000);
 				mus_base_ms = (unsigned)ms;
 				rpos = 0;
 				mus_playing = was;
@@ -80,9 +322,13 @@ static int music_thread(SceSize args, void *argp)
 		}
 
 		if (open && !mus_eof && (MUS_RING - (mus_w - mus_r)) > 4096) {
-			size_t n = mp3dec_ex_read(&dec, pcm, 2304);
-			if (n == 0) { mus_eof = 1; continue; }
-			int nf = (int)(n / ch);
+			int nf = dec_read(&dec, pcm, 1152);
+			if (nf <= 0) {
+				if (dec.total_frames && dec.pos_frames + hz < dec.total_frames)      /* more than a second short: not a normal end */
+					xlog("audio ended early %s: frame %llu of %llu, fmt %d, io err %08x\n", mus_req_path,
+					     (unsigned long long)dec.pos_frames, (unsigned long long)dec.total_frames, dec.fmt, (unsigned)dec.bf.err);
+				mus_eof = 1; continue;
+			}
 			/* to 48 kHz stereo, linear interpolation */
 			double step = (double)hz / 48000.0;
 			int guard = 0;
@@ -213,6 +459,97 @@ static void id3_read(const char *path, char *title, size_t tn, char *artist, siz
 	sceIoClose(fd);
 }
 
+/* ---- tags for the other formats: Vorbis comments (FLAC, Ogg), RIFF INFO (WAV), NAME / AUTH (AIFF) ---- */
+static void meta_copy(char *out, size_t cap, const uint8_t *s, int n, int latin1)
+{
+	size_t o = 0;
+	for (int i = 0; i < n && s[i] && o + 3 < cap; i++) {
+		if (latin1 && s[i] >= 0x80) { out[o++] = (char)(0xC0 | (s[i] >> 6)); out[o++] = (char)(0x80 | (s[i] & 0x3F)); }
+		else out[o++] = (char)s[i];
+	}
+	out[o] = 0;
+}
+
+/* p points at the vendor length of a Vorbis comment block */
+static void vorbis_comments(const uint8_t *p, int n, char *title, size_t tn, char *artist, size_t an)
+{
+	if (n < 8) return;
+	uint32_t vl = rd_le(p, 4);
+	if (vl > (uint32_t)n - 8) return;
+	uint32_t cnt = rd_le(p + 4 + vl, 4), pos = 8 + vl;
+	for (uint32_t i = 0; i < cnt && pos + 4 <= (uint32_t)n; i++) {
+		uint32_t l = rd_le(p + pos, 4);
+		pos += 4;
+		if (l > (uint32_t)n - pos) break;
+		const char *s = (const char *)p + pos;
+		if (l > 6 && !strncasecmp(s, "TITLE=", 6) && !title[0]) meta_copy(title, tn, p + pos + 6, l - 6, 0);
+		else if (l > 7 && !strncasecmp(s, "ARTIST=", 7) && !artist[0]) meta_copy(artist, an, p + pos + 7, l - 7, 0);
+		pos += l;
+	}
+}
+
+static void meta_read(const char *path, char *title, size_t tn, char *artist, size_t an)
+{
+	title[0] = artist[0] = 0;
+	const char *dot = strrchr(path, '.');
+	if (!dot) return;
+	if (!strcasecmp(dot, ".mp3")) { id3_read(path, title, tn, artist, an); return; }
+	BFile bf;
+	if (bf_open(&bf, path)) return;
+	uint8_t h[12];
+	if (!strcasecmp(dot, ".flac")) {
+		if (bf_read(&bf, h, 4) == 4 && !memcmp(h, "fLaC", 4)) {
+			for (int blocks = 0; blocks < 64; blocks++) {
+				if (bf_read(&bf, h, 4) != 4) break;
+				int last = h[0] >> 7, type = h[0] & 0x7F, len = (int)rd_be(h + 1, 3);
+				int next = bf.pos + len;
+				if (type == 4 && len < 256 * 1024) {
+					uint8_t *vc = malloc(len);
+					if (vc && bf_read(&bf, vc, len) == len) vorbis_comments(vc, len, title, tn, artist, an);
+					free(vc);
+					break;
+				}
+				if (last) break;
+				bf_seek(&bf, next);
+			}
+		}
+	} else if (!strcasecmp(dot, ".ogg")) {
+		int n = bf.size < 65536 ? bf.size : 65536;
+		uint8_t *buf = malloc(n);
+		if (buf && bf_read(&bf, buf, n) == n)
+			for (int i = 0; i + 7 < n; i++)
+				if (!memcmp(buf + i, "\x03vorbis", 7)) { vorbis_comments(buf + i + 7, n - i - 7, title, tn, artist, an); break; }
+		free(buf);
+	} else if (bf_read(&bf, h, 12) == 12) {
+		int aiff = !memcmp(h, "FORM", 4);
+		if (aiff || (!memcmp(h, "RIFF", 4) && !memcmp(h + 8, "WAVE", 4))) {
+			uint8_t c[8];
+			for (int64_t pos = 12; pos + 8 <= bf.size && (!title[0] || !artist[0]);) {
+				bf_seek(&bf, pos);
+				if (bf_read(&bf, c, 8) != 8) break;
+				int64_t cl = aiff ? rd_be(c + 4, 4) : rd_le(c + 4, 4);
+				if (cl < 0 || pos + 8 + cl > bf.size) cl = bf.size - pos - 8;
+				if (aiff && !memcmp(c, "NAME", 4) && cl < 200) { uint8_t t[200]; int r = bf_read(&bf, t, (int)cl); meta_copy(title, tn, t, r, 1); }
+				else if (aiff && !memcmp(c, "AUTH", 4) && cl < 200) { uint8_t t[200]; int r = bf_read(&bf, t, (int)cl); meta_copy(artist, an, t, r, 1); }
+				else if (!aiff && !memcmp(c, "LIST", 4) && cl > 4 && cl < 16 * 1024) {
+					uint8_t *l = malloc(cl);
+					if (l && bf_read(&bf, l, (int)cl) == (int)cl && !memcmp(l, "INFO", 4))
+						for (int64_t q = 4; q + 8 <= cl;) {
+							int64_t sl = rd_le(l + q + 4, 4);
+							if (q + 8 + sl > cl) break;
+							if (!memcmp(l + q, "INAM", 4)) meta_copy(title, tn, l + q + 8, (int)sl, 1);
+							else if (!memcmp(l + q, "IART", 4)) meta_copy(artist, an, l + q + 8, (int)sl, 1);
+							q += 8 + sl + (sl & 1);
+						}
+					free(l);
+				}
+				pos += 8 + cl + (cl & 1);
+			}
+		}
+	}
+	bf_close(&bf);
+}
+
 static void scan_music_dir(const char *dir, int depth)
 {
 	SceUID d = sceIoDopen(dir);
@@ -222,7 +559,7 @@ static void scan_music_dir(const char *dir, int depth)
 	memset(&e, 0, sizeof(e));
 	while (sceIoDread(d, &e) > 0 && menus[M_TRACKS].count < MAX_ITEMS) {
 		trace("  entry %s mode=%x\n", e.d_name, (unsigned)e.d_stat.st_mode);
-		char full[112];
+		char full[256];
 		snprintf(full, sizeof(full), "%s/%s", dir, e.d_name);
 		if (SCE_S_ISDIR(e.d_stat.st_mode)) {
 			if (depth < 3) scan_music_dir(full, depth + 1);
@@ -231,9 +568,10 @@ static void scan_music_dir(const char *dir, int depth)
 			int dup = 0;
 			for (int i = 0; i < menus[M_TRACKS].count; i++)
 				if (!strcasecmp(menus[M_TRACKS].items[i].path, full)) { dup = 1; break; }
-			if (dot && !strcasecmp(dot, ".mp3") && !dup) {
+			if (dot && !dup && (!strcasecmp(dot, ".mp3") || !strcasecmp(dot, ".flac") || !strcasecmp(dot, ".ogg") || !strcasecmp(dot, ".wav") ||
+			                    !strcasecmp(dot, ".aif") || !strcasecmp(dot, ".aiff") || !strcasecmp(dot, ".aifc"))) {
 				char title[64], artist[48];
-				id3_read(full, title, sizeof(title), artist, sizeof(artist));
+				meta_read(full, title, sizeof(title), artist, sizeof(artist));
 				if (!title[0]) snprintf(title, sizeof(title), "%.*s", (int)(dot - e.d_name) > 60 ? 60 : (int)(dot - e.d_name), e.d_name);
 				Item *it = add_item(M_TRACKS, KIND_TRACK, title, artist, NULL, tex_music_s);
 				if (it) snprintf(it->path, sizeof(it->path), "%s", full);
@@ -261,7 +599,7 @@ static void scan_music(void)
 			}
 	}
 	qsort(menus[M_TRACKS].items, menus[M_TRACKS].count, sizeof(Item), item_cmp);
-	if (menus[M_TRACKS].count == 0) add_item(M_TRACKS, KIND_INFO, "No songs", "Put MP3 files in ux0:music", NULL, tex_music_s);
+	if (menus[M_TRACKS].count == 0) add_item(M_TRACKS, KIND_INFO, "No songs", "Put MP3, FLAC, OGG, WAV or AIFF files in ux0:music", NULL, tex_music_s);
 	if (menus[M_TRACKS].sel >= menus[M_TRACKS].count) menus[M_TRACKS].sel = 0;
 	music_index = -1;
 }
@@ -350,43 +688,91 @@ static void fmt_time(unsigned ms, char *out)
 	snprintf(out, 12, "%02u:%02u", s / 60, s % 60);
 }
 
-static void draw_mp3_pill(float x, float y, int a)
+/* The list's pictures (number box, digits, codec pill and their shadows) are the PSP's own artwork redrawn at the Vita's native size
+ * (assets/psp/music/*.png, made by tools/make_native_music.py from the firmware's music_browser_plugin.rco): the stock bitmaps are 1 / 2 of
+ * the screen resolution, stretched they are blurry. They are drawn 1:1, on whole pixels. */
+static vita2d_texture *mus_png(const char *name)
 {
-	const float w = 102, h = 22;
-	unsigned int c = RGBA8(255, 255, 255, a);
-	vita2d_draw_rectangle(x + 5, y, w - 10, h, c);
-	vita2d_draw_rectangle(x, y + 5, w, h - 10, c);
-	vita2d_draw_fill_circle(x + 5, y + 5, 5, c);
-	vita2d_draw_fill_circle(x + w - 5, y + 5, 5, c);
-	vita2d_draw_fill_circle(x + 5, y + h - 5, 5, c);
-	vita2d_draw_fill_circle(x + w - 5, y + h - 5, 5, c);
-	ptext_vc(x + w / 2 - ptext_width(20, "MP3") / 2.0f, y + h / 2, RGBA8(20, 20, 20, a), 20, "MP3");
-	for (int i = 0; i < 2; i++)                              /* little speaker arcs */
-		for (int k = -4 - i; k <= 4 + i; k++)
-			vita2d_draw_rectangle(x + w + 4 + i * 4 + (k * k) / (6 + i * 4), y + h / 2 + k * 1.6f, 1.6f, 1.6f, WHITE(a));
+	static char names[48][28];
+	static vita2d_texture *tex[48];
+	for (int i = 0; i < 48; i++) {
+		if (!names[i][0]) {
+			snprintf(names[i], sizeof(names[i]), "%s", name);
+			char path[80];
+			snprintf(path, sizeof(path), "app0:assets/psp/music/%s.png", name);
+			tex[i] = vita2d_load_PNG_file(path);
+			if (!tex[i]) trace("music picture missing: %s\n", name);
+			return tex[i];
+		}
+		if (!strcmp(names[i], name)) return tex[i];
+	}
+	return NULL;
 }
 
-/* One row of the track list (sub-list layout): number badge, title/rule/artist, MP3 pill. */
+/* a picture centred on (cx, cy), one image pixel per screen pixel */
+static void mus_draw(const char *name, float cx, float cy, int a)
+{
+	vita2d_texture *t = mus_png(name);
+	if (!t || a <= 0) return;
+	float x = floorf(cx - vita2d_texture_get_width(t) / 2.0f + 0.5f), y = floorf(cy - vita2d_texture_get_height(t) / 2.0f + 0.5f);
+	vita2d_draw_texture_tint(t, x, y, RGBA8(255, 255, 255, a));
+}
+
+/* A shadow picture sits two PSP pixels down and right of the picture it belongs to (the same rule as every other shadow in the app). */
+static void mus_draw_shadow(const char *name, float cx, float cy, int a) { mus_draw(name, cx + 4.0f, cy + 4.0f, a); }
+
+/* The focus glow's breathing: alpha swings between GLOW_LO and 1 once every GLOW_PERIOD seconds. NOT read from the firmware (the stock RCO
+ * has no animation and paf's item code was not found): an estimate to be matched against a real PSP. */
+#define GLOW_LO     0.45f
+#define GLOW_PERIOD 2.0f
+static float mus_breath(void)
+{
+	float t = (float)(sceKernelGetProcessTimeWide() % 100000000ULL) / 1.0e6f;
+	return GLOW_LO + (1.0f - GLOW_LO) * (0.5f + 0.5f * sinf(t * 6.2831853f / GLOW_PERIOD));
+}
+
+/* The codec pill: the PSP's block with the file extension cut out of it, then the speaker arcs. (x is where its white body starts.) */
+static void draw_mp3_pill(float x, float y, int a, const char *path)
+{
+	const char *dot = strrchr(path, '.'), *name = "mp3";
+	if (dot && !strcasecmp(dot, ".flac")) name = "flac";
+	else if (dot && !strcasecmp(dot, ".ogg")) name = "ogg";
+	else if (dot && !strcasecmp(dot, ".wav")) name = "wav";
+	else if (dot && !strncasecmp(dot, ".aif", 4)) name = "aiff";
+	char pic[24];
+	snprintf(pic, sizeof(pic), "music_pill_%s", name);
+	float cx = x - 14.0f + 72.0f, cy = y + 11.0f;                  /* the picture starts 7 PSP pixels left of the body */
+	mus_draw_shadow("music_pill_shadow", cx, cy, a);
+	mus_draw(pic, cx, cy, a);
+}
+
+/* One row of the track list (sub-list layout): number box, title/rule/artist, codec pill. */
 static void draw_track_row(const Item *it, int number, float y, float xoff, float sel, int a)
 {
 	float bx = 272.0f + xoff, tx = 343.0f + xoff;
-	unsigned int line = WHITE(a);
-	/* rounded-square number badge */
-	vita2d_draw_rectangle(bx - 25, y - 25, 50, 3, line);
-	vita2d_draw_rectangle(bx - 25, y + 22, 50, 3, line);
-	vita2d_draw_rectangle(bx - 25, y - 25, 3, 50, line);
-	vita2d_draw_rectangle(bx + 22, y - 25, 3, 50, line);
-	if (sel > 0.5f) vita2d_draw_rectangle(bx - 22, y - 22, 44, 44, RGBA8(255, 255, 255, a * 18 / 100));
-	char num[8];
-	snprintf(num, sizeof(num), "%d", number);
-	ptext_vc(bx - ptext_width(30, num) / 2.0f, y, WHITE(a), 30, num);
+	mus_draw_shadow("music_box_shadow", bx, y, a);
+	mus_draw("music_box_back", bx, y, a);
+	if (sel > 0.02f) mus_draw("music_box_focus", bx, y, (int)(a * sel * mus_breath()));
+	mus_draw("music_box", bx, y, a);
+	int n = number % 1000, nd = n >= 100 ? 3 : (n >= 10 ? 2 : 1);
+	for (int pass = 0; pass < 2; pass++) {                           /* the digits' shadows first, then the digits */
+		float dx = bx - 18.0f * nd / 2.0f + 9.0f;
+		int div = nd == 3 ? 100 : (nd == 2 ? 10 : 1);
+		for (int k = 0; k < nd; k++, div /= 10, dx += 18.0f) {
+			char lab[28];
+			snprintf(lab, sizeof(lab), pass ? "music_digit_%d" : "music_digit_%d_shadow", n / div % 10);
+			if (pass) mus_draw(lab, dx, y, a);
+			else mus_draw_shadow(lab, dx, y, a);
+		}
+	}
 
 	float maxw = 820.0f - tx;
 	ptext_vc_fit(tx - text_bearing(28, it->title), y - 20, WHITE(a), 28, it->title, maxw);
 	if (it->sub[0]) ptext_vc_fit(tx - text_bearing(22, it->sub), y + 22, WHITE(a), 22, it->sub, maxw);
+	else if (sel < 0.5f) ptext_vc_fit(tx - text_bearing(22, "-"), y + 22, WHITE(a), 22, "-", maxw);   /* no artist: the PSP shows a dash */
 	if (sel > 0.3f) {
 		draw_rule(tx - 1, 948, y, (int)(a * clampf(sel * 1.4f - 0.2f, 0.0f, 1.0f)));
-		draw_mp3_pill(828, y + 11, (int)(a * sel));
+		draw_mp3_pill(828, y + 11, (int)(a * sel), it->path);
 	}
 }
 
@@ -424,7 +810,7 @@ static void draw_player(float alpha, int closing)
 		ptext_vc_fit(150 - text_bearing(30, it->title), 91, WHITE(a), 30, it->title, 790.0f);
 		draw_rule(150, 948, 106, a);
 		if (it->sub[0]) ptext_vc_fit(150 - text_bearing(24, it->sub), 133, WHITE(a), 24, it->sub, 640.0f);
-		draw_mp3_pill(828, 119, a);
+		draw_mp3_pill(828, 119, a, it->path);
 	}
 
 	/* LED spectrum */

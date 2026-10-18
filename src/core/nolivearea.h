@@ -202,6 +202,7 @@ static int nla_remove(void)
 	if (rc) return rc;
 	nla_flag("disable", "1");              /* stops the copy still running in this session */
 	nla_flag("cover", NULL);
+	nla_flag("hide", NULL);
 	nla_flag("earlylaunch", NULL);
 	sceIoRemove(NLA_PLUGIN);
 	return 0;

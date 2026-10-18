@@ -1,5 +1,13 @@
 #pragma once
 
+/* the containers the player opens (FFmpeg demuxers built by tools/build_ffmpeg.sh) */
+static int video_ext(const char *dot)
+{
+	static const char *e[] = { ".mp4", ".m4v", ".mov", ".mkv", ".webm", ".avi", ".wmv", ".asf", ".flv", ".ts", ".m2ts", ".mts", ".mpg", ".mpeg", ".vob", ".3gp", ".ogv", ".divx", ".f4v" };
+	for (unsigned i = 0; i < sizeof(e) / sizeof(e[0]); i++) if (!strcasecmp(dot, e[i])) return 1;
+	return 0;
+}
+
 static void scan_videos(void)
 {
 	clear_menu(M_VIDEOS);
@@ -27,14 +35,14 @@ static void scan_videos(void)
 		while (sceIoDread(dfd, &ent) > 0) {
 			const char *dot = strrchr(ent.d_name, '.');
 			if (dot && !SCE_S_ISDIR(ent.d_stat.st_mode) &&
-			    (!strcasecmp(dot, ".mp4") || !strcasecmp(dot, ".mkv") || !strcasecmp(dot, ".avi") || !strcasecmp(dot, ".mov") || !strcasecmp(dot, ".m4v"))) {
+			    video_ext(dot)) {
 				char title[64], sub[48];
 				snprintf(title, sizeof(title), "%.*s", (int)(dot - ent.d_name) > 60 ? 60 : (int)(dot - ent.d_name), ent.d_name);
 				uint64_t sz = (uint64_t)ent.d_stat.st_size;
 				if (sz >= (1ULL << 30)) snprintf(sub, sizeof(sub), "%.1f GB", sz / 1073741824.0);
 				else snprintf(sub, sizeof(sub), "%u MB", (unsigned)(sz >> 20));
-				Item *it = add_item(M_VIDEOS, KIND_URI, title, sub, NULL, tex_video_s);
-				if (it) snprintf(it->uri, sizeof(it->uri), "video:browse?category=ALL");
+				Item *it = add_item(M_VIDEOS, KIND_VIDEO, title, sub, NULL, tex_video_s);
+				if (it) snprintf(it->path, sizeof(it->path), "%s/%s", dirs[d], ent.d_name);
 			}
 			memset(&ent, 0, sizeof(ent));
 		}

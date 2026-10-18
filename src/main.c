@@ -58,6 +58,9 @@
 #include "ui/picker.h"
 #include "ui/touch.h"
 #include "media/music.h"
+#include "media/video.h"
+#include "media/avp.h"
+#include "ui/videoui.h"
 #include "core/remote.h"
 #include "ui/ime.h"
 
@@ -143,6 +146,7 @@ int main(void)
 	int seen_dec_gen = 0;
 	SceUID musicthread = sceKernelCreateThread("xmb_music", music_thread, 0x10000110, 0x40000, 0, 0, NULL);
 	{ int sr = musicthread >= 0 ? sceKernelStartThread(musicthread, 0, NULL) : -1; trace("music thread create=%08x start=%08x\n", musicthread, sr); }
+	vid_init();
 	SceUID iconthread = sceKernelCreateThread("xmb_icons", icon_thread, 0x10000110, 0x40000, 0, 0, NULL);
 	if (iconthread >= 0) sceKernelStartThread(iconthread, 0, NULL);
 
@@ -209,6 +213,7 @@ int main(void)
 			hold_btn = dirs;
 			hold_frames = 0;
 		}
+		avp_flush_frees();                                    /* the system player's frames are released here, never from its own thread */
 		pressed |= remote_step();
 		{	/* the touch screen: its taps and drags arrive as the same button presses */
 			TouchCtx tc;
@@ -218,6 +223,7 @@ int main(void)
 			else if (ch_open) tc.mode = TM_CHOOSER;
 			else if (pk_open) { tc.mode = TM_PICKER; tc.pk_sel = pk_sel; tc.pk_top = pk_top; }
 			else if (page_open == PAGE_PLAYER) tc.mode = TM_PLAYER;
+			else if (page_open == PAGE_VIDEO) tc.mode = TM_VIDEO;
 			else if (page_open == PAGE_UPDATE) tc.mode = TM_PAGE_UPDATE;
 			else if (page_open != PAGE_NONE) tc.mode = TM_PAGE;
 			else if (opt_open) {
@@ -325,6 +331,10 @@ int main(void)
 			if ((pressed & SCE_CTRL_LTRIGGER) && total) { sound_play(SND_CURSOR); music_start((music_index + total - 1) % total); }
 			if (pressed & SCE_CTRL_LEFT)  music_seek_rel(-10000);
 			if (pressed & SCE_CTRL_RIGHT) music_seek_rel(10000);
+		} else if (page_open == PAGE_VIDEO) {
+			/* ---- video player ---- */
+			if (video_input(pressed, btn)) { sound_play(SND_CANCEL); page_open = PAGE_NONE; }
+			if (video_after_end()) page_open = PAGE_NONE;
 		} else if (page_open == PAGE_UPDATE) {
 			/* ---- Network Update ---- */
 			if (upd_state == UPD_AVAILABLE) {
@@ -462,6 +472,13 @@ int main(void)
 					break;
 				case KIND_EXIT:
 					if (pressed & SCE_CTRL_CROSS) { sound_play(confirm_dialogs ? SND_CONFIRM : SND_CURSOR); act = ACT_EXIT_ASK; }
+					break;
+				case KIND_VIDEO:
+					if (pressed & SCE_CTRL_CROSS) {
+						sound_play(SND_CURSOR);
+						video_play_index(mn->sel);
+						page_open = PAGE_VIDEO;
+					}
 					break;
 				case KIND_TRACK:
 					if (pressed & SCE_CTRL_CROSS) {
@@ -957,7 +974,9 @@ int main(void)
 
 		/* full-page information screens replace the XMB (the waves stay) */
 		if (page_t > 0.0f) {
-			if (page_shown == PAGE_PLAYER) {
+			if (page_shown == PAGE_VIDEO) {
+				draw_video(page_t, page_open != PAGE_VIDEO);
+			} else if (page_shown == PAGE_PLAYER) {
 				draw_player(page_t, page_open != PAGE_PLAYER);
 			} else {
 				bg_alpha = page_t;

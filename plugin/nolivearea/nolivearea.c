@@ -60,7 +60,7 @@ static int vx_active(void) { for (int i = 0; i < 16; i++) if (act[i] && act[i] =
  * its vtable slot 0x94 sets the alpha, stub 0x8145d398 (nid 4588699E) applies it.
  * Armed only by the file HIDE_FLAG, which is deleted BEFORE use so a crash cannot repeat. */
 #define HIDE_FLAG LOGDIR "/hideroot"
-static unsigned text_base, data_base;
+static unsigned text_base, data_base, text_size;
 static SceUID shell_modid = -1;
 static int hide_state;  /* 0 unarmed, 1 hiding, 2 done */
 static unsigned hide_since;
@@ -75,6 +75,7 @@ static int shell_bases(void) {
     while (b[i] && a[i] == b[i]) i++;
     if (b[i] || a[i]) continue;
     text_base = (unsigned)mi.segments[0].vaddr; data_base = (unsigned)mi.segments[1].vaddr;
+    text_size = (unsigned)mi.segments[0].memsz;
     shell_modid = ids[m];
     return text_base && data_base;
   }
@@ -387,15 +388,27 @@ static volatile unsigned cover_until, release_at, vx_left_at;
 static unsigned vxids[8]; static int nvx;
 static int is_vx(unsigned id) { for (int i = 0; i < nvx; i++) if (vxids[i] == id) return 1; return 0; }
 static void vx_learn(unsigned id) { if (!is_vx(id) && nvx < 8) vxids[nvx++] = id; }
-static void cover_request(unsigned ms) { if (cover_dead && ms > 8000) ms = 8000; cover_until = now_ms() + ms; release_at = 0; cover_want = 1; }
-static void cover_release(void) { cover_want = 0; if (covering) release_at = now_ms() + 300; }
+/* v2 "hide" mode (file HIDE_MODE_FLAG): instead of switching the panel off, the shell's own root widget is kept at alpha 0
+ * from the shell's per-frame task (see fr_p below) while no app is in front. Same request/release points as the cover. */
+#define HIDE_MODE_FLAG LOGDIR "/hide"
+static volatile int hv_mode;                       /* the flag existed at start */
+static void hv_request(unsigned ms);
+static void hv_release(void);
+static void cover_request(unsigned ms) {
+  if (hv_mode) { hv_request(ms); return; }
+  if (cover_dead && ms > 8000) ms = 8000; cover_until = now_ms() + ms; release_at = 0; cover_want = 1;
+}
+static void cover_release(void) { hv_release(); cover_want = 0; if (covering) release_at = now_ms() + 300; }
 
 /* int sceAppMgrReceiveShellEvent(void *ev): the shell's event pump */
 static int ev_patched(unsigned *ev) {
   int r = TAI_CONTINUE(int, ev_ref, ev);
   if (r >= 0 && ev) {
     unsigned ty = ev[0];
-    if (ty == 0x11 && !ready) { ready = 1; readyAt = now_ms(); lastAct = readyAt; modmap_once(); }
+    if (ty == 0x11 && !ready) {
+      ready = 1; readyAt = now_ms(); lastAct = readyAt; modmap_once();
+      if (hv_mode && !vxSeen) hv_request(30000);   /* boot: no LiveArea home between the shell being ready and VitaXMB */
+    }
     if (psconfirm_pending && ready) { psconfirm_pending = 0; psconfirm_run(); }
     if (ty == 2 && vx_left_at && now_ms() - vx_left_at < 1500) { vx_left_at = 0; cover_request(20000); }
     if (ready) hide_tick();
@@ -449,6 +462,83 @@ static volatile unsigned psAt, lastPs, psLaunchedAt;
 static volatile unsigned fresh_t[8], fresh_n, decideAt;
 static void fresh_note(void) { unsigned t = now_ms(); fresh_t[fresh_n++ & 7] = t ? t : 1; if (!decideAt) decideAt = t + 100; }
 static int game_active(void) { for (int i = 0; i < 16; i++) if (act[i] && !is_vx(act[i])) return 1; return 0; }
+
+/* ---- v2: a hook on the shell's per-frame task ----
+ * The shell registers one task that runs every frame on its main thread (shell offset 0x27e7ba; it calls the Update function
+ * 0x27def2 that pumps the AppMgr events, then returns). From there we (1) keep the shell's root widget at alpha 0 while a hide is
+ * requested, the same two calls the shell itself makes to hide its UI when an app is in front (Update, 0x27dfd8..0x27e014), and
+ * (2) start VitaXMB from the main thread, which is how the shell starts apps itself. Only installed when the module is the
+ * known 3.65 SceShell (text size) and the first bytes of the task are what we expect. */
+#define FRAME_OFF 0x27e7ba
+#define SHELL_TEXT_SIZE 0x5420f4
+#define HIDE_PENDING LOGDIR "/hide.pending"
+static tai_hook_ref_t UriLaunch_ref;
+static tai_hook_ref_t fr_ref; static SceUID fr_h = -1;
+static volatile int hv_on, hv_dead, launch_req, launch_tries;
+static volatile unsigned hv_until, launch_at;
+static const char *launch_why = "";
+
+static int file_exists(const char *p) { SceUID f = sceIoOpen(p, SCE_O_RDONLY, 0); if (f < 0) return 0; sceIoClose(f); return 1; }
+static void say(const char *a, unsigned v) {
+  char line[100], tmp[12]; int p = 0;
+  for (int i = 0; a[i] && p < 80; i++) line[p++] = a[i];
+  hex8(tmp, v); for (int i = 0; i < 8; i++) line[p++] = tmp[i];
+  line[p++] = '\n'; line[p] = 0; put(line);
+}
+static void hv_request(unsigned ms) {
+  if (file_exists(DISABLE_FILE)) return;
+  if (hv_dead && ms > 8000) ms = 8000;
+  hv_until = now_ms() + ms;
+  if (!hv_on) {
+    SceUID pf = sceIoOpen(HIDE_PENDING, SCE_O_WRONLY | SCE_O_CREAT, 0777);
+    if (pf >= 0) sceIoClose(pf);
+    hv_on = 1; put("hide on\n");
+  }
+}
+static void hv_release(void) {
+  if (!hv_on) return;
+  hv_on = 0; sceIoRemove(HIDE_PENDING); put("hide off (an app is in front)\n");
+}
+static void launch_schedule(const char *why, unsigned delay_ms) {
+  launch_why = why; launch_tries = 0; launch_at = now_ms() + delay_ms; launch_req = 1;
+}
+static void do_launch(void) {
+  if (now_ms() < launch_at) return;
+  launch_req = 0;
+  int r = TAI_CONTINUE(int, UriLaunch_ref, 0x20000, VX_URI);
+  put(launch_why); say(" launch result ", (unsigned)r);
+  /* the destroy of the old app can still be running; AppMgr then refuses for a moment, so try again shortly */
+  if (r < 0 && launch_tries < 8) { launch_tries++; launch_at = now_ms() + 250; launch_req = 1; }
+}
+static void fr_p(void) {
+  TAI_CONTINUE(void, fr_ref);
+  if (hv_on) {
+    if (now_ms() >= hv_until) {
+      hv_on = 0; sceIoRemove(HIDE_PENDING);
+      set_root_alpha(1.0f);   /* nothing came to the front in time: give the LiveArea back so the console is never stuck */
+      put("hide: timeout, shell picture restored\n");
+    } else set_root_alpha(0.0f);
+  }
+  if (launch_req) do_launch();
+}
+static void fr_install(void) {
+  if (!shell_bases()) { put("frame hook: SceShell not found\n"); return; }
+  if (text_size != SHELL_TEXT_SIZE) { say("frame hook: unknown SceShell build (text size ", text_size); return; }
+  const unsigned char *s = (const unsigned char *)(text_base + FRAME_OFF);
+  if (s[0] != 0x30 || s[1] != 0xb5 || s[2] != 0x83 || s[3] != 0xb0) { put("frame hook: code differs, not patched\n"); return; }
+  fr_h = taiHookFunctionOffset(&fr_ref, shell_modid, 0, FRAME_OFF, 1, fr_p);
+  put(fr_h >= 0 ? "frame hook ok\n" : "frame hook FAILED\n");
+}
+/* an app that is not VitaXMB went away: bring VitaXMB back (disable file and a 3 s gap between tries apply) */
+static void relaunch_request(void) {
+  if (now_ms() - lastLaunch < 3000) return;
+  if (psLaunchedAt && now_ms() - psLaunchedAt < 30000) { put("exit after PS prompt: system opens VitaXMB itself\n"); return; }
+  if (file_exists(DISABLE_FILE)) return;
+  lastLaunch = now_ms();
+  put("app destroyed: relaunch scheduled\n");
+  launch_schedule("relaunch", 120);
+}
+
 OBSA(Activate, act_add(a); pendingAt = 0; vxSeen = 1; vx_left_at = 0; early_ok(); hide_release(); cover_release())
 OBSA(Deactivate, act_del(a); if (is_vx(a)) vx_left_at = now_ms())
 /* VitaXMB writes ADR_FLAG just before it starts Adrenaline (PSPEMUCFW). Adrenaline 8.0.2 froze the Vita on
@@ -456,7 +546,7 @@ OBSA(Deactivate, act_del(a); if (is_vx(a)) vx_left_at = now_ms())
  * for 30 s after the flag no cover is started. LiveArea may show briefly instead of a black screen. */
 #define ADR_FLAG LOGDIR "/adrenaline"
 static volatile unsigned adr_until;
-OBSA(Destroy, act_del(a); if (a != vxId && !is_vx(a)) { pendingAt = now_ms() + 400; cover_request(15000); })
+OBSA(Destroy, act_del(a); if (a != vxId && !is_vx(a)) { if (hv_mode && fr_h >= 0) relaunch_request(); else pendingAt = now_ms() + 400; cover_request(15000); })
 OBS(LiveBoard, 0, 0)
 OBS(LaunchShell, 0, 0) OBS(LaunchName2, 0, 0) OBS(Quit, 0, 0) OBS(SuspendBg, 0, 0)
 OBS(ResumeBg, 0, 0) OBS(LaunchCancel, 0, 0) OBS(LaResult, 0, 0) OBS(OverwriteParam, 0, 0)
@@ -505,6 +595,7 @@ static int watchdog(SceSize args, void *argp) {
     if (ready && !cgd_done && now_ms() - readyAt > 1500) { cgd_done = 1; cgd_install(); }
     cgd_flush();
     hl_flush();
+    if (launch_req && fr_h < 0) do_launch();
     { SceUID af = sceIoOpen(ADR_FLAG, SCE_O_RDONLY, 0);
       if (af >= 0) { sceIoClose(af); sceIoRemove(ADR_FLAG); adr_until = now_ms() + 30000; put("adrenaline launch flagged: no cover for 30 s\n"); } }
     if (psconfirm_clear_at && now_ms() >= psconfirm_clear_at) { psconfirm_clear_at = 0; sceIoRemove(PSCONFIRM_RUN); put("psconfirm: shell survived 8 s, guard cleared\n"); }
@@ -525,11 +616,8 @@ static int watchdog(SceSize args, void *argp) {
           SceUID pf = sceIoOpen(EARLY_PENDING, SCE_O_WRONLY | SCE_O_CREAT, 0777);
           if (pf >= 0) sceIoClose(pf);
           put("early launch\n");
-          int r = TAI_CONTINUE(int, UriLaunch_ref, 0x20000, VX_URI);
-          char line[40], tmp[12]; int p = 0;
-          const char *m = "early launch result "; for (int i = 0; m[i]; i++) line[p++] = m[i];
-          hex8(tmp, (unsigned)r); for (int i = 0; i < 8; i++) line[p++] = tmp[i];
-          line[p++] = '\n'; line[p] = 0; put(line);
+          launch_schedule("early", 0);          /* started from the shell's main thread by the frame hook */
+          if (fr_h < 0) do_launch();            /* no frame hook: this thread starts it, as before */
         }
       }
     }
@@ -617,8 +705,19 @@ int module_start(SceSize args, const void *argp) {
     if (dp >= 0) { sceIoClose(dp); sceIoRemove(DLG_PENDING); sceIoRemove(DLG_FLAG);
       put("dlg.pending found: last hookdlg install died, hook disabled\n"); } }
   { SceUID ep = sceIoOpen(EARLY_PENDING, SCE_O_RDONLY, 0);
-    if (ep >= 0) { sceIoClose(ep); sceIoRemove(EARLY_PENDING); sceIoRemove(EARLY_FLAG); early_dead = 1;
-      put("early.pending found: last early launch died, feature disabled\n"); } }
+    if (ep >= 0) { sceIoClose(ep); sceIoRemove(EARLY_PENDING);
+      /* the last early launch died. A time below 8 s was an experiment: fall back to the proven 8000 ms once; otherwise switch it off */
+      char nb[16]; int n = 0; SceUID ef = sceIoOpen(EARLY_FLAG, SCE_O_RDONLY, 0);
+      if (ef >= 0) { n = sceIoRead(ef, nb, 15); sceIoClose(ef); }
+      unsigned at = 0; for (int i = 0; i < n && nb[i] >= '0' && nb[i] <= '9'; i++) at = at * 10 + (nb[i] - '0');
+      if (at && at < 8000) {
+        SceUID wf = sceIoOpen(EARLY_FLAG, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
+        if (wf >= 0) { sceIoWrite(wf, "8000", 4); sceIoClose(wf); }
+        put("early.pending found: an early launch before 8 s died, back to 8000 ms\n");
+      } else { sceIoRemove(EARLY_FLAG); early_dead = 1; put("early.pending found: last early launch died, feature disabled\n"); } } }
+  { SceUID hp = sceIoOpen(HIDE_PENDING, SCE_O_RDONLY, 0);
+    if (hp >= 0) { sceIoClose(hp); sceIoRemove(HIDE_PENDING); hv_dead = 1;
+      put("hide.pending found: last run ended hidden, hides limited to 8 s this boot\n"); } }
   { SceUID pf = sceIoOpen(COVER_PENDING, SCE_O_RDONLY, 0);
     if (pf >= 0) { sceIoClose(pf); sceIoRemove(COVER_PENDING); cover_dead = 1;
       put("cover pending found: last run ended covered, covers limited to 8 s this boot\n"); } }
@@ -636,6 +735,9 @@ int module_start(SceSize args, const void *argp) {
   dlg_install();
   job_install();
   hl_install();
+  fr_install();
+  hv_mode = (fr_h >= 0 && file_exists(HIDE_MODE_FLAG));
+  put(hv_mode ? "mode: hide the shell picture\n" : "mode: black screen cover (display off)\n");
   /* cgd_install() is deferred to the watchdog thread (after the shell is ready): the shell loads
    * common_gui_dialog itself, so its imports are not resolved yet while this module starts. */
   SceUID th = sceKernelCreateThread("NoLiveAreaWD", watchdog, 0x10000100, 0x4000, 0, 0, NULL);

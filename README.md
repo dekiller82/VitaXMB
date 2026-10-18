@@ -27,7 +27,7 @@
 - [Building from source](#building-from-source)
 - [How it works](#how-it-works)
 - [Game artwork](#game-artwork)
-- [Music and video](#music-and-video)
+- [Music and video](#music-and-video) (video player beta)
 - [Folders](#folders)
 - [Updates](#updates)
 - [Custom themes (beta)](#custom-themes-beta)
@@ -58,9 +58,9 @@
 - **Hide categories** you don't use (Photo, Music, Video, Network) in *Settings > VitaXMB Settings*; the bar closes up and left/right skip them.
 - **Folders** keep a big library tidy: create folders in the game list and tick the games and homebrew that belong in each one (see [Folders](#folders)).
 - **Settings** has real, working pages: *System Information* (firmware, nickname, MAC address, model, memory card, battery, CPU clock), plus VitaXMB's own settings (theme color, clock format, sound effects, startup animation, confirmation dialogs, launch method).
-- **Music** is an MP3 player with the PSP's player screen: LED spectrum analyzer driven by the real audio, track badge, ID3 title and artist, elapsed and total time, progress bar, next/previous and seeking.
-- **Network, Photo, Video** hand off to the Vita's own apps (Internet Browser, PlayStation Store, Party, Messages, Near, Photos, Videos), and Settings opens the Vita's real settings pages.
-- **Video** lists the videos in `ux0:pspemu/VIDEO`.
+- **Music** plays **MP3, FLAC, WAV, AIFF and Ogg Vorbis** with the PSP's player screen: LED spectrum analyzer driven by the real audio, track badge, title and artist from the file's tags, elapsed and total time, progress bar, next/previous and seeking. Files are streamed from the card, so a big lossless file does not need the memory it takes. The list uses the PSP's own number box, digits and format tag, redrawn at the Vita's native resolution.
+- **Video player (beta)** plays videos inside VitaXMB with the PSP video player's control panel and a much wider choice of formats than the PSP had: MP4, MOV, M4V and 3GP (H.264) with the Vita's hardware decoder, and MKV, AVI, WebM, WMV, FLV, TS, MPEG and more in software. See [Music and video](#music-and-video).
+- **Network and Photo** hand off to the Vita's own apps (Internet Browser, PlayStation Store, Party, Messages, Near, Photos), and Settings opens the Vita's real settings pages.
 
 **Updates and themes**
 
@@ -102,6 +102,8 @@
 - **Press and hold** a row for its Options. In the Options panel tap an entry (a tap outside closes it); in a dialog tap **Yes** or **No**; a tap closes an information page.
 
 Music player: **Cross** play/pause, **L / R** previous/next track, **Left / Right** seek 10 s, **Circle** leave the player (the music keeps playing).
+
+Video player (beta): **Cross** play/pause, **Circle** stop and go back, **Triangle** the control panel (the **d-pad** chooses, **Cross** uses, **Circle** closes), **Square** screen mode, **L / R** previous/next, **Left / Right** a tap jumps 10 s and holding searches (faster the longer you hold), **Start** help, **Select** information. On the touch screen a tap shows the display and a swipe seeks.
 
 ## Installing
 
@@ -146,6 +148,14 @@ You need the [VitaSDK](https://vitasdk.org/) plus these libraries from its packa
 vdpm vita2d libpng libjpeg-turbo freetype harfbuzz zlib bzip2 taihen mbedtls
 ```
 
+The video player needs FFmpeg, built once from source because no prebuilt Vita package has the video decoders (H.264, HEVC, VP9 ...). Download the FFmpeg 9.0.2 source from <https://ffmpeg.org/releases/> and run:
+
+```sh
+tools/build_ffmpeg.sh path/to/ffmpeg-9.0.2 third_party/ffmpeg-vita
+```
+
+It needs GNU make and a POSIX shell, takes a few minutes and leaves about 10 MB of static libraries in `third_party/ffmpeg-vita` (not committed; `-DFFMPEG_DIR=` points CMake somewhere else). It applies one small patch, `tools/ffmpeg_vita_patch.py`: FFmpeg's decoder threads get a 1 MB stack, because the Vita's default is too small for H.264 and crashes. On Windows with only the VitaSDK installed, set `HOST_CC=true` (the libraries need no host tools, only the configure checks do) and point `TMPDIR` at a POSIX path.
+
 Then, with `VITASDK` set:
 
 ```sh
@@ -176,7 +186,8 @@ Notes
 - **Selection emphasis** (brightness, glow, rule) follows an eased per-item `glow` value, not the slide position, so a row lights up the moment it is selected.
 - **Art loading.** Rows near the cursor ask the loader thread for their art; it resolves LiveArea files, decodes and downscales PNGs off-thread, and the render thread uploads at most two per frame.
 - **Text.** HarfBuzz shapes each string (kerning); glyphs are rasterised by FreeType at four sub-pixel phases into a padded atlas together with a blurred shadow bitmap, then drawn as textured quads.
-- **Music.** minimp3 decodes on its own thread into a 48 kHz ring buffer; the audio mixer drains it alongside the UI sounds and publishes the last 1024 samples, from which a Goertzel filter bank computes the 12 spectrum bands.
+- **Music.** minimp3 (MP3), dr_flac (FLAC), stb_vorbis (Ogg) and a small PCM reader (WAV, AIFF) decode on their own thread, streaming from the card through a 64 KB window, into a 48 kHz ring buffer; the audio mixer drains it alongside the UI sounds and publishes the last 1024 samples, from which a Goertzel filter bank computes the 12 spectrum bands.
+- **Video.** MP4 / MOV / M4V / 3GP files go to the Vita's own player library (SceAvPlayer, hardware H.264 and AAC; its YUV frames are drawn straight through a GPU colour-conversion texture, and its audio is pulled into the same mixer ring). Everything else, and anything that library refuses, goes to FFmpeg: a reader thread, a video decoder thread and an audio decoder thread, with the audio position as the clock. Both engines share the control panel (`src/ui/videoui.h`).
 - **Safety.** Textures are freed on a deferred list after the GPU has gone idle (freeing a texture the GPU still reads crashed the Vita).
 
 ### Fonts
@@ -195,8 +206,22 @@ An experimental *Decrypt Artwork (beta)* setting (off by default, asks for confi
 
 ## Music and video
 
-- Music plays **MP3** files. The system blocks apps from reading `ux0:music`, so VitaXMB scans **`ux0:pspemu/MUSIC`** (Adrenaline's folder). Put your songs there. FLAC and WAV are not supported.
-- Videos are listed from `ux0:pspemu/VIDEO`; selecting one opens the Vita's Videos app (a decoder is out of scope).
+**Music**
+
+- Plays **MP3, FLAC, WAV, AIFF and Ogg Vorbis**. The system blocks apps from reading `ux0:music`, so VitaXMB scans **`ux0:pspemu/MUSIC`** (Adrenaline's folder). Put your songs there.
+- Titles and artists come from the file's tags: ID3 (MP3), Vorbis comments (FLAC, Ogg), the INFO block (WAV) and NAME / AUTH (AIFF); without tags the file name is the title.
+- Opus files, compressed AIFF-C and files with more than two channels (FLAC) are not supported.
+
+**Video player (beta)**
+
+- Videos are listed from `ux0:pspemu/VIDEO` and play inside VitaXMB.
+- **MP4, M4V, MOV, 3GP:** played by the Vita's own player library: hardware H.264 and AAC, no waiting, smooth up to 720p. If that library cannot open the file (HEVC, a picture bigger than 720p, ...), VitaXMB tries FFmpeg.
+- **MKV, WebM, AVI, WMV / ASF, FLV, TS, M2TS, MPEG / VOB, OGV and others:** FFmpeg, in software: H.264, HEVC, VP8, VP9, MPEG-4 (Xvid / DivX), MPEG-2, VC-1 / WMV with AAC, AC-3, E-AC-3, DTS, MP3, FLAC, Opus, Vorbis, WMA and more. Software decoding is meant for small pictures (around 480p and below); expect bigger ones to stutter.
+- A video bigger than 720p, or one that has to be decoded in software at a larger size, shows a warning first and plays only if you choose to.
+- The control panel (Triangle) is the PSP video player's, laid out and worded like its manual: *Audio Options* (tracks, and left / right / both channels), *Subtitle Options*, *Go To* (a time), *Screen Mode* (Normal, Zoom, Full Screen, Original, 4 : 3), *Display* (shows or clears the status: title, clock, state, chapter and time), *Help*; *Previous* (returns to the beginning first, or the chapter's start) and *Next*; *Fast Reverse* and *Fast Forward* (Cross cycles three speeds); *Slow Motion*, *Frame Advance*, *Play*, *Playback Speed (+) / (-)*, *Pause*, *Stop*; *A-B Repeat*, *Repeat* (Title, Folder, Off), *Shuffle* and *Clear* (resets repeat, A-B repeat and shuffle). Icons the video cannot use are not shown. Where you stopped is remembered and playback resumes there.
+- Subtitles: text subtitles inside the file (SRT, ASS, MOV text) and a `.srt` / `.ass` / `.vtt` file next to the video with the same name. Picture subtitles (DVD, PGS) are not shown.
+- Slow motion, frame advance and playback speed work for videos decoded by FFmpeg, not for the hardware player's (MP4 / MOV), and they play without sound.
+- Beta: expect rough edges. Not done yet: hardware decoding for MKV / AVI, *Scene Search*, *Chapter Repeat*.
 
 ## Folders
 
@@ -278,7 +303,7 @@ Tested on one console: an SD2Vita as `ux0:` plus a real memory card mounted as `
 
 ## NoLiveArea plugin (beta)
 
-VitaXMB carries an optional taiHEN plugin, **NoLiveArea** (source in `plugin/nolivearea`, built file in `assets/plugin`). It runs inside the system shell and keeps the LiveArea out of sight: the screen stays black while a game starts or closes, VitaXMB is started about 8 seconds after the console turns on, and it comes back when a game ends.
+VitaXMB carries an optional taiHEN plugin, **NoLiveArea** (source in `plugin/nolivearea`, built file in `assets/plugin`). It runs inside the system shell and keeps the LiveArea out of sight: the shell's picture is kept invisible while the console starts, while a game starts and when a game closes, VitaXMB is started about 8 seconds after the console turns on, and it comes back when a game ends. (Older versions switched the screen off instead; that is still the fallback when the shell is not the expected version.)
 
 - The first time VitaXMB runs it asks whether to install the plugin. Install or remove it any time in *Settings > VitaXMB Settings > No LiveArea Plugin (beta)*.
 - Installing copies `NoLiveArea.suprx` to `ur0:tai/`, adds one line under `*main` in `ur0:tai/config.txt` (the first copy of your config is kept as `config.txt.bak_nolivearea`) and creates its switch files in `ux0:data/NoLiveArea`. Restart the Vita afterwards; taiHEN reads the list at start.
@@ -305,26 +330,47 @@ Release builds contain no debugging code. Configure with `-DVITAXMB_DEBUG=ON` to
 CMakeLists.txt            build definition (VPK, SELF, assets)
 src/main.c                the launcher: main loop and input
 src/core/                 data, config, items and menus, game scanning, artwork, settings, the updater
-src/media/                sound mixer, media scan, music player
+src/media/                sound mixer, media scan, music player, video engines (video.h: FFmpeg, avp.h: the system player)
 src/render/               textures, drawing, text engine, backgrounds, waves
 src/theme/                PSP theme loader, RCO runtime, boot intro, theme sounds, the PSP engine's list styles and easing (paf.h)
-src/ui/                   layouts, lists, pages, dialogs, pickers
+src/ui/                   layouts, lists, pages, dialogs, pickers, the video player screen (videoui.h)
+tools/                    build_ffmpeg.sh (+ the stack-size patch) and the scripts that made the music / video pictures
 updater/main.c            the small installer app (VitaXMB Updater)
-assets/psp/               the PSP boot intro resource
+assets/psp/               the PSP boot intro resource; music/ and video/: the PSP's list and control-panel pictures at native size
 sce_sys/                  bubble icon and LiveArea files of the VitaXMB app itself
 assets/font.otf           baseline-normalised UI font
 assets/icons/             PSP-style XMB icons (PNG)
 assets/sounds/            XMB sound effects (48 kHz stereo PCM)
 third_party/minimp3/      MP3 decoder (CC0)
+third_party/dr_libs/      dr_flac (FLAC) and stb_vorbis (Ogg) decoders (public domain)
+third_party/ffmpeg-vita/  FFmpeg libraries, built locally by tools/build_ffmpeg.sh (not committed)
 third_party/vitashell_stub/  import stub + headers for VitaShell's user module
 docs/                     README images
 ```
 
-Everything in the tree is needed to build; nothing else is committed.
+Everything in the tree is needed to build (apart from the FFmpeg libraries you build yourself); nothing else is committed.
 
 ## Changelog
 
 Every release has its own notes and VPK on the [Releases page](https://github.com/dekiller82/VitaXMB/releases). Each version includes everything from the ones before it.
+
+### [1.6.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.6.0) (2026-10-19)
+
+**Added**
+
+- **Video player (beta).** Videos now play inside VitaXMB instead of opening the Vita's Videos app.
+  - **MP4, MOV, M4V and 3GP** play with the Vita's hardware decoder (H.264 and AAC), start at once and run smoothly up to 720p.
+  - **MKV, WebM, AVI, WMV, FLV, TS, MPEG, VOB and more** play too, decoded in software (H.264, HEVC, VP8, VP9, MPEG-4, MPEG-2, VC-1; AAC, AC-3, DTS, FLAC, Opus, Vorbis, WMA ...). Meant for small pictures; large ones stutter.
+  - The PSP video player's **control panel** (Triangle), laid out and worded like the PSP's: three rows of icons with the selected one named underneath; *Display* shows the title and clock along the top and the state icon, time line, chapter and time along the bottom. It has play, pause, stop, previous / next, fast reverse / forward (three speeds), slow motion, frame advance and playback speed (software-decoded videos), *Go To* a time, repeat (title, folder), shuffle, A-B repeat and clear, audio options (tracks and left / right / both channels), subtitle options, screen mode (Normal, Zoom, Full Screen, Original, 4 : 3) and help. Without the panel, holding Left / Right searches and a tap jumps 10 seconds.
+  - Subtitles from inside the file or from a `.srt` / `.ass` / `.vtt` file next to it, and **resume** where you stopped.
+  - A **warning** before a video bigger than 720p (or a large one that has to be decoded in software) that the Vita will not play smoothly.
+- **FLAC, WAV, AIFF and Ogg Vorbis** in the music player, next to MP3. Titles and artists come from each format's tags. Files are streamed from the card, so a large lossless file no longer has to fit in memory.
+
+**Changed**
+
+- The music list draws the PSP's own number box, digits and format tag at the Vita's native resolution (sharp instead of stretched), shows each file's format (MP3, FLAC, OGG, WAV, AIFF) and a dash for a track without an artist; the selected row's glow pulses.
+- File names of videos longer than 110 characters now open.
+- **NoLiveArea plugin (beta): a new way of hiding the LiveArea.** Instead of switching the screen off, the plugin keeps the system shell's picture invisible while the console starts, while a game loads and when a game closes. The display stays on, and VitaXMB comes back faster after a game closes (about 0.12 s instead of 0.4 s, and it tries again if the first launch fails). A 30 second safety timer always gives the shell's picture back. If the shell is not the one the plugin was written for (tested on firmware 3.65 only) or the hook cannot be installed, it falls back to the old way. If you have the plugin installed, updating replaces its file and VitaXMB asks you to restart.
 
 ### [1.5.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.5.1) (2026-10-12)
 
@@ -433,6 +479,8 @@ First release.
 - **System apps cannot be started by title ID** from an app (the Vita shows error `C2-12570-5`). VitaXMB therefore opens them through their own URI schemes (`wbapp0:` Browser, `settings_dlg:` Settings, `psns:` PlayStation Store, `pspy:` Party, `psnmsg:` Messages, `near:` Near, `photo:`, `music:`, `video:`). The Browser and the Settings pages are confirmed to work; the others come from a working third-party launcher but have not been tried on every setup.
 - If launch requests are being refused (the call returns `0x80802026` in a debug build), the console's app manager is in a bad state: reboot the Vita.
 - `ux0:music`, `ux0:video` and `ux0:picture` cannot be read by apps; use the Adrenaline folders or the Vita's own apps.
+- **The video player is a beta.** Pictures bigger than 720p do not play smoothly (the Vita's hardware decoder stops at 720p and the software one is far slower); non-MP4 files are decoded in software, so a large one starts slowly and stutters. There is no hardware path for H.264 inside MKV / AVI yet.
+- The FLAC decoder sometimes returned nothing in the middle of a good file (cause not found). The player now reopens the file at the same spot and carries on, and writes a `flac: stopped at frame ...` line to `ux0:data/VitaXMB/log.txt` when it does; a song that still stops early is worth reporting with that log.
 - The PlayStation Network and "Extras" categories of the real PSP are not implemented.
 - The *Decrypt Artwork (beta)* experiment can freeze the console; it is off by default.
 - *Extra Storage (beta)* is new and lightly tested, see above.
@@ -444,12 +492,15 @@ First release.
 VitaXMB is released under the **GNU GPL v3** (see `LICENSE`).
 
 - [VitaSDK](https://vitasdk.org/), [libvita2d](https://github.com/xerpi/libvita2d), [FreeType](https://freetype.org/), [HarfBuzz](https://harfbuzz.github.io/), libpng, libjpeg-turbo, zlib, bzip2.
-- [minimp3](https://github.com/lieff/minimp3) by lieff (CC0).
+- [minimp3](https://github.com/lieff/minimp3) by lieff (CC0), [dr_flac](https://github.com/mackron/dr_libs) by David Reid (public domain / MIT-0) and [stb_vorbis](https://github.com/nothings/stb) by Sean Barrett (public domain).
+- [FFmpeg](https://ffmpeg.org/) (LGPL-2.1-or-later), built from the unmodified 9.0.2 source plus the thread-stack patch in `tools/ffmpeg_vita_patch.py`, for the video player's demuxers and software decoders.
+- [Vita-Media-Player](https://github.com/SonicMastr/Vita-Media-Player) by SonicMastr: the reference for driving the Vita's SceAvPlayer library (its frame allocation and its YUV texture setup).
+- [Source Sans 3](https://github.com/adobe-fonts/source-sans) by Adobe (SIL Open Font License 1.1): the digits and format tags of the music list were redrawn with it (`tools/make_native_music.py`).
 - [mbed TLS](https://github.com/Mbed-TLS/mbedtls) for the update download (Apache-2.0 / GPL-2.0-or-later).
 - [VitaShell](https://github.com/TheOfficialFloW/VitaShell) by TheFloW (GPL-3.0) and [CopyIcons](https://github.com/cy33hc/copyicons) by cy33hc (GPL-3.0): the user-module header, the import stub and the PFS-mount approach used for artwork decryption, and the way packages are installed (system installer plus a helper app, as in VitaShell's own updater).
 - [vita-uriCaller](https://github.com/Freakler/vita-uriCaller) for the list of system URIs.
 - [CXMB](https://github.com/PSP-Archive/CXMB) and the PSP homebrew community's documentation of the `.ctf` / `.ptf` theme format, the RCO resource format (RCOMage by ZiNgA BuRgA and Youness Alaoui, for its attribute tables) and the PGF font format (as read by [PPSSPP](https://github.com/hrydgard/ppsspp)).
 
-**Third-party assets.** The XMB icons, sound effects and typeface in `assets/` imitate the look of Sony's PSP system software and the FOT-NewRodin typeface and are included as supplied by the project author for personal, non-commercial use. The wave model, the month sky pictures and the boot intro resource (`assets/psp/`) are taken from the PSP firmware's own resources. They remain the property of their respective owners and are not covered by the GPL. If you are a rights holder and want them removed, please open an issue.
+**Third-party assets.** The XMB icons, sound effects and typeface in `assets/` imitate the look of Sony's PSP system software and the FOT-NewRodin typeface and are included as supplied by the project author for personal, non-commercial use. The wave model, the month sky pictures, the boot intro resource, and the music list and video player pictures (`assets/psp/`) are taken from the PSP firmware's own resources, the last two redrawn at the Vita's resolution. They remain the property of their respective owners and are not covered by the GPL. If you are a rights holder and want them removed, please open an issue.
 
 VitaXMB is an independent fan project. It is not affiliated with or endorsed by Sony Interactive Entertainment. "PlayStation", "PSP", "PS Vita" and "XMB" are trademarks of their respective owners.
