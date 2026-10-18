@@ -354,6 +354,14 @@ Everything in the tree is needed to build (apart from the FFmpeg libraries you b
 
 Every release has its own notes and VPK on the [Releases page](https://github.com/dekiller82/VitaXMB/releases). Each version includes everything from the ones before it.
 
+### [1.6.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.6.1) (2026-10-19)
+
+**Changed**
+
+- New bubble icon, LiveArea background and start image. They are drawn from the app's own data: the blue August sky and the PSP's own wave, the film strip, controller and globe icons, and the name set in the PSP's font. The updater app's bubble uses the new icon too.
+
+This release follows 1.6.0 closely; everything in 1.6.0 (below) is included.
+
 ### [1.6.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.6.0) (2026-10-18)
 
 **Added**

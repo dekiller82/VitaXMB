@@ -13,8 +13,8 @@ include("${VITASDK}/share/vita.cmake" REQUIRED)
 
 set(VITA_APP_NAME "VitaXMB")
 set(VITA_TITLEID  "VXMB00001")
-set(VITA_VERSION  "01.60")
-set(APP_VERSION   "1.6.0")      # the same release as VITA_VERSION, as the updater compares it with the GitHub tag
+set(VITA_VERSION  "01.61")
+set(APP_VERSION   "1.6.1")      # the same release as VITA_VERSION, as the updater compares it with the GitHub tag
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2 -std=gnu11")
 
@@ -65,7 +65,7 @@ target_link_libraries(VitaXMBUpdater vita2d freetype png jpeg z bz2 m c SceAppMg
   SceProcessmgr_stub SceKernelThreadMgr_stub SceLibKernel_stub SceDisplay_stub SceGxm_stub SceCtrl_stub ScePgf_stub ScePvf_stub SceCommonDialog_stub)
 vita_create_self(VitaXMBUpdater.self VitaXMBUpdater UNSAFE)
 vita_create_vpk(VitaXMBUpdater.vpk VXMBUPDTR VitaXMBUpdater.self
-  VERSION 01.03
+  VERSION 01.04
   NAME "VitaXMB Updater"
   FILE sce_sys/icon0.png sce_sys/icon0.png
 )

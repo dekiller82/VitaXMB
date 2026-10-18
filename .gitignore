@@ -45,6 +45,7 @@
 !/tools/ffmpeg_vita_patch.py
 !/tools/make_native_music.py
 !/tools/make_native_video.py
+!/tools/make_app_art.py
 !/tools/make_flat_rco.py
 !/tools/rlz.py
 /tools/SourceSans3.ttf
