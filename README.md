@@ -518,6 +518,7 @@ First release.
 - The *Decrypt Artwork (beta)* experiment can freeze the console; it is off by default.
 - *Extra Storage (beta)* is new and lightly tested, see above.
 - **Custom themes are a beta**: some themes differ from the real PSP and some theme features are not implemented, see [Custom themes (beta)](#custom-themes-beta).
+- **After updating from 1.6.1 or older, VitaXMB may not open by itself.** The update installs fine, but the updater app on your Vita is the old one and only tries to start VitaXMB once, so open it yourself from the LiveArea. This happens once: 1.7.0 replaces the updater app at your next update, and the new one launches VitaXMB again (up to four times) until it is running. If an update ever fails, install the `.vpk` from the Releases page with VitaShell.
 - **Updating needs VitaShell's modules** in `ux0:VitaShell`; without them the update is downloaded and left for you to install with VitaShell.
 
 ## Credits and licenses
