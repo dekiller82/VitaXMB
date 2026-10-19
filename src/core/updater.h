@@ -20,7 +20,9 @@
 #endif
 #define UPD_DIR    "ux0:data/pkg"                    /* where the system installer expects an unpacked package */
 #define UPD_VPK    CONFIG_DIR "/update.vpk"
-#define UPD_HELPER_VER "01.03"                  /* the updater app's version in CMakeLists.txt: an older one on the Vita is replaced */
+#ifndef UPD_HELPER_VER                          /* CMakeLists.txt defines it from UPDATER_VERSION, the version of the bundled updater app: an older one on the Vita is replaced */
+#define UPD_HELPER_VER "01.04"
+#endif
 
 enum { UPD_IDLE, UPD_CHECKING, UPD_UPTODATE, UPD_AVAILABLE, UPD_DOWNLOADING, UPD_INSTALLING, UPD_DONE, UPD_FAILED, UPD_SAVED };
 enum { UPD_CMD_NONE, UPD_CMD_CHECK, UPD_CMD_INSTALL };

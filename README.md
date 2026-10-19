@@ -374,6 +374,10 @@ Every release has its own notes and VPK on the [Releases page](https://github.co
 - The **PS button** no longer drops to the LiveArea while VitaXMB is open (a long press still opens the quick menu). Use *Exit to LiveArea* in Settings to leave.
 - The plugin in the release has no debug hooks and no per-event logging (they are only built with `-DNLA_DEBUG=ON`): it is about a third smaller and writes only a few lines to its log.
 
+**Fixed**
+
+- The **VitaXMB Updater** app on the Vita was never replaced when its package changed (1.6.1 gave it a new icon, but VitaXMB believed the old one was current, so it kept the old icon and version 1.03). The updater's version now comes from one number in `CMakeLists.txt` that is used for both the bundled package and the check, so an older updater on the Vita is replaced. Because the check lives in the new app, this happens the next time you update after 1.7.0.
+
 ### [1.6.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.6.1) (2026-10-19)
 
 **Changed**
