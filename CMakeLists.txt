@@ -60,7 +60,7 @@ vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME} UNSAFE)
 
 # The updater: a small separate app (title VXMBUPDTR) that installs a downloaded update while VitaXMB is closed, since an app cannot be
 # replaced while it runs. Its package is carried inside VitaXMB's own as updater.vpk and installed the first time it is needed.
-set(UPDATER_VERSION "01.04")    # the updater app's version: VitaXMB compares it with the installed one and replaces an older updater (UPD_HELPER_VER)
+set(UPDATER_VERSION "01.05")    # the updater app's version: VitaXMB compares it with the installed one and replaces an older updater (UPD_HELPER_VER)
 target_compile_definitions(${PROJECT_NAME} PRIVATE "UPD_HELPER_VER=\"${UPDATER_VERSION}\"")
 add_executable(VitaXMBUpdater updater/main.c)
 target_link_libraries(VitaXMBUpdater vita2d freetype png jpeg z bz2 m c SceAppMgr_stub ScePromoterUtil_stub SceSysmodule_stub SceIofilemgr_stub
