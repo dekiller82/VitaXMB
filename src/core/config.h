@@ -18,7 +18,7 @@ static void config_load(void)
 {
 	SceUID fd = sceIoOpen(CONFIG_PATH, SCE_O_RDONLY, 0);
 	if (fd < 0) return;
-	int v[12] = { 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0 };
+	int v[13] = { 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1 };
 	int n = sceIoRead(fd, v, sizeof(v));
 	sceIoClose(fd);
 	if (n >= 4 && v[0] >= 0 && v[0] <= 12) theme = v[0];
@@ -34,6 +34,7 @@ static void config_load(void)
 	if (n >= 40 && (v[9] == 0 || v[9] == 1)) auto_update = v[9];
 	if (n >= 44 && (v[10] == 0 || v[10] == 1)) batt_pct = v[10];
 	if (n >= 48 && (v[11] == 0 || v[11] == 1)) nla_asked = v[11];
+	if (n >= 52 && (v[12] == 0 || v[12] == 1)) boot_logo = v[12];
 }
 
 static void ensure_dirs(void)
@@ -49,7 +50,7 @@ static void config_save(void)
 	if (fd < 0) return;
 	int mask = 0;
 	for (int c = 0; c < CAT_COUNT; c++) if (cat_hidden[c]) mask |= 1 << c;
-	int v[12] = { theme, launch_mode, art_decrypt, clock24, sound_on, startup_anim, confirm_dialogs, extra_storage, mask, auto_update, batt_pct, nla_asked };
+	int v[13] = { theme, launch_mode, art_decrypt, clock24, sound_on, startup_anim, confirm_dialogs, extra_storage, mask, auto_update, batt_pct, nla_asked, boot_logo };
 	sceIoWrite(fd, v, sizeof(v));
 	sceIoClose(fd);
 }

@@ -60,6 +60,8 @@
 #include "media/music.h"
 #include "media/video.h"
 #include "media/avp.h"
+#include "media/gameboot.h"
+#include <psp2/shellutil.h>
 #include "ui/videoui.h"
 #include "core/remote.h"
 #include "ui/ime.h"
@@ -67,6 +69,8 @@
 int main(void)
 {
 	vita2d_init();
+	sceShellUtilInitEvents(0);
+	sceShellUtilLock(SCE_SHELL_UTIL_LOCK_TYPE_PS_BTN);        /* the PS button does nothing here, like the XMB: it no longer drops to LiveArea (a long press still opens the quick menu; the lock ends with the process) */
 	wave_set_model(NULL, 0);
 	vita2d_set_clear_color(RGBA8(0, 0, 0, 255));
 	text_init("app0:assets/font.otf");
@@ -117,6 +121,7 @@ int main(void)
 	float startup_t = startup_anim ? 0.0f : 1.0f;
 	const Item *launching = NULL;       /* set once Start Game has begun */
 	float launch_fade = 0.0f;
+	float launch_t = 0.0f;
 	int launch_sent = 0;
 	float launch_wait = 0.0f;
 
@@ -124,7 +129,7 @@ int main(void)
 	int page_open = PAGE_NONE; float page_t = 0.0f;       /* System Information / game Information */
 	int page_shown = PAGE_NONE;                           /* last page opened, kept while it fades out */
 	int dlg_open = 0; float dlg_t = 0.0f;                 /* confirmation dialog */
-	char dlg_l1[96] = "", dlg_l2[320] = "";
+	char dlg_l1[96] = "", dlg_l2[640] = "";
 	int dlg_sel = 0, dlg_action = ACT_NONE, dlg_force = 0;      /* dlg_force: a single "Restart now" button, no cancel */
 	const Item *dlg_item = NULL;
 	int opt_open = 0; float opt_t = 0.0f;                 /* Options panel */
@@ -179,10 +184,7 @@ int main(void)
 	}
 	if (nla_on && nla_restart_pending()) {              /* the plugin file was replaced by an update: the old build is still loaded */
 		snprintf(dlg_l1, sizeof(dlg_l1), "Restart required");
-		snprintf(dlg_l2, sizeof(dlg_l2), "%s", "VitaXMB was updated and replaced the NoLiveArea plugin.\n"
-			"The old version stays loaded until the Vita restarts\n"
-			"and can freeze it (Adrenaline 8.0.2 on its second launch).\n"
-			"Restart now to load the new version.");
+		snprintf(dlg_l2, sizeof(dlg_l2), "%s", NLA_NEWS);
 		dlg_action = ACT_REBOOT_DO; dlg_item = NULL; dlg_sel = 0; dlg_open = 1; dlg_force = 1;
 	}
 	for (;;) {
@@ -822,9 +824,14 @@ int main(void)
 		opt_t = lerpf(opt_t, opt_open ? 1.0f : 0.0f, 0.3f);
 		if (opt_t < 0.01f) opt_t = 0.0f; else if (opt_t > 0.99f) opt_t = 1.0f;
 		if (launching) {
-			launch_fade = clampf(launch_fade + dt_s / 1.2f, 0.0f, 1.0f);
-			if (!launch_sent && !sound_playing(SND_STARTGAME)) {
+			if (launch_t == 0.0f) gb_open();                                  /* the PSP's game boot movie, if it can be played */
+			launch_t += dt_s;
+			if (gb_ok) {                                                      /* its picture follows the jingle's own position */
+				gb_seek_time(sound_playing(SND_STARTGAME) ? sounds[SND_STARTGAME].pos / 48000.0 : launch_t);
+			} else launch_fade = clampf(launch_fade + dt_s / 1.2f, 0.0f, 1.0f);
+			if (!launch_sent && !sound_playing(SND_STARTGAME) && (!gb_ok || gb_finished() || launch_t > 4.0f)) {
 				audio_run = 0;
+				if (gb_ok) gb_report();
 				launch_request(launching);
 				launch_sent = 1;
 			}
@@ -1010,6 +1017,7 @@ int main(void)
 		draw_busy(dt_s);                                                  /* the PSP's spinner, bottom right */
 		{ static float notice_s; if (page_open == PAGE_NONE && !launching) draw_update_notice(dt_s, &notice_s); }
 		draw_note(dt_s);
+		if (gb_ok && launching) gb_draw(clampf(launch_t / 0.1f, 0.0f, 1.0f));       /* page_movie fades in over 100 ms */
 		if (launch_fade > 0.0f)
 			vita2d_draw_rectangle(0, 0, SCREEN_W, SCREEN_H, RGBA8(0, 0, 0, (int)(255 * launch_fade)));
 		if (startup_t < 0.6f && !boot_played)         /* fade in from black */

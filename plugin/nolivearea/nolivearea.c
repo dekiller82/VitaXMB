@@ -11,7 +11,16 @@
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/threadmgr.h>
 #include <psp2/power.h>
+#include <psp2/appmgr.h>
+#include <psp2/kernel/clib.h>
 #include <stdarg.h>
+
+/* NLA_DEBUG (cmake -DNLA_DEBUG=ON) adds the tracing hooks, the per-event log and the one-shot probes; the release build has none of them */
+#ifdef NLA_DEBUG
+#define DBG(x) x
+#else
+#define DBG(x)
+#endif
 
 #define LOGDIR "ux0:data/NoLiveArea"
 #define LOGFILE LOGDIR "/log.txt"
@@ -406,14 +415,15 @@ static int ev_patched(unsigned *ev) {
   if (r >= 0 && ev) {
     unsigned ty = ev[0];
     if (ty == 0x11 && !ready) {
-      ready = 1; readyAt = now_ms(); lastAct = readyAt; modmap_once();
+      ready = 1; readyAt = now_ms(); lastAct = readyAt; DBG(modmap_once();)
       if (hv_mode && !vxSeen) hv_request(30000);   /* boot: no LiveArea home between the shell being ready and VitaXMB */
     }
-    if (psconfirm_pending && ready) { psconfirm_pending = 0; psconfirm_run(); }
+    DBG(if (psconfirm_pending && ready) { psconfirm_pending = 0; psconfirm_run(); })
     if (ty == 2 && vx_left_at && now_ms() - vx_left_at < 1500) { vx_left_at = 0; cover_request(20000); }
     if (ready) hide_tick();
     if (ty == 2 || ty == 3 || ty == 4) lastAct = now_ms();
     if (ty == 4 && ev[2] == 0 && ev[8] == 0x424d5856 && ev[9] == 0x30303030) vxId = ev[5];
+#ifdef NLA_DEBUG
     char line[160], tmp[12]; int p = 0;
     unsigned t = sceKernelGetProcessTimeLow();
     hex8(tmp, t); for (int i = 0; i < 8; i++) line[p++] = tmp[i];
@@ -421,6 +431,7 @@ static int ev_patched(unsigned *ev) {
     for (int i = 0; i < 10; i++) { line[p++] = ' '; hex8(tmp, ev[i]); for (int j = 0; j < 8; j++) line[p++] = tmp[j]; }
     line[p++] = '\n'; line[p] = 0;
     put(line);
+#endif
   }
   return r;
 }
@@ -428,6 +439,7 @@ static int ev_patched(unsigned *ev) {
 /* generic observers: log name + first four args, then call through */
 static void hexn(char *o, unsigned v) { hex8(o, v); }
 static void logcall(const char *name, unsigned a, unsigned b, unsigned c, unsigned d) {
+#ifdef NLA_DEBUG
   char line[200], tmp[12]; int p = 0;
   hex8(tmp, sceKernelGetProcessTimeLow()); for (int i = 0; i < 8; i++) line[p++] = tmp[i];
   line[p++] = ' '; line[p++] = 'C'; line[p++] = ' ';
@@ -436,6 +448,9 @@ static void logcall(const char *name, unsigned a, unsigned b, unsigned c, unsign
   for (int k = 0; k < 4; k++) { line[p++] = ' '; hexn(tmp, v[k]); for (int j = 0; j < 8; j++) line[p++] = tmp[j]; }
   line[p++] = '\n'; line[p] = 0;
   put(line);
+#else
+  (void)name; (void)a; (void)b; (void)c; (void)d;
+#endif
 }
 #define OBS(N, LIB, FNID)   static tai_hook_ref_t N##_ref; static SceUID N##_h = -1;   static int N##_p(unsigned a, unsigned b, unsigned c, unsigned d) {     logcall(#N, a, b, c, d); return TAI_CONTINUE(int, N##_ref, a, b, c, d); }
 #define OBSA(N, STATE) \
@@ -476,6 +491,7 @@ static tai_hook_ref_t UriLaunch_ref;
 static tai_hook_ref_t fr_ref; static SceUID fr_h = -1;
 static volatile int hv_on, hv_dead, launch_req, launch_tries;
 static volatile unsigned hv_until, launch_at;
+static volatile unsigned verify_at; static volatile int verify_n;   /* after a launch: did VitaXMB really start? (poll_tick) */
 static const char *launch_why = "";
 
 static int file_exists(const char *p) { SceUID f = sceIoOpen(p, SCE_O_RDONLY, 0); if (f < 0) return 0; sceIoClose(f); return 1; }
@@ -507,6 +523,7 @@ static void do_launch(void) {
   launch_req = 0;
   int r = TAI_CONTINUE(int, UriLaunch_ref, 0x20000, VX_URI);
   put(launch_why); say(" launch result ", (unsigned)r);
+  if (r >= 0 && verify_n < 2) { verify_at = now_ms() + 2500; verify_n++; }   /* the first launch can end on the LiveArea page only */
   /* the destroy of the old app can still be running; AppMgr then refuses for a moment, so try again shortly */
   if (r < 0 && launch_tries < 8) { launch_tries++; launch_at = now_ms() + 250; launch_req = 1; }
 }
@@ -534,7 +551,7 @@ static void relaunch_request(void) {
   if (now_ms() - lastLaunch < 3000) return;
   if (psLaunchedAt && now_ms() - psLaunchedAt < 30000) { put("exit after PS prompt: system opens VitaXMB itself\n"); return; }
   if (file_exists(DISABLE_FILE)) return;
-  lastLaunch = now_ms();
+  lastLaunch = now_ms(); verify_n = 0;
   put("app destroyed: relaunch scheduled\n");
   launch_schedule("relaunch", 120);
 }
@@ -547,10 +564,13 @@ OBSA(Deactivate, act_del(a); if (is_vx(a)) vx_left_at = now_ms())
 #define ADR_FLAG LOGDIR "/adrenaline"
 static volatile unsigned adr_until;
 OBSA(Destroy, act_del(a); if (a != vxId && !is_vx(a)) { if (hv_mode && fr_h >= 0) relaunch_request(); else pendingAt = now_ms() + 400; cover_request(15000); })
+#ifdef NLA_DEBUG
 OBS(LiveBoard, 0, 0)
 OBS(LaunchShell, 0, 0) OBS(LaunchName2, 0, 0) OBS(Quit, 0, 0) OBS(SuspendBg, 0, 0)
 OBS(ResumeBg, 0, 0) OBS(LaunchCancel, 0, 0) OBS(LaResult, 0, 0) OBS(OverwriteParam, 0, 0)
-OBS(LaunchUri2, 0, 0) OBS(DestroyOther, 0, 0) OBS(Event, 0, 0) OBS(UriLaunch, 0, 0)
+OBS(LaunchUri2, 0, 0) OBS(DestroyOther, 0, 0) OBS(Event, 0, 0)
+#endif
+OBS(UriLaunch, 0, 0)
 #define HK(N, LIB, FNID) do { N##_h = taiHookFunctionImport(&N##_ref, "SceShell", LIB, FNID, N##_p);   put(N##_h >= 0 ? "hook " #N " ok\n" : "hook " #N " FAILED\n"); } while (0)
 
 
@@ -565,10 +585,11 @@ static int Stat_p(unsigned id, unsigned *out) {
   if (r >= 0 && out && id == 0xfffffffd && out[3] != 0x424d5856 && out[3] != 0x5358504e && ready && now_ms() - lastPs > 3000) {
     lastPs = now_ms();
     put("PS press detected (foreground app status lookup, real game)\n");
-    maproot_once();
+    DBG(maproot_once();)
     psconfirm_pending = 1;  /* run at the next safe point (top of the event loop), not from here */
   }
   if (r >= 0 && out && out[3] == 0 && out[4] == 0 && id >= 0x10000 && (id & 0xffff) >= 4 && (id & 0xffff) <= 0x40 && !(id & 1)) fresh_note();
+#ifdef NLA_DEBUG
   if (r >= 0 && out) {
     int k; for (k = 0; k < nseen; k++) if (seen[k] == id) break;
     if (k == nseen && nseen < 64) {
@@ -582,7 +603,75 @@ static int Stat_p(unsigned id, unsigned *out) {
       put(line);
     }
   }
+#endif
   return r;
+}
+
+/* ---- polling layer (after vitaos_ps, the PS-button plugin of VitaOS) ----
+ * The event hooks above are the fast path: they hide the LiveArea the moment an app is destroyed. This layer asks the shell's public
+ * app list every ~300 ms and covers what the hooks cannot know:
+ *   - VitaXMB writes ux0:data/VitaXMB/launch.req just before it starts a game; a game that appears within 60 s of it is "armed";
+ *   - an armed game that is gone (neither title id nor pid resolves, so a game suspended behind LiveArea counts as alive) with nothing
+ *     running for ~1.8 s (7 s for Adrenaline and RetroFlow's PSP launcher) and no relaunch under way: hide and start VitaXMB.
+ *     This is the safety net for a missed Destroy event;
+ *   - after any launch of VitaXMB the plugin checks 2.5 s later that it is running, and launches once more if only LiveArea opened.
+ * ux0:data/VitaXMB/return.off turns the safety net and the retry off (the hooks keep working). */
+#define VX_TID "VXMB00001"
+#define REQ_FILE "ux0:data/VitaXMB/launch.req"
+#define RET_OFF "ux0:data/VitaXMB/return.off"
+static int app_running(const char *tid) { SceUID id = -1; return sceAppMgrGetIdByName(&id, tid) >= 0 && id > 0; }
+static int running_game(char *tid, SceUID *pid, int *home) {
+  SceInt32 ids[8];
+  int n = sceAppMgrGetRunningAppIdListForShell(ids, 8), found = 0;
+  *home = 0;
+  for (int i = 0; i < n && i < 8; ++i) {
+    SceUID p = sceAppMgrGetProcessIdByAppIdForShell(ids[i]);
+    char name[32];
+    sceClibMemset(name, 0, sizeof(name));
+    if (p <= 0 || sceAppMgrGetNameById(p, name) < 0 || !name[0]) continue;
+    if (!sceClibStrncmp(name, "NPXS", 4)) continue;                 /* Settings, Music: not games */
+    if (!sceClibStrncmp(name, VX_TID, 9)) { *home = 1; continue; }
+    sceClibStrncpy(tid, name, 15); tid[15] = 0;
+    *pid = p; found = 1;
+  }
+  return found;
+}
+static int still_alive(const char *tid, SceUID pid) {
+  char name[32];
+  if (app_running(tid)) return 1;
+  return pid > 0 && sceAppMgrGetNameById(pid, name) >= 0;
+}
+static char p_armed[16]; static SceUID p_pid; static int p_from_vx, p_gone; static unsigned p_req_at;
+static void poll_tick(void) {
+  if (!ready || file_exists(DISABLE_FILE)) return;
+  char tid[16]; SceUID pid = -1; int home;
+  if (file_exists(REQ_FILE)) { p_req_at = now_ms() ? now_ms() : 1; sceIoRemove(REQ_FILE); put("poll: launch.req taken\n"); }
+  int game = running_game(tid, &pid, &home);
+  if (home) verify_at = 0;                                          /* VitaXMB is up: the launch worked */
+  if (verify_at && now_ms() >= verify_at) {
+    verify_at = 0;
+    if (!home && !game && !launch_req && !file_exists(RET_OFF)) { put("poll: VitaXMB not running after the launch, launching again\n"); cover_request(8000); launch_schedule("verify", 0); }
+  }
+  if (game) {
+    if (sceClibStrncmp(p_armed, tid, 16)) {
+      sceClibMemcpy(p_armed, tid, sizeof(p_armed));
+      p_from_vx = p_req_at && now_ms() - p_req_at < 60000;
+      put("poll: game appeared, from VitaXMB: "); put(p_from_vx ? "yes\n" : "no\n");
+    }
+    p_pid = pid; p_gone = 0; return;
+  }
+  if (home) { p_armed[0] = 0; p_gone = 0; return; }
+  if (!p_armed[0]) return;
+  if (still_alive(p_armed, p_pid)) { p_gone = 0; return; }
+  int settle = (!sceClibStrncmp(p_armed, "RETROLNCR", 9) || !sceClibStrncmp(p_armed, "PSPEMUCFW", 9)) ? 24 : 6;
+  if (++p_gone < settle) return;
+  p_armed[0] = 0; p_gone = 0;
+  if (!p_from_vx || file_exists(RET_OFF)) return;
+  if (launch_req || now_ms() - lastLaunch < 6000) return;           /* the Destroy hook already is on it */
+  lastLaunch = now_ms(); verify_n = 0;
+  put("poll: armed game ended and no relaunch yet: hide and launch\n");
+  cover_request(15000);
+  launch_schedule("poll relaunch", 0);
 }
 
 /* An app (not VitaXMB) was destroyed: the shell would now show LiveArea. Start VitaXMB instead.
@@ -592,9 +681,9 @@ static int watchdog(SceSize args, void *argp) {
   (void)args; (void)argp;
   for (;;) {
     sceKernelDelayThread(100 * 1000);
-    if (ready && !cgd_done && now_ms() - readyAt > 1500) { cgd_done = 1; cgd_install(); }
-    cgd_flush();
-    hl_flush();
+    { static int pt; if (++pt >= 3) { pt = 0; poll_tick(); } }   /* about every 300 ms */
+    DBG(if (ready && !cgd_done && now_ms() - readyAt > 1500) { cgd_done = 1; cgd_install(); })
+    DBG(cgd_flush(); hl_flush();)
     if (launch_req && fr_h < 0) do_launch();
     { SceUID af = sceIoOpen(ADR_FLAG, SCE_O_RDONLY, 0);
       if (af >= 0) { sceIoClose(af); sceIoRemove(ADR_FLAG); adr_until = now_ms() + 30000; put("adrenaline launch flagged: no cover for 30 s\n"); } }
@@ -723,18 +812,24 @@ int module_start(SceSize args, const void *argp) {
       put("cover pending found: last run ended covered, covers limited to 8 s this boot\n"); } }
   ev_hook = taiHookFunctionImport(&ev_ref, "SceShell", 0xA6605D6F, 0x15AC8C52, ev_patched);
   HK(Activate, 0x8AF17416, 0x43631508); HK(Deactivate, 0x8AF17416, 0xFFA093D9);
-  HK(LiveBoard, 0x8AF17416, 0x389F048D); HK(Destroy, 0x8AF17416, 0x54368A0B);
+  HK(Destroy, 0x8AF17416, 0x54368A0B);
+#ifdef NLA_DEBUG
+  HK(LiveBoard, 0x8AF17416, 0x389F048D);
   HK(LaunchShell, 0xA6605D6F, 0xA1D43805); HK(LaunchName2, 0xA6605D6F, 0x42945D67);
   HK(Quit, 0x8AF17416, 0x0DD747FB); HK(SuspendBg, 0x8AF17416, 0x5BCF6927);
   HK(ResumeBg, 0x8AF17416, 0x64DD4321); HK(LaunchCancel, 0x8AF17416, 0x5369BC0A);
   HK(LaResult, 0x8AF17416, 0x5CF3BA39); HK(OverwriteParam, 0xA6605D6F, 0xEC1FDACE);
   HK(LaunchUri2, 0xA6605D6F, 0x0ED6AF54); HK(DestroyOther, 0x8AF17416, 0x5420D23C);
+  HK(Event, 0xA6605D6F, 0xCFAD5A3A);
+#endif
   Stat_h = taiHookFunctionImport(&Stat_ref, "SceShell", 0xA6605D6F, 0x47958DE5, Stat_p);
   put(Stat_h >= 0 ? "hook Stat ok\n" : "hook Stat FAILED\n");
-  HK(Event, 0xA6605D6F, 0xCFAD5A3A); HK(UriLaunch, 0xA6605D6F, 0x003C634F);
+  HK(UriLaunch, 0xA6605D6F, 0x003C634F);
+#ifdef NLA_DEBUG
   dlg_install();
   job_install();
   hl_install();
+#endif
   fr_install();
   hv_mode = (fr_h >= 0 && file_exists(HIDE_MODE_FLAG));
   put(hv_mode ? "mode: hide the shell picture\n" : "mode: black screen cover (display off)\n");

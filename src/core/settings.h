@@ -14,6 +14,7 @@ static void setting_text(int id, char *out, size_t n)
 	case SET_CLOCK:   snprintf(out, n, "%s", clock24 ? "24-hour" : "12-hour"); break;
 	case SET_SOUND:   snprintf(out, n, "%s", onoff[sound_on]); break;
 	case SET_STARTUP: snprintf(out, n, "%s", onoff[startup_anim]); break;
+	case SET_BOOTLOGO: snprintf(out, n, "%s", boot_logo ? "PSV / PlayStation Vita" : "PSP / PlayStation Portable"); break;
 	case SET_AUTOUPDATE: snprintf(out, n, "%s", onoff[auto_update]); break;
 	case SET_BATTPCT: snprintf(out, n, "%s", onoff[batt_pct]); break;
 	case SET_NOLA:    snprintf(out, n, "%s", nla_bundled() ? onoff[nla_on] : "Unavailable"); break;
@@ -53,6 +54,7 @@ static void setting_change(int id, int dir)
 	case SET_CLOCK:   clock24 = !clock24; break;
 	case SET_SOUND:   sound_on = !sound_on; break;
 	case SET_STARTUP: startup_anim = !startup_anim; break;
+	case SET_BOOTLOGO: boot_logo = !boot_logo; break;
 	case SET_AUTOUPDATE: auto_update = !auto_update; break;
 	case SET_BATTPCT: batt_pct = !batt_pct; break;
 	case SET_NOLA:    nla_toggle(); nla_on = nla_enabled(); break;

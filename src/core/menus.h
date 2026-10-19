@@ -27,6 +27,7 @@ static void build_menus(void)
 	add_value(M_VITAXMB, "Battery Percentage", SET_BATTPCT, tex_date);
 	add_value(M_VITAXMB, "Sound Effects", SET_SOUND, tex_music_s);
 	add_value(M_VITAXMB, "Startup Animation", SET_STARTUP, tex_launch);
+	add_value(M_VITAXMB, "Game Boot Logo", SET_BOOTLOGO, tex_launch);
 	add_value(M_VITAXMB, "No LiveArea Plugin (beta)", SET_NOLA, tex_launch);
 	add_value(M_VITAXMB, "Confirmation Dialogs", SET_CONFIRM, tex_usb);
 	add_value(M_VITAXMB, "Game Launch Method", SET_LAUNCH, tex_launch);

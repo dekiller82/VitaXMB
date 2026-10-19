@@ -31,6 +31,8 @@ static void launch_request(const Item *it)
 		SceUID af = sceIoOpen("ux0:data/NoLiveArea/adrenaline", SCE_O_WRONLY | SCE_O_CREAT, 0777);
 		if (af >= 0) sceIoClose(af);
 	}
+	{ SceUID rf = sceIoOpen("ux0:data/VitaXMB/launch.req", SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);     /* tells the VXMBReturn plugin this game was started from here */
+	  if (rf >= 0) sceIoClose(rf); }
 	vs_shutdown();
 	sceKernelDelayThread(10000);
 	int r = sceAppMgrLaunchAppByUri(flags[launch_mode], uri);

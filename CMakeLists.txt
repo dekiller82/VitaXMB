@@ -13,8 +13,8 @@ include("${VITASDK}/share/vita.cmake" REQUIRED)
 
 set(VITA_APP_NAME "VitaXMB")
 set(VITA_TITLEID  "VXMB00001")
-set(VITA_VERSION  "01.61")
-set(APP_VERSION   "1.6.1")      # the same release as VITA_VERSION, as the updater compares it with the GitHub tag
+set(VITA_VERSION  "01.70")
+set(APP_VERSION   "1.7.0")      # the same release as VITA_VERSION, as the updater compares it with the GitHub tag
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2 -std=gnu11")
 
@@ -43,7 +43,7 @@ target_link_libraries(${PROJECT_NAME}
   SceAppMgr_stub SceRtc_stub ScePower_stub SceIofilemgr_stub
   SceKernelThreadMgr_stub SceProcessmgr_stub SceAudio_stub
   VitaShellUser_stub_weak taihen_stub SceVshBridge_stub SceLibKernel_stub
-  SceTouch_stub SceNet_stub SceNetCtl_stub ScePromoterUtil_stub SceRegistryMgr_stub SceSqlite_stub
+  SceShellSvc_stub SceTouch_stub SceNet_stub SceNetCtl_stub ScePromoterUtil_stub SceRegistryMgr_stub SceSqlite_stub
 )
 
 # Bundle everything under assets/ at the same relative path inside app0:

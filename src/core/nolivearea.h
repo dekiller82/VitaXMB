@@ -22,6 +22,13 @@ static float note_s;
 	"- Starting a game: the screen stays black while it loads.\n" \
 	"- Closing a game: VitaXMB opens again.\n" \
 	"Pressing the PS button in a game still shows the LiveArea."
+/* shown when an update replaced the plugin file: what changed in the plugin (update this text with every release that changes it) */
+#define NLA_NEWS "VitaXMB was updated and replaced the NoLiveArea plugin.\n" \
+	"New: it brings VitaXMB back even when a game closes\n" \
+	"unnoticed, and tries again if only the LiveArea opened.\n" \
+	"Smaller too: the debug hooks are gone.\n" \
+	"The old version stays loaded until the Vita restarts.\n" \
+	"Restart now to load the new version."
 static int nla_reboot_ask;        /* set after the plugin was installed / removed: the Vita must restart to apply it */
 
 static void note_show(const char *fmt, const char *arg)
