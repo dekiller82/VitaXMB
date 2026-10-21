@@ -313,6 +313,7 @@ Since 1.7 the plugin also watches the shell's own list of running apps, using on
 - The first time VitaXMB runs it asks whether to install the plugin. Install or remove it any time in *Settings > VitaXMB Settings > No LiveArea Plugin (beta)*.
 - Installing copies `NoLiveArea.suprx` to `ur0:tai/`, adds one line under `*main` in `ur0:tai/config.txt` (the first copy of your config is kept as `config.txt.bak_nolivearea`) and creates its switch files in `ux0:data/NoLiveArea`. Restart the Vita afterwards; taiHEN reads the list at start.
 - Kill switch: an empty file named `disable` in `ux0:data/NoLiveArea` stops it. Removing it from the Settings row deletes the config line again. An empty file `return.off` in `ux0:data/VitaXMB` turns off only the 1.7 safety net and retry.
+- Fail-safe (1.7.1): if `ux0:app/VXMB00001` is missing (VitaXMB uninstalled, or an update that did not finish) the plugin launches nothing and hides nothing, so a closed app is not answered with "can't find the app". It resumes by itself when VitaXMB is installed again.
 - Updates: when VitaXMB is updated, the next start copies the bundled plugin over the installed one and shows a **Restart required** screen that says what changed in the plugin; the new build only loads after the restart.
 - Limits: tested on firmware 3.65 only. Pressing the PS button inside a game still opens the stock LiveArea (inside VitaXMB it no longer does). A plugin that edits the system shell can in the worst case make the console crash at start: keep a way to edit `ur0:tai/config.txt` from a PC (or use Safe Mode) before trying it.
 
@@ -360,6 +361,17 @@ Everything in the tree is needed to build (apart from the FFmpeg libraries you b
 ## Changelog
 
 Every release has its own notes and VPK on the [Releases page](https://github.com/dekiller82/VitaXMB/releases). Each version includes everything from the ones before it.
+
+### [1.7.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.7.1) (2026-10-21)
+
+**Fixed**
+
+- **NoLiveArea plugin 1.7.1: no more "can't find the app" when VitaXMB is gone.** If VitaXMB was uninstalled (or a failed update left it missing) while the plugin stayed in `ur0:tai/config.txt`, the plugin still tried to start VitaXMB every time an app closed, and the Vita answered that it could not find the app. The plugin now checks that `ux0:app/VXMB00001` exists before it launches anything, hides the screen or watches games, and does nothing when it does not. It starts working again by itself once VitaXMB is installed again. With the plugin installed, updating replaces its file and the **Restart required** screen tells you about this.
+- If you are stuck with the old plugin and no VitaXMB, delete the line `ur0:tai/NoLiveArea.suprx` from `ur0:tai/config.txt` (edit it from a PC or with VitaShell), or reinstall VitaXMB from the Releases page.
+
+**Changed**
+
+- **The updater app is replaced by what is inside the package, not by a version number.** Last time the check compared a version string typed in two places, and they drifted apart. VitaXMB now stamps the checksum of the updater package it installed (`ux0:data/VitaXMB/updater.crc`) and installs the updater again whenever the package carried in the running VitaXMB has a different checksum, so any change to the updater (program or icon) arrives with the next update without anyone having to bump a number. The updater app itself is 01.07: after an install it waits a moment and starts VitaXMB once and leaves at once. (01.05 and 01.06 tried again up to four times, but a second launch while the updater was still running made the system ask "close the VitaXMB Updater?", so that retry is gone.) The updater of 1.7.0 and older is not replaced until you update *from* 1.7.1, so the first update to 1.7.1 is still done by the old one.
 
 ### [1.7.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.7.0) (2026-10-20)
 
@@ -518,7 +530,7 @@ First release.
 - The *Decrypt Artwork (beta)* experiment can freeze the console; it is off by default.
 - *Extra Storage (beta)* is new and lightly tested, see above.
 - **Custom themes are a beta**: some themes differ from the real PSP and some theme features are not implemented, see [Custom themes (beta)](#custom-themes-beta).
-- **After updating from 1.6.1 or older, VitaXMB may not open by itself.** The update installs fine, but the updater app on your Vita is the old one and only tries to start VitaXMB once, so open it yourself from the LiveArea. This happens once: 1.7.0 replaces the updater app at your next update, and the new one launches VitaXMB again (up to four times) until it is running. If an update ever fails, install the `.vpk` from the Releases page with VitaShell.
+- **Updating from 1.5.x with the NoLiveArea plugin installed can leave the screen black** after the update (the old plugin keeps the display off while it waits for VitaXMB). Press the PS button to get the picture back, and restart the Vita when VitaXMB asks you to. Updating without the plugin, or from 1.6.1 with it, opened VitaXMB by itself in testing. If an update ever fails, install the `.vpk` from the Releases page with VitaShell.
 - **Updating needs VitaShell's modules** in `ux0:VitaShell`; without them the update is downloaded and left for you to install with VitaShell.
 
 ## Credits and licenses

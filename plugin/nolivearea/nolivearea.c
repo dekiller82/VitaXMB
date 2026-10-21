@@ -56,6 +56,17 @@ static void early_ok(void) { if (!early_dead) sceIoRemove(EARLY_PENDING); }
 static volatile unsigned vxId;
 
 static unsigned now_ms(void) { return sceKernelGetProcessTimeLow() / 1000; }
+/* Fail-safe: if VitaXMB was uninstalled while the plugin stayed, every launch/cover/hide below is skipped,
+ * otherwise each closed app would try to start a title that no longer exists. Cached for 1.5 s. */
+static int vx_installed(void) {
+  static unsigned at; static int ok = 1;
+  unsigned t = now_ms();
+  if (at && t - at < 1500) return ok;
+  at = t ? t : 1;
+  SceUID f = sceIoOpen("ux0:app/VXMB00001/eboot.bin", SCE_O_RDONLY, 0);
+  if (f >= 0) { sceIoClose(f); ok = 1; } else ok = 0;
+  return ok;
+}
 static void act_add(unsigned id) {
   int i; for (i = 0; i < 16; i++) if (act[i] == id) return;
   for (i = 0; i < 16; i++) if (!act[i]) { act[i] = id; return; }
@@ -404,6 +415,7 @@ static volatile int hv_mode;                       /* the flag existed at start 
 static void hv_request(unsigned ms);
 static void hv_release(void);
 static void cover_request(unsigned ms) {
+  if (!vx_installed()) return;
   if (hv_mode) { hv_request(ms); return; }
   if (cover_dead && ms > 8000) ms = 8000; cover_until = now_ms() + ms; release_at = 0; cover_want = 1;
 }
@@ -502,7 +514,7 @@ static void say(const char *a, unsigned v) {
   line[p++] = '\n'; line[p] = 0; put(line);
 }
 static void hv_request(unsigned ms) {
-  if (file_exists(DISABLE_FILE)) return;
+  if (file_exists(DISABLE_FILE) || !vx_installed()) return;
   if (hv_dead && ms > 8000) ms = 8000;
   hv_until = now_ms() + ms;
   if (!hv_on) {
@@ -516,11 +528,13 @@ static void hv_release(void) {
   hv_on = 0; sceIoRemove(HIDE_PENDING); put("hide off (an app is in front)\n");
 }
 static void launch_schedule(const char *why, unsigned delay_ms) {
+  if (!vx_installed()) { put("launch skipped: VitaXMB is not installed\n"); return; }
   launch_why = why; launch_tries = 0; launch_at = now_ms() + delay_ms; launch_req = 1;
 }
 static void do_launch(void) {
   if (now_ms() < launch_at) return;
   launch_req = 0;
+  if (!vx_installed()) return;
   int r = TAI_CONTINUE(int, UriLaunch_ref, 0x20000, VX_URI);
   put(launch_why); say(" launch result ", (unsigned)r);
   if (r >= 0 && verify_n < 2) { verify_at = now_ms() + 2500; verify_n++; }   /* the first launch can end on the LiveArea page only */
@@ -643,7 +657,7 @@ static int still_alive(const char *tid, SceUID pid) {
 }
 static char p_armed[16]; static SceUID p_pid; static int p_from_vx, p_gone; static unsigned p_req_at;
 static void poll_tick(void) {
-  if (!ready || file_exists(DISABLE_FILE)) return;
+  if (!ready || file_exists(DISABLE_FILE) || !vx_installed()) return;
   char tid[16]; SceUID pid = -1; int home;
   if (file_exists(REQ_FILE)) { p_req_at = now_ms() ? now_ms() : 1; sceIoRemove(REQ_FILE); put("poll: launch.req taken\n"); }
   int game = running_game(tid, &pid, &home);
@@ -693,7 +707,7 @@ static int watchdog(SceSize args, void *argp) {
      * 5 s crashed the system 4 times, AutoBoot's 10.6 s is fine. EARLY_PENDING is written before the
      * launch and removed when an app activates; if it is found at start the last try died, so the
      * feature switches itself off. */
-    if (!early_done && !early_dead && ready && !vxSeen) {
+    if (!early_done && !early_dead && ready && !vxSeen && vx_installed()) {
       SceUID ef = sceIoOpen(EARLY_FLAG, SCE_O_RDONLY, 0);
       if (ef < 0) early_done = 1;
       else {
@@ -716,7 +730,7 @@ static int watchdog(SceSize args, void *argp) {
       SceUID cf = sceIoOpen(COVER_FLAG, SCE_O_RDONLY, 0), df = sceIoOpen(DISABLE_FILE, SCE_O_RDONLY, 0);
       if (cf >= 0) sceIoClose(cf);
       if (df >= 0) sceIoClose(df);
-      if (cf >= 0 && df < 0) {
+      if (cf >= 0 && df < 0 && vx_installed()) {
         SceUID pf = sceIoOpen(COVER_PENDING, SCE_O_WRONLY | SCE_O_CREAT, 0777);
         if (pf >= 0) sceIoClose(pf);
         scePowerRequestDisplayOff(); covering = 1; put("cover on\n");
@@ -743,7 +757,7 @@ static int watchdog(SceSize args, void *argp) {
       SceUID qf = sceIoOpen(PSQUIT_FLAG, SCE_O_RDONLY, 0), df2 = sceIoOpen(DISABLE_FILE, SCE_O_RDONLY, 0);
       if (qf >= 0) sceIoClose(qf);
       if (df2 >= 0) sceIoClose(df2);
-      if (qf >= 0 && df2 < 0) {
+      if (qf >= 0 && df2 < 0 && vx_installed()) {
         put("PS press in an app: launching VitaXMB (system asks to close the game)\n");
         psLaunchedAt = now_ms();
         int r = TAI_CONTINUE(int, UriLaunch_ref, 0x20000, VX_URI);
@@ -760,6 +774,7 @@ static int watchdog(SceSize args, void *argp) {
     if (psLaunchedAt && now_ms() - psLaunchedAt < 30000) { put("exit after PS prompt: system opens VitaXMB itself\n"); continue; }
     SceUID d = sceIoOpen(DISABLE_FILE, SCE_O_RDONLY, 0);
     if (d >= 0) { sceIoClose(d); continue; }
+    if (!vx_installed()) { put("app destroyed: VitaXMB not installed, no launch\n"); continue; }
     lastLaunch = now_ms();
     put("app destroyed: launching VitaXMB\n");
     int r = TAI_CONTINUE(int, UriLaunch_ref, 0x20000, VX_URI);

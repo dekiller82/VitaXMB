@@ -13,8 +13,8 @@ include("${VITASDK}/share/vita.cmake" REQUIRED)
 
 set(VITA_APP_NAME "VitaXMB")
 set(VITA_TITLEID  "VXMB00001")
-set(VITA_VERSION  "01.70")
-set(APP_VERSION   "1.7.0")      # the same release as VITA_VERSION, as the updater compares it with the GitHub tag
+set(VITA_VERSION  "01.71")
+set(APP_VERSION   "1.7.1")      # the same release as VITA_VERSION, as the updater compares it with the GitHub tag
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2 -std=gnu11")
 
@@ -60,8 +60,7 @@ vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME} UNSAFE)
 
 # The updater: a small separate app (title VXMBUPDTR) that installs a downloaded update while VitaXMB is closed, since an app cannot be
 # replaced while it runs. Its package is carried inside VitaXMB's own as updater.vpk and installed the first time it is needed.
-set(UPDATER_VERSION "01.05")    # the updater app's version: VitaXMB compares it with the installed one and replaces an older updater (UPD_HELPER_VER)
-target_compile_definitions(${PROJECT_NAME} PRIVATE "UPD_HELPER_VER=\"${UPDATER_VERSION}\"")
+set(UPDATER_VERSION "01.07")    # the label of the updater app (shown on the Vita); VitaXMB replaces the app whenever its program or icon differs from the bundled one, see upd_helper_current
 add_executable(VitaXMBUpdater updater/main.c)
 target_link_libraries(VitaXMBUpdater vita2d freetype png jpeg z bz2 m c SceAppMgr_stub ScePromoterUtil_stub SceSysmodule_stub SceIofilemgr_stub
   SceProcessmgr_stub SceKernelThreadMgr_stub SceLibKernel_stub SceDisplay_stub SceGxm_stub SceCtrl_stub ScePgf_stub ScePvf_stub SceCommonDialog_stub)

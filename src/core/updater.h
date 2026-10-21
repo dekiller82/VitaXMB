@@ -20,9 +20,6 @@
 #endif
 #define UPD_DIR    "ux0:data/pkg"                    /* where the system installer expects an unpacked package */
 #define UPD_VPK    CONFIG_DIR "/update.vpk"
-#ifndef UPD_HELPER_VER                          /* CMakeLists.txt defines it from UPDATER_VERSION, the version of the bundled updater app: an older one on the Vita is replaced */
-#define UPD_HELPER_VER "01.04"
-#endif
 
 enum { UPD_IDLE, UPD_CHECKING, UPD_UPTODATE, UPD_AVAILABLE, UPD_DOWNLOADING, UPD_INSTALLING, UPD_DONE, UPD_FAILED, UPD_SAVED };
 enum { UPD_CMD_NONE, UPD_CMD_CHECK, UPD_CMD_INSTALL };
@@ -568,14 +565,44 @@ static int upd_unpack_vpk(const char *path, char *why, size_t cap)
 }
 
 /* the "VitaXMB Updater" app installs updates while VitaXMB is closed; its package is carried inside VitaXMB (updater.vpk) and put on the Vita the first time */
-static int upd_ensure_helper(char *why, size_t cap)
+#define UPD_HELPER_STAMP CONFIG_DIR "/updater.crc"
+
+/* CRC-32 of the updater package carried in this build; -1 if it cannot be read */
+static int upd_bundle_crc(uint32_t *crc)
+{
+	int zn = 0;
+	uint8_t *z = upd_read_file("app0:updater.vpk", &zn);
+	if (!z) return -1;
+	*crc = (uint32_t)crc32(0, z, (uInt)zn);
+	free(z);
+	return 0;
+}
+
+/* Is the updater app on the Vita the one carried in this build? No version number is compared. After VitaXMB installs the updater it
+   stamps the CRC of the package it installed (UPD_HELPER_STAMP); a build whose bundled package differs in any byte (program, icon,
+   anything) sees a different CRC and installs the updater again. (The installed eboot.bin cannot be compared directly: the system's
+   installer rewrites it.) A missing stamp means "install again", which is harmless. If the bundled package cannot be read, the
+   installed updater is kept. */
+static int upd_helper_current(void)
 {
 	SceIoStat st;
-	if (sceIoGetstat("ux0:app/VXMBUPDTR/eboot.bin", &st) >= 0) {
-		char have[16] = "";
-		sfo_get_string("ux0:app/VXMBUPDTR/sce_sys/param.sfo", "APP_VER", have, sizeof(have));
-		if (strcmp(have, UPD_HELPER_VER) == 0) return 0;                      /* there and current */
-	}
+	if (sceIoGetstat("ux0:app/VXMBUPDTR/eboot.bin", &st) < 0) return 0;       /* not installed */
+	uint32_t want;
+	if (upd_bundle_crc(&want) < 0) return 1;
+	int n = 0;
+	uint8_t *m = upd_read_file(UPD_HELPER_STAMP, &n);
+	if (!m) return 0;
+	char t[16];
+	snprintf(t, sizeof(t), "%.*s", n < 8 ? n : 8, (const char *)m);
+	free(m);
+	char w[16];
+	snprintf(w, sizeof(w), "%08x", (unsigned)want);
+	return strcmp(t, w) == 0;
+}
+
+static int upd_ensure_helper(char *why, size_t cap)
+{
+	if (upd_helper_current()) return 0;                                       /* there and current */
 	if (upd_unpack_vpk("app0:updater.vpk", why, cap) < 0) return -1;
 	int pr = upd_promote_dir(UPD_DIR);
 	upd_rmtree(UPD_DIR);
@@ -583,6 +610,13 @@ static int upd_ensure_helper(char *why, size_t cap)
 		if (pr == -2) snprintf(why, cap, "VitaShell's modules are needed to install (ux0:VitaShell)");
 		else snprintf(why, cap, "Could not install the updater app (%08X)", (unsigned)pr);
 		return -1;
+	}
+	uint32_t crc;
+	if (upd_bundle_crc(&crc) == 0) {
+		char stamp[12];
+		snprintf(stamp, sizeof(stamp), "%08x", (unsigned)crc);
+		SceUID sf = sceIoOpen(UPD_HELPER_STAMP, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
+		if (sf >= 0) { sceIoWrite(sf, stamp, 8); sceIoClose(sf); }
 	}
 	trace("update: the updater app is installed\n");
 	return 0;

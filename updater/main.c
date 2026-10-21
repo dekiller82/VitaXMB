@@ -45,12 +45,6 @@ static int load_paf(void)
 	return sceSysmoduleLoadModuleInternalWithArg(SCE_SYSMODULE_INTERNAL_PAF, sizeof(argp), argp, (const SceSysmoduleOpt *)opt);
 }
 
-static int app_running(const char *titleid)
-{
-	SceUID id = -1;
-	return sceAppMgrGetIdByName(&id, titleid) >= 0 && id > 0;
-}
-
 static int promote_app(const char *path)
 {
 	int res = load_paf();
@@ -129,12 +123,11 @@ int main(int argc, const char *argv[])
 	else snprintf(msg, sizeof(msg), "ok");
 	write_result(msg);
 	vita2d_wait_rendering_done();
-	/* The first launch right after an install often only opens VitaXMB's LiveArea page (the app was just replaced): launch, wait up to
-	   2 s for it to be running, and launch again, up to four times. */
-	for (int attempt = 0; attempt < 4 && !app_running(MAIN_TITLEID); attempt++) {
-		sceAppMgrLaunchAppByUri(0xFFFFF, "psgm:play?titleid=" MAIN_TITLEID);
-		for (int i = 0; i < 20 && !app_running(MAIN_TITLEID); i++) sceKernelDelayThread(100 * 1000);
-	}
+	/* Launch VitaXMB once and leave at once, the way the first versions did. A second launch while this app is still running makes the
+	   system ask "close the VitaXMB Updater?", so there is no retry loop here. Right after an install the system is still registering the
+	   replaced app and the first launch can end on its LiveArea page, so wait a moment first. */
+	sceKernelDelayThread(2500 * 1000);
+	sceAppMgrLaunchAppByUri(0xFFFFF, "psgm:play?titleid=" MAIN_TITLEID);
 	sceKernelDelayThread(1000);
 	sceKernelExitProcess(0);
 	return 0;
