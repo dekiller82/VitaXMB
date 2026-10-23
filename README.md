@@ -362,6 +362,12 @@ Everything in the tree is needed to build (apart from the FFmpeg libraries you b
 
 Every release has its own notes and VPK on the [Releases page](https://github.com/dekiller82/VitaXMB/releases). Each version includes everything from the ones before it.
 
+### [1.7.2](https://github.com/dekiller82/VitaXMB/releases/tag/v1.7.2) (2026-10-23)
+
+**Fixed**
+
+- **The menu sounds are the PSP's own.** The cursor, confirm, cancel, category and option sounds were MP3 recordings, and confirm and cancel were not the right samples (confirm was the system's "OK" jingle, cancel a long low tone), which made them sound muffled next to a real PSP. They are now the samples from the PSP 6.60 firmware, resampled to the Vita's 48 kHz. They are short and quiet, as on the PSP.
+
 ### [1.7.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.7.1) (2026-10-21)
 
 **Fixed**
