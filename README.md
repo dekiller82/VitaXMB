@@ -412,7 +412,6 @@ Every release has its own notes and VPK on the [Releases page](https://github.co
 **Changed**
 
 - The *Memory Stick* lines (free space, song and game counts, "Open in Photos") and the Settings category names follow the chosen language.
-- The *Known issues* entry about the LiveArea bubble transition now points to the NoLiveArea plugin.
 - This release is built without any debug hooks (`VITAXMB_DEBUG` and the plugin's `NLA_DEBUG` are off).
 
 ### [1.7.2](https://github.com/dekiller82/VitaXMB/releases/tag/v1.7.2) (2026-10-23)
