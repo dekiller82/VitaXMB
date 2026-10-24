@@ -14,7 +14,7 @@
  *   press and hold    Options of the row under the finger
  * Panels, dialogs and pages get their own taps (a row of the Options panel, Yes / No, a tap to close). */
 
-enum { TM_NONE, TM_XMB, TM_OPT, TM_DLG, TM_PAGE, TM_PAGE_UPDATE, TM_PLAYER, TM_PICKER, TM_CHOOSER, TM_VIDEO };
+enum { TM_NONE, TM_XMB, TM_OPT, TM_DLG, TM_PAGE, TM_PAGE_UPDATE, TM_PLAYER, TM_PICKER, TM_CHOOSER, TM_VIDEO, TM_MOVER, TM_TROPHY, TM_ARRANGE };
 
 typedef struct {
 	int mode;                       /* what is on top of the screen: one of TM_* */
@@ -26,6 +26,9 @@ typedef struct {
 	float opt_px, opt_y0, opt_row;
 	int dlg_sel;                    /* TM_DLG */
 	int pk_sel; float pk_top;       /* TM_PICKER */
+	int pk_org;                     /* the picker is Organize Apps */
+	int mv_sel; float mv_top;       /* TM_MOVER */
+	int ac_sel; float ac_top;       /* TM_ARRANGE */
 } TouchCtx;
 
 #define TQ_MAX 48
@@ -125,12 +128,39 @@ static void touch_tap(const TouchCtx *c, float tx, float ty)
 	case TM_VIDEO: tq_push(SCE_CTRL_TRIANGLE); break;                            /* a tap shows or hides the display */
 	case TM_PICKER:
 		if (ty < 80.0f) { tq_push(SCE_CTRL_CIRCLE); break; }                         /* the heading saves and closes */
+		if (c->pk_org && ty > 480.0f) { if (tx > 440.0f && tx < 700.0f) tq_push(SCE_CTRL_TRIANGLE); else if (tx >= 700.0f) tq_push(SCE_CTRL_CIRCLE); else if (tx > 250.0f) tq_push(SCE_CTRL_SQUARE); break; }
 		{
 			int i = (int)floorf(c->pk_top + (ty - 112.0f) / 38.0f + 0.5f);
 			if (i >= 0 && i < n_all) { tq_steps(i - c->pk_sel); tq_push(SCE_CTRL_CROSS); }
 		}
 		break;
 	case TM_CHOOSER: tq_push(tx < 430.0f ? SCE_CTRL_CIRCLE : SCE_CTRL_CROSS); break;
+	case TM_MOVER:
+		if (ty < 80.0f) { tq_push(SCE_CTRL_CIRCLE); break; }                         /* the heading cancels */
+		if (ty > 480.0f) { tq_push(tx < 400.0f ? SCE_CTRL_CROSS : (tx < 640.0f ? SCE_CTRL_TRIANGLE : SCE_CTRL_CIRCLE)); break; }       /* the buttons below */
+		{
+			int i = (int)floorf(c->mv_top + (ty - 112.0f) / 40.0f + 0.5f);
+			if (i >= 0 && i < mv_n) { if (i == c->mv_sel) tq_push(SCE_CTRL_CROSS); else tq_steps(i - c->mv_sel); }     /* a tap selects, a tap on the selected place moves */
+		}
+		break;
+	case TM_ARRANGE:
+		if (ty < 80.0f) { tq_push(SCE_CTRL_CIRCLE); break; }
+		if (ty > 480.0f) {                                                              /* the buttons below, 158 px each */
+			int z = (int)((tx - 20.0f) / 158.0f);
+			if (z == 0) tq_push(SCE_CTRL_CROSS);
+			else if (z == 1) tq_push(SCE_CTRL_SQUARE);
+			else if (z == 2) tq_push(SCE_CTRL_TRIANGLE);
+			else if (z == 3) tq_push(tx < 20.0f + 3 * 158.0f + 62.0f ? SCE_CTRL_LTRIGGER : SCE_CTRL_RTRIGGER);
+			else if (z == 4) tq_push(SCE_CTRL_START);
+			else tq_push(SCE_CTRL_CIRCLE);
+			break;
+		}
+		{
+			int i = (int)floorf(c->ac_top + (ty - 120.0f) / 44.0f + 0.5f);
+			if (i >= 0 && i < ac_n) { if (i == c->ac_sel) tq_push(SCE_CTRL_CROSS); else tq_steps(i - c->ac_sel); }
+		}
+		break;
+	case TM_TROPHY: if (ty > 480.0f) tq_push(SCE_CTRL_CIRCLE); break;
 	default: break;
 	}
 }
@@ -169,6 +199,9 @@ static unsigned touch_poll(const TouchCtx *c)
 				float pitch = 40.0f;                                   /* one row of finger travel per row */
 				if (c->mode == TM_XMB) pitch = c->lay == LAY_COLUMN ? 100.0f : 80.0f;
 				else if (c->mode == TM_PICKER) pitch = 38.0f;
+				else if (c->mode == TM_MOVER) pitch = 40.0f;
+				else if (c->mode == TM_ARRANGE) pitch = 44.0f;
+				else if (c->mode == TM_TROPHY) pitch = 60.0f;
 				while (ay <= -pitch) { ay += pitch; if (tq_room()) tq_push(SCE_CTRL_DOWN); }     /* the content follows the finger */
 				while (ay >= pitch)  { ay -= pitch; if (tq_room()) tq_push(SCE_CTRL_UP); }
 			} else if (locked == 2) {

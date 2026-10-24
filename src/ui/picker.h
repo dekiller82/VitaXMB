@@ -1,7 +1,8 @@
 #pragma once
 
-/* ---- folder picker: tick the games that belong in a folder ---- */
-static int pk_open, pk_folder = -1, pk_sel;
+/* ---- the app picker: tick the apps that belong in a folder (PK_FOLDER), or tick apps to move together (PK_ORGANIZE) ---- */
+enum { PK_FOLDER, PK_ORGANIZE };
+static int pk_open, pk_folder = -1, pk_sel, pk_mode;
 static float pk_t, pk_top;
 static unsigned char pk_on[GAME_MAX];
 
@@ -14,6 +15,7 @@ static int pk_count(void)
 
 static void pk_start(int f)
 {
+	pk_mode = PK_FOLDER;
 	pk_folder = f;
 	pk_sel = 0;
 	pk_top = 0.0f;
@@ -21,15 +23,28 @@ static void pk_start(int f)
 	pk_open = 1;
 }
 
+/* Organize Apps: every app with the place it is in; tick some and move them together */
+static void pk_start_organize(void)
+{
+	pk_mode = PK_ORGANIZE;
+	pk_folder = -1;
+	pk_sel = 0;
+	pk_top = 0.0f;
+	memset(pk_on, 0, sizeof(pk_on));
+	pk_open = 1;
+}
+
 static void pk_apply(void)
 {
-	for (int i = 0; i < n_all; i++) {
-		int cur_f = app_folder(all_apps[i].id);
-		if (pk_on[i]) app_set_folder(all_apps[i].id, pk_folder);
-		else if (cur_f == pk_folder) app_set_folder(all_apps[i].id, -1);
+	if (pk_mode == PK_FOLDER) {
+		for (int i = 0; i < n_all; i++) {
+			int cur_f = app_folder(all_apps[i].id);
+			if (pk_on[i]) app_place(all_apps[i].id, folder_col[pk_folder], pk_folder);
+			else if (cur_f == pk_folder) app_place(all_apps[i].id, folder_col[pk_folder], -1);      /* out of the folder, into its column */
+		}
+		folders_save();
+		rebuild_game_lists();
 	}
-	folders_save();
-	rebuild_game_lists();
 }
 
 static void draw_picker(float t)
@@ -38,7 +53,8 @@ static void draw_picker(float t)
 	if (a <= 3) return;
 	vita2d_draw_rectangle(0, 0, SCREEN_W, SCREEN_H, RGBA8(0, 0, 0, (int)(225 * t)));
 	char head[96];
-	snprintf(head, sizeof(head), T("Games in \"%s\""), pk_folder >= 0 ? folder_name[pk_folder] : "");
+	if (pk_mode == PK_ORGANIZE) snprintf(head, sizeof(head), "%s", T("Organize Apps"));
+	else snprintf(head, sizeof(head), T("Games in \"%s\""), pk_folder >= 0 ? folder_name[pk_folder] : "");
 	ptext_vc_fit(60, 46, WHITE(a), 28, head, 600);
 	char cnt[32];
 	snprintf(cnt, sizeof(cnt), T("%d selected"), pk_count());
@@ -74,20 +90,37 @@ static void draw_picker(float t)
 			if (pk_on[i]) vita2d_draw_rectangle(bx + 5, by + 5, 10, 10, WHITE(ra));
 		}
 		const Item *it = &all_apps[i];
-		ptext_vc_fit(110, y, WHITE(ra * (sel ? 100 : 78) / 100), 24, it->title, 540);
-		int of = app_folder(it->id);
-		if (of >= 0 && of != pk_folder) {
-			char tag[64];
-			snprintf(tag, sizeof(tag), T("In: %s"), folder_name[of]);
-			ptext_vc(890 - ptext_width(18, tag), y, WHITE(ra * 5 / 10), 18, tag);
+		ptext_vc_fit(110, y, WHITE(ra * (sel ? 100 : 78) / 100), 24, it->title, pk_mode == PK_ORGANIZE ? 450 : 540);
+		if (pk_mode == PK_ORGANIZE) {                       /* where it is now */
+			char tag[96];
+			place_name(tag, sizeof(tag), app_colv[i], app_fold[i]);
+			float tw = ptext_width(18, tag);
+			if (tw > 320.0f) tw = 320.0f;
+			ptext_vc_fit(890 - tw, y, WHITE(ra * 6 / 10), 18, tag, 320);
+		} else {
+			int of = app_folder(it->id);
+			if (of >= 0 && of != pk_folder) {
+				char tag[64];
+				snprintf(tag, sizeof(tag), T("In: %s"), folder_name[of]);
+				ptext_vc(890 - ptext_width(18, tag), y, WHITE(ra * 5 / 10), 18, tag);
+			}
 		}
 	}
-	glyph_cross(200, 508, 8, a);
-	ptext_vc(219, 508, BTN_LABEL(a), 24, T("Select"));
-	glyph_triangle(380, 508, 9, a);
-	ptext_vc(399, 508, BTN_LABEL(a), 24, T("All / None"));
-	glyph_ring(600, 508, 9, a);
-	ptext_vc(619, 508, BTN_LABEL(a), 24, T("Done"));
+	glyph_cross(110, 508, 8, a);
+	ptext_vc(129, 508, BTN_LABEL(a), 24, T("Select"));
+	if (pk_mode == PK_ORGANIZE) {
+		glyph_square(290, 508, 8, a);
+		ptext_vc(309, 508, BTN_LABEL(a), 24, T("All / None"));
+		glyph_triangle(500, 508, 9, a);
+		ptext_vc(519, 508, BTN_LABEL(a), 24, pk_count() ? T("Move Selected") : T("Move"));
+		glyph_ring(760, 508, 9, a);
+		ptext_vc(779, 508, BTN_LABEL(a), 24, T("Done"));
+	} else {
+		glyph_triangle(300, 508, 9, a);
+		ptext_vc(319, 508, BTN_LABEL(a), 24, T("All / None"));
+		glyph_ring(560, 508, 9, a);
+		ptext_vc(579, 508, BTN_LABEL(a), 24, T("Done"));
+	}
 }
 
 /* The "Options" pill at the bottom right: a single rounded shape (row by row, so the translucent

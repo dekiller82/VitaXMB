@@ -230,3 +230,55 @@ software, which is slow. Expect stuttering.	per Software dekodiert, was langsam 
 ✕  Play anyway          ○  Back	✕  Trotzdem abspielen          ○  Zurück
 %d song	%d Titel
 %d songs	%d Titel
+Emulators	Emulatoren
+Utilities	Dienstprogramme
+Trophy Collection	Trophäensammlung
+Trophies	Trophäen
+Move to...	Verschieben nach …
+Move Folder to...	Ordner verschieben nach …
+Organize Apps	Apps ordnen
+Sort Apps into Columns	Apps in Spalten sortieren
+Emulators Category	Kategorie Emulatoren
+Utilities Category	Kategorie Dienstprogramme
+%d app	%d App
+%d apps	%d Apps
+Moved to %s	Verschoben nach %s
+%d apps moved to %s	%d Apps nach %s verschoben
+%d app sorted	%d App sortiert
+%d apps sorted	%d Apps sortiert
+Move "%.40s" to	„%.40s“ verschieben nach
+Move %d apps to	%d Apps verschieben nach
+Move the folder "%.40s" to	Ordner „%.40s“ verschieben nach
+Now	Aktuell
+Move here	Hierher verschieben
+Move Selected	Auswahl verschieben
+Move	Verschieben
+Nothing to sort: every app is already in its place.	Nichts zu sortieren: Alle Apps sind schon am richtigen Platz.
+Sort apps into columns?	Apps in Spalten sortieren?
+Sort your apps into columns?	Deine Apps in Spalten sortieren?
+Emulators, utilities, music, video and network apps\nmove to their own columns; games stay in Game.\nApps you placed yourself stay where they are.	Emulatoren, Dienstprogramme sowie Musik-, Video- und\nNetzwerk-Apps wandern in eigene Spalten; Spiele bleiben unter Spiel.\nApps, die du selbst platziert hast, bleiben, wo sie sind.
+No trophies	Keine Trophäen
+Play a game with trophies first	Spiele zuerst ein Spiel mit Trophäen
+No trophy data for this game yet	Für dieses Spiel gibt es noch keine Trophäendaten
+%d of %d	%d von %d
+Hidden Trophy	Versteckte Trophäe
+Keep playing to reveal it.	Spiele weiter, um sie aufzudecken.
+Locked	Gesperrt
+Apps	Apps
+No apps here	Hier sind keine Apps
+Options > Organize Apps	Optionen > Apps ordnen
+Arrange Columns	Spalten anordnen
+New Column	Neue Spalte
+New column	Neue Spalte
+Rename column	Spalte umbenennen
+Rename	Umbenennen
+Show / Hide	Ein / Aus
+Icon	Symbol
+Delete	Löschen
+Drop	Ablegen
+Up / Down: move   Cross: drop	Hoch / runter: bewegen   ✕: ablegen
+Cross: pick up and move	✕: aufnehmen und bewegen
+Delete the column "%.40s"?	Spalte „%.40s“ löschen?
+Its apps move to Game.	Die Apps wandern nach Spiel.
+Column %d	Spalte %d
+Column	Spalte

@@ -40,6 +40,16 @@ static void glyph_triangle(float cx, float cy, float r, int a)
 		vita2d_draw_line(x1, y0 + k, x2, y2 + k, WHITE(a));
 	}
 }
+static void glyph_square(float cx, float cy, float r, int a)
+{
+	if (glyph_tex("tex_square", cx, cy, r, a)) return;
+	for (int k = 0; k < 2; k++) {
+		vita2d_draw_rectangle(cx - r, cy - r + k, 2 * r, 1.0f, WHITE(a));
+		vita2d_draw_rectangle(cx - r, cy + r - k, 2 * r, 1.0f, WHITE(a));
+		vita2d_draw_rectangle(cx - r + k, cy - r, 1.0f, 2 * r, WHITE(a));
+		vita2d_draw_rectangle(cx + r - k, cy - r, 1.0f, 2 * r, WHITE(a));
+	}
+}
 static void glyph_arrow_left(float cx, float cy, float h, int a)
 {
 	vita2d_texture *t = res_theme("system_plugin", "tex_arrow_left");          /* a theme's own arrow */

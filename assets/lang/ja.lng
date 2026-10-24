@@ -245,3 +245,55 @@ software, which is slow. Expect stuttering.	ソフトウェアでデコードし
 ✕  Play anyway          ○  Back	✕  このまま再生          ○  戻る
 %d song	%d 曲
 %d songs	%d 曲
+Emulators	エミュレーター
+Utilities	ユーティリティ
+Trophy Collection	トロフィーコレクション
+Trophies	トロフィー
+Move to...	移動先…
+Move Folder to...	フォルダーの移動先…
+Organize Apps	アプリを整理
+Sort Apps into Columns	アプリを自動で分類
+Emulators Category	エミュレーターカテゴリー
+Utilities Category	ユーティリティカテゴリー
+%d app	%d 個
+%d apps	%d 個
+Moved to %s	%s に移動しました
+%d apps moved to %s	%d 個のアプリを %s に移動しました
+%d app sorted	%d 個のアプリを分類しました
+%d apps sorted	%d 個のアプリを分類しました
+Move "%.40s" to	「%.40s」の移動先
+Move %d apps to	%d 個のアプリの移動先
+Move the folder "%.40s" to	フォルダー「%.40s」の移動先
+Now	現在
+Move here	ここに移動
+Move Selected	選択を移動
+Move	移動
+Nothing to sort: every app is already in its place.	分類するものはありません。すべて配置済みです。
+Sort apps into columns?	アプリを列ごとに分類しますか？
+Sort your apps into columns?	インストール済みのアプリを列ごとに分類しますか？
+Emulators, utilities, music, video and network apps\nmove to their own columns; games stay in Game.\nApps you placed yourself stay where they are.	エミュレーター、ユーティリティ、音楽・ビデオ・ネットワークの\nアプリは専用の列へ移動し、ゲームは「ゲーム」に残ります。\n自分で配置したアプリはそのままです。
+No trophies	トロフィーがありません
+Play a game with trophies first	トロフィー対応ゲームを先に遊んでください
+No trophy data for this game yet	このゲームのトロフィーデータはまだありません
+%d of %d	%d / %d
+Hidden Trophy	隠しトロフィー
+Keep playing to reveal it.	プレイを続けると明らかになります。
+Locked	未獲得
+Apps	アプリ
+No apps here	ここにアプリはありません
+Options > Organize Apps	オプション > アプリを整理
+Arrange Columns	カテゴリーを並べ替え
+New Column	新しい列
+New column	新しい列
+Rename column	列の名前を変更
+Rename	名前変更
+Show / Hide	表示 / 非表示
+Icon	アイコン
+Delete	削除
+Drop	置く
+Up / Down: move   Cross: drop	上 / 下: 移動   ✕: 置く
+Cross: pick up and move	✕: 持ち上げて移動
+Delete the column "%.40s"?	列「%.40s」を削除しますか？
+Its apps move to Game.	アプリは「ゲーム」に移動します。
+Column %d	列 %d
+Column	列

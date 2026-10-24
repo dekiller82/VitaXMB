@@ -245,3 +245,55 @@ software, which is slow. Expect stuttering.	改用软件解码,速度较慢,可�
 ✕  Play anyway          ○  Back	✕  仍要播放          ○  返回
 %d song	%d 首歌曲
 %d songs	%d 首歌曲
+Emulators	模拟器
+Utilities	工具程序
+Trophy Collection	奖杯收藏
+Trophies	奖杯
+Move to...	移至…
+Move Folder to...	移动文件夹至…
+Organize Apps	整理应用程序
+Sort Apps into Columns	将应用程序分类到栏目
+Emulators Category	模拟器类别
+Utilities Category	工具程序类别
+%d app	%d 个应用程序
+%d apps	%d 个应用程序
+Moved to %s	已移至 %s
+%d apps moved to %s	已将 %d 个应用程序移至 %s
+%d app sorted	已分类 %d 个应用程序
+%d apps sorted	已分类 %d 个应用程序
+Move "%.40s" to	将“%.40s”移至
+Move %d apps to	将 %d 个应用程序移至
+Move the folder "%.40s" to	将文件夹“%.40s”移至
+Now	当前
+Move here	移至此处
+Move Selected	移动所选项目
+Move	移动
+Nothing to sort: every app is already in its place.	没有需要分类的项目：所有应用程序都已就位。
+Sort apps into columns?	要将应用程序分类到栏目吗？
+Sort your apps into columns?	要将您的应用程序分类到栏目吗？
+Emulators, utilities, music, video and network apps\nmove to their own columns; games stay in Game.\nApps you placed yourself stay where they are.	模拟器、工具程序以及音乐、视频、网络类应用程序\n将移到各自的栏目；游戏仍留在“游戏”。\n您自行放置的应用程序不会变动。
+No trophies	没有奖杯
+Play a game with trophies first	请先游玩支持奖杯的游戏
+No trophy data for this game yet	此游戏尚无奖杯数据
+%d of %d	%d / %d
+Hidden Trophy	隐藏奖杯
+Keep playing to reveal it.	继续游玩即可揭晓。
+Locked	未解锁
+Apps	应用程序
+No apps here	这里没有应用程序
+Options > Organize Apps	选项 > 整理应用程序
+Arrange Columns	排列栏目
+New Column	新建栏目
+New column	新建栏目
+Rename column	重命名栏目
+Rename	重命名
+Show / Hide	显示 / 隐藏
+Icon	图标
+Delete	删除
+Drop	放下
+Up / Down: move   Cross: drop	上 / 下：移动   ✕：放下
+Cross: pick up and move	✕：拿起并移动
+Delete the column "%.40s"?	要删除栏目“%.40s”吗？
+Its apps move to Game.	其中的应用程序将移到“游戏”。
+Column %d	栏目 %d
+Column	栏目

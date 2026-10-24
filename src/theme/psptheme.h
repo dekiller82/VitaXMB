@@ -371,6 +371,7 @@ static const PtMap pt_map[] = {
 #define PT_MAP_N ((int)(sizeof(pt_map) / sizeof(pt_map[0])))
 static vita2d_texture *pt_ov[PT_MAP_N];            /* themed replacement for pt_map[i] */
 static const char *pt_cat_label[CAT_COUNT] = { "AJ", "AL", "AM", "AN", "AO", "AP" };   /* Settings Photo Music Video Game Network */
+#define PT_CAT_N 6                                  /* the PSP's own six: a theme has no picture for Emulators and Utilities */
 
 static void sound_apply_theme(void);                       /* themesound.h */
 static void menu_scale_reload(void);                       /* menuscale.h */
@@ -677,12 +678,12 @@ static void pt_read_icons(FILE *f, const PtFile *pf)
 	static PtImg imgs[200];
 	uint32_t p_data = 0;
 	int n = pt_parse_images(r, pf->size, imgs, 200, &p_data);
-	for (int c = 0; c < CAT_COUNT; c++) {
+	for (int c = 0; c < PT_CAT_N; c++) {
 		int w, h;
 		uint8_t *px = pt_label_pixels(r, pf->size, imgs, n, p_data, pt_cat_label[c], &w, &h, 1);
 		if (px) pt_cat[c] = pt_tex(px, w, h);
 	}
-	for (int c = 0; c < CAT_COUNT; c++) {                   /* a tall panel where the icon should be: this theme draws the whole bar as artwork */
+	for (int c = 0; c < PT_CAT_N; c++) {                   /* a tall panel where the icon should be: this theme draws the whole bar as artwork */
 		if (pt_cat[c]) continue;
 		int w, h;
 		uint8_t *px = pt_label_pixels(r, pf->size, imgs, n, p_data, pt_cat_label[c], &w, &h, 0);

@@ -4,17 +4,17 @@
 /* Data                                                                */
 /* ------------------------------------------------------------------ */
 
-enum { CAT_SETTINGS, CAT_PHOTO, CAT_MUSIC, CAT_VIDEO, CAT_GAME, CAT_NETWORK, CAT_COUNT };
-static const char *cat_names[CAT_COUNT] = { "Settings", "Photo", "Music", "Video", "Game", "Network" };
+enum { CAT_SETTINGS, CAT_PHOTO, CAT_MUSIC, CAT_VIDEO, CAT_GAME, CAT_NETWORK, CAT_EMU, CAT_UTIL, CAT_C1, CAT_C2, CAT_C3, CAT_C4, CAT_COUNT };      /* Emulators and Utilities appear once something is in them; Column 1-4 are the user's own */
+static const char *cat_names[CAT_COUNT] = { "Settings", "Photo", "Music", "Video", "Game", "Network", "Emulators", "Utilities", "Column", "Column", "Column", "Column" };
 
 enum { KIND_INFO, KIND_APP, KIND_EXIT, KIND_FOLDER, KIND_VALUE, KIND_URI, KIND_PAGE, KIND_TRACK, KIND_VIDEO };
 /* values for KIND_VALUE rows */
-enum { SET_THEME, SET_CLOCK, SET_SOUND, SET_STARTUP, SET_CONFIRM, SET_LAUNCH, SET_ART, SET_EXTRA, SET_CUSTOM, SET_AUTOUPDATE, SET_BATTPCT, SET_NOLA, SET_BOOTLOGO, SET_LANG, SET_SHOW };   /* SET_SHOW + category: show / hide that category */
+enum { SET_THEME, SET_CLOCK, SET_SOUND, SET_STARTUP, SET_CONFIRM, SET_LAUNCH, SET_ART, SET_EXTRA, SET_CUSTOM, SET_AUTOUPDATE, SET_BATTPCT, SET_NOLA, SET_BOOTLOGO, SET_LANG, SET_ORGANIZE, SET_SORT, SET_COLUMNS, SET_SHOW };   /* SET_SHOW + category: show / hide that category */
 /* values for KIND_PAGE rows */
-enum { PAGE_NONE, PAGE_SYSINFO, PAGE_GAMEINFO, PAGE_PLAYER, PAGE_UPDATE, PAGE_VIDEO };
+enum { PAGE_NONE, PAGE_SYSINFO, PAGE_GAMEINFO, PAGE_PLAYER, PAGE_UPDATE, PAGE_VIDEO, PAGE_TROPHY };
 
 /* Menus: the first CAT_COUNT are the category roots, the rest are nested lists. */
-enum { M_MEMCARD = CAT_COUNT, M_SAVES, M_FOLDER, M_VITAXMB, M_SYSSET, M_THEMESET, M_NETSET, M_VIDEOS, M_TRACKS, M_COUNT };
+enum { M_MEMCARD = CAT_COUNT, M_SAVES, M_FOLDER, M_VITAXMB, M_SYSSET, M_THEMESET, M_NETSET, M_VIDEOS, M_TRACKS, M_TROPHY, M_COUNT };
 enum { LAY_COLUMN, LAY_GAME, LAY_SUB };
 #define MAX_DEPTH 4
 
@@ -67,7 +67,8 @@ static void menus_init(void)
 {
 	for (int m = 0; m < M_COUNT; m++) {
 		int big = m == M_MEMCARD || m == M_SAVES || m == M_FOLDER;
-		menus[m].cap = big ? GAME_MAX : MAX_ITEMS;
+		int mid = m == M_TROPHY;
+		menus[m].cap = big ? GAME_MAX : (mid ? 512 : MAX_ITEMS);
 		menus[m].items = (Item *)calloc(menus[m].cap, sizeof(Item));
 		if (!menus[m].items) menus[m].cap = 0;
 	}
@@ -86,7 +87,17 @@ static int auto_update = 1;   /* look for a newer VitaXMB at start-up */
 static int boot_logo = 1;     /* game boot movie logo: 1 the Vita picture (default), 0 the PSP one */
 static int startup_anim = 1;  /* fade-in / slide-in at launch */
 static int confirm_dialogs = 1; /* ask before leaving the XMB */
-static int cat_hidden[CAT_COUNT];  /* categories the user hid (Settings and Game can't be hidden) */
+static int cat_hidden[CAT_COUNT];  /* categories that are not on the bar now: the user hid them, or an automatic column is empty (cat_refresh_hidden) */
+static int cat_order[CAT_COUNT] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };   /* the columns left to right (the user can rearrange them) */
+static int col_custom[CAT_COUNT];  /* 1: a column the user made (Column 1-4 only) */
+static char col_title[CAT_COUNT][32];   /* a name the user gave (empty: the default) */
+static int col_icon[CAT_COUNT] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };   /* index in col_icons[] the user picked (-1: the column's own picture) */
+static int col_used[CAT_COUNT];    /* apps and folders placed in each column (an automatic column with none is off the bar) */
+/* what a column is called: the user's name, else its own */
+static const char *col_name(int c) { return col_title[c][0] ? col_title[c] : T(cat_names[c]); }
+static int cat_pref[CAT_COUNT];    /* the user's choice: 1 hidden (Settings and Game can't be hidden) */
+static int cat_now = CAT_GAME;     /* the category shown, kept up to date by main: an emptied automatic column stays until it is left */
+static int sort_asked;             /* the offer to sort the apps into columns was shown */
 static int extra_storage = 0;   /* EXPERIMENTAL: also look on a second card (uma0:, imc0:, xmc0:, grw0:) */
 
 /* Base colours per month, as {top, bottom} RGB. */

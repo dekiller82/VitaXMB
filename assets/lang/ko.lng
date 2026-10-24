@@ -246,3 +246,55 @@ software, which is slow. Expect stuttering.	소프트웨어로 디코딩합니�
 ✕  Play anyway          ○  Back	✕  그래도 재생          ○  뒤로
 %d song	%d곡
 %d songs	%d곡
+Emulators	에뮬레이터
+Utilities	유틸리티
+Trophy Collection	트로피 컬렉션
+Trophies	트로피
+Move to...	이동…
+Move Folder to...	폴더 이동…
+Organize Apps	앱 정리
+Sort Apps into Columns	앱을 열별로 정렬
+Emulators Category	에뮬레이터 카테고리
+Utilities Category	유틸리티 카테고리
+%d app	앱 %d개
+%d apps	앱 %d개
+Moved to %s	%s(으)로 이동함
+%d apps moved to %s	앱 %d개를 %s(으)로 이동함
+%d app sorted	앱 %d개 정렬됨
+%d apps sorted	앱 %d개 정렬됨
+Move "%.40s" to	“%.40s” 이동 위치
+Move %d apps to	앱 %d개 이동 위치
+Move the folder "%.40s" to	폴더 “%.40s” 이동 위치
+Now	현재
+Move here	여기로 이동
+Move Selected	선택 항목 이동
+Move	이동
+Nothing to sort: every app is already in its place.	정렬할 항목이 없습니다. 모든 앱이 이미 제자리에 있습니다.
+Sort apps into columns?	앱을 열별로 정렬할까요?
+Sort your apps into columns?	설치된 앱을 열별로 정렬할까요?
+Emulators, utilities, music, video and network apps\nmove to their own columns; games stay in Game.\nApps you placed yourself stay where they are.	에뮬레이터, 유틸리티, 음악·비디오·네트워크 앱은\n각각의 열로 이동하고 게임은 게임에 남습니다.\n직접 배치한 앱은 그대로 유지됩니다.
+No trophies	트로피 없음
+Play a game with trophies first	먼저 트로피가 있는 게임을 플레이하세요
+No trophy data for this game yet	이 게임의 트로피 데이터가 아직 없습니다
+%d of %d	%d / %d
+Hidden Trophy	숨겨진 트로피
+Keep playing to reveal it.	계속 플레이하면 공개됩니다.
+Locked	잠김
+Apps	앱
+No apps here	여기에 앱이 없습니다
+Options > Organize Apps	옵션 > 앱 정리
+Arrange Columns	열 정렬
+New Column	새 열
+New column	새 열
+Rename column	열 이름 변경
+Rename	이름 변경
+Show / Hide	표시 / 숨김
+Icon	아이콘
+Delete	삭제
+Drop	놓기
+Up / Down: move   Cross: drop	위 / 아래: 이동   ✕: 놓기
+Cross: pick up and move	✕: 잡아서 이동
+Delete the column "%.40s"?	열 “%.40s”을(를) 삭제할까요?
+Its apps move to Game.	앱은 게임으로 이동합니다.
+Column %d	열 %d
+Column	열

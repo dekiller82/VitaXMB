@@ -5,11 +5,12 @@ static void update_icons(int m, int keep_other)
 	int uploads = 0;
 	for (int k = 0; k < M_COUNT; k++) {
 		Menu *mn = &menus[k];
-		int visible = (k == m || k == keep_other);
+		int visible = (k == m || k == keep_other) || (k < CAT_COUNT && k != CAT_SETTINGS && k != CAT_GAME);      /* the columns of placed apps load ahead, so they are ready when you get there */
 		for (int i = 0; i < mn->count; i++) {
 			Item *it = &mn->items[i];
 			if (!it->icon_path[0]) continue;
-			int near = visible && abs(i - mn->sel) <= ICON_KEEP;
+			int keep = (k < CAT_COUNT && mn->count <= 48) ? 1 << 20 : (k < CAT_COUNT ? 20 : ICON_KEEP);      /* a column of placed apps keeps every icon loaded (up to 48 rows) */
+			int near = visible && abs(i - mn->sel) <= keep;
 			int st = it->load_state;
 
 			if (st == 3) {                                   /* decoded: upload or discard */
@@ -52,10 +53,10 @@ static void load_item_art(Item *it)
 	uint8_t *pix = NULL;
 	if (it->kind == KIND_APP) {
 		resolve_meta(it);
-		if (it->gate_path[0]) { pix = png_decode_scaled(it->gate_path, 320, &w, &h); rect = pix != NULL; }
+		if (it->gate_path[0]) { pix = png_decode_scaled(it->gate_path, (it->tr & 8) ? 200 : 320, &w, &h); rect = pix != NULL; }
 	}
-	if (!pix) pix = png_decode_scaled(it->icon_path, 320, &w, &h);
-	if (!pix && it->icon_path2[0]) pix = png_decode_scaled(it->icon_path2, 320, &w, &h);
+	if (!pix) pix = png_decode_scaled(it->icon_path, (it->tr & 8) ? 200 : 320, &w, &h);
+	if (!pix && it->icon_path2[0]) pix = png_decode_scaled(it->icon_path2, (it->tr & 8) ? 200 : 320, &w, &h);
 	it->pending_pix = pix;
 	it->pending_w = w; it->pending_h = h;
 	it->pending_rect = rect;
@@ -70,7 +71,7 @@ static int icon_thread(SceSize args, void *argp)
 		if (loader_pause) { sceKernelDelayThread(2000); continue; }
 		Item *best = NULL;
 		int bestd = 1 << 30;
-		for (int k = M_MEMCARD; k <= M_FOLDER; k++) {        /* the only menus whose rows carry art */
+		for (int k = 0; k < M_COUNT; k++) {                 /* the menus whose rows carry art (the game lists, and the apps placed in a column) */
 			Menu *mn = &menus[k];
 			for (int i = 0; i < mn->count; i++) {
 				Item *it = &mn->items[i];

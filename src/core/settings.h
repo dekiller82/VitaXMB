@@ -39,7 +39,7 @@ static void setting_text(int id, char *out, size_t n)
 		else snprintf(out, n, T("On (%d cards)"), nd);
 		break; }
 	default:
-		if (id >= SET_SHOW && id < SET_SHOW + CAT_COUNT) snprintf(out, n, "%s", cat_hidden[id - SET_SHOW] ? T("Hidden") : T("Shown"));
+		if (id >= SET_SHOW && id < SET_SHOW + CAT_COUNT) snprintf(out, n, "%s", cat_pref[id - SET_SHOW] ? T("Hidden") : (cat_is_auto(id - SET_SHOW) ? T("Automatic") : T("Shown")));
 		else out[0] = 0;
 	}
 }
@@ -80,7 +80,7 @@ static void setting_change(int id, int dir)
 	case SET_CUSTOM:  pt_cycle(dir >= 0 ? 1 : -1); break;
 	default:
 		if (id >= SET_SHOW && id < SET_SHOW + CAT_COUNT && cat_can_hide(id - SET_SHOW))
-			cat_hidden[id - SET_SHOW] = !cat_hidden[id - SET_SHOW];
+			{ cat_pref[id - SET_SHOW] = !cat_pref[id - SET_SHOW]; cat_refresh_hidden(cat_now); }
 		break;
 	case SET_ART:
 		art_decrypt = !art_decrypt;

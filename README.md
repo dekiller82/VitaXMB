@@ -30,7 +30,8 @@
 - [Languages](#languages)
 - [Game artwork](#game-artwork)
 - [Music and video](#music-and-video) (video player beta)
-- [Folders](#folders)
+- [Columns, folders and moving apps](#columns-folders-and-moving-apps)
+- [Trophies](#trophies)
 - [Updates](#updates)
 - [Custom themes (beta)](#custom-themes-beta)
 - [Extra storage (experimental)](#extra-storage-experimental)
@@ -61,8 +62,10 @@
 - **The PS button stays out of the way inside VitaXMB:** it no longer drops to the LiveArea, like the PSP's XMB (a long press still opens the Vita's quick menu). Leave VitaXMB with *Exit to LiveArea* in Settings.
 - **Touch screen** support for the whole XMB (see [Controls](#controls)).
 - **NoLiveArea plugin (beta):** an optional plugin, offered at the first start, that keeps the LiveArea out of sight: VitaXMB opens by itself when the Vita turns on, the screen stays black while a game loads, and VitaXMB comes back when a game closes (see [NoLiveArea plugin](#nolivearea-plugin-beta)).
-- **Hide categories** you don't use (Photo, Music, Video, Network) in *Settings > VitaXMB Settings*; the bar closes up and left/right skip them.
-- **Folders** keep a big library tidy: create folders in the game list and tick the games and homebrew that belong in each one (see [Folders](#folders)).
+- **Columns of your own:** rename, reorder, hide and add columns and folders, and sort your apps into them (see [Columns, folders and moving apps](#columns-folders-and-moving-apps), which has a short tutorial). Custom themes and your own columns do not mix: see the warning there.
+- **Hide categories** you don't use (Photo, Music, Video, Network, Emulators, Utilities) in *Settings > VitaXMB Settings*; the bar closes up and left/right skip them.
+- **Your apps where they belong.** ViTube can sit under Video, Moonlight under Network, RetroArch under Emulators: every app can be moved to any column (Photo, Music, Video, Game, Network, and the new **Emulators** and **Utilities**, which show up once something is in them), and every column can hold your own folders. A "Move to..." screen moves one app, **Organize Apps** moves many at once, and the first start offers to sort what is installed for you (see [Columns, folders and moving apps](#columns-folders-and-moving-apps)).
+- **Trophies** without opening the LiveArea: *Game > Trophy Collection* lists every game with its progress, and a game's Options has *Trophies* (see [Trophies](#trophies)).
 - **Settings** has real, working pages: *System Information* (firmware, nickname, MAC address, model, memory card, battery, CPU clock), plus VitaXMB's own settings (theme color, clock format, sound effects, startup animation, confirmation dialogs, launch method).
 - **Music** plays **MP3, FLAC, WAV, AIFF and Ogg Vorbis** with the PSP's player screen: LED spectrum analyzer driven by the real audio, track badge, title and artist from the file's tags, elapsed and total time, progress bar, next/previous and seeking. Files are streamed from the card, so a big lossless file does not need the memory it takes. The list uses the PSP's own number box, digits and format tag, redrawn at the Vita's native resolution.
 - **Video player (beta)** plays videos inside VitaXMB with the PSP video player's control panel and a much wider choice of formats than the PSP had: MP4, MOV, M4V and 3GP (H.264) with the Vita's hardware decoder, and MKV, AVI, WebM, WMV, FLV, TS, MPEG and more in software. See [Music and video](#music-and-video).
@@ -99,7 +102,7 @@
 | **L / R** | Jump five rows |
 | **Cross** | Open / start / change a value |
 | **Circle** | Back, close a page or dialog |
-| **Triangle** | Options (on a game, a folder or saved data) |
+| **Triangle** | Options (on a game, a folder, saved data, or any row of a column) |
 
 **Touch screen.** Everything also works with a finger:
 
@@ -260,15 +263,50 @@ An experimental *Decrypt Artwork (beta)* setting (off by default, asks for confi
 - Slow motion, frame advance and playback speed work for videos decoded by FFmpeg, not for the hardware player's (MP4 / MOV), and they play without sound.
 - Beta: expect rough edges. Not done yet: hardware decoding for MKV / AVI, *Scene Search*, *Chapter Repeat*.
 
-## Folders
+## Columns, folders and moving apps
 
-Organise your games and homebrew in **Game > Memory Stick™**. Press **Triangle** for Options:
+**Warning: columns of your own, and the extra columns, do not work with every custom theme.** A PSP theme is made for the PSP's six columns. A theme that paints the whole category bar (full-height panels or strips, such as the Xbox 360 and Euphoria style themes) has no picture for Emulators, Utilities or a column you made: while such a theme is on, those columns are hidden and their apps are shown in **Game** instead. Other themes show the new columns with VitaXMB's own icons, which will not match the theme's artwork. Reordering or renaming columns can also make a theme's painted look wrong. If a theme looks broken, switch it off (*Settings > Theme Settings > Custom Theme > Off*) or keep to the six standard columns.
 
-- **New Folder** asks for a name with the Vita's own keyboard, then opens the picker.
-- The **picker** lists every installed app with a tick box. **Cross** ticks or unticks, **L / R** jump five rows, **Triangle** selects all or none, **Circle** saves and closes. A game that is already in another folder shows where; ticking it moves it.
-- On a folder (or inside one): **Select Games** reopens the picker, **Rename Folder**, **Delete Folder** (asks first; the games stay installed and return to the main list). Inside a folder, **Remove from Folder** takes the highlighted game out.
+### Tutorial: tidy your Vita in a few minutes
 
-Folders are listed first, then the games that are in no folder. A game is in at most one folder. Everything is stored in `ux0:data/VitaXMB/folders.txt` (plain text, one `F` line per folder followed by `A` lines with title IDs), so it survives uninstalling and reinstalling a game.
+1. **Let VitaXMB sort for you.** *Settings > VitaXMB Settings > Sort Apps into Columns*, then **Yes**. Emulators, utilities, music, video and network apps move to their own columns; games stay in Game. Nothing is deleted, and whatever it guesses wrong you fix in step 2.
+2. **Move one app.** Highlight it (for example in *Game > Memory Stick™*), press **Triangle** and choose **Move to...**. Pick a column (or a folder under it) and press **Cross**. A line at the top confirms where it went.
+3. **Move many apps.** Press **Triangle** on any row of a column and choose **Organize Apps**. Tick apps with **Cross** (**Square** ticks all or none), press **Triangle** (*Move Selected*), pick the place and press **Cross**.
+4. **Make a folder.** **Triangle > New Folder**, type a name, then tick the apps that belong in it and press **Circle**. Faster: in **Move to...** press **Triangle** to make a folder in the column you are looking at; it is selected for you, so one more **Cross** puts the app in it. Folders can be renamed, moved to another column (**Move Folder to...**) and deleted (the apps stay installed) from their own Options.
+5. **Make a column of your own.** *Settings > VitaXMB Settings > Arrange Columns* (or **Triangle > Arrange Columns** on a column's rows), go to the last row, **New Column**, and type a name. Then move apps into it with **Move to...** or **Organize Apps**.
+6. **Arrange the bar.** In *Arrange Columns*: **Cross** picks a column up, **Up / Down** carries it, **Cross** drops it; **Square** renames, **Triangle** shows or hides, **L / R** change the picture, **Start** deletes a column of your own (its apps go to Game). **Circle** closes and saves.
+
+Starting over is easy: delete `folders.txt` and `columns.txt` in `ux0:data/VitaXMB` (every app goes back to Game, the bar to its original order).
+
+Every installed app lives in exactly one place: a **column** of the bar, and inside it optionally one of your **folders**. New apps start in **Game > Memory Stick™**. The columns are Photo, Music, Video, Game, Network and two that appear on their own: **Emulators** and **Utilities** show up as soon as an app is in them and go away when they are empty (in *Settings > VitaXMB Settings*, *Emulators Category* and *Utilities Category* can also be set to Hidden). Apps placed in a column are listed in that column itself, as rows like the *Last Played* disc under Memory Stick: a game icon until the cursor is on the row, then the game's own picture with the title beside it. Folders sit above them and open the wide list. Game keeps using Memory Stick.
+
+### Arranging the columns
+
+*Settings > VitaXMB Settings > **Arrange Columns*** (or **Options > Arrange Columns** on a column's rows) lists every column in the order of the bar. **Cross** picks a column up, **Up / Down** carries it to a new place, **Cross** drops it. **Square** renames it (with the Vita's keyboard), **Triangle** shows or hides it (Settings and Game always stay; Emulators and Utilities say *Automatic* while they are on the bar only when something is in them), **L / R** change its picture (18 to choose from). The last row, **New Column**, makes a column of your own (up to four); select one and press **Start** to delete it (its apps and folders go to Game). Every choice is kept in `ux0:data/VitaXMB/columns.txt`. A PSP theme that draws the bar as full-height panels or strips cannot show columns of its own or Emulators and Utilities; with such a theme their apps are shown in Game.
+
+### Moving apps
+
+- **Move to...** is in the Options (Triangle) of every app. A list shows every column with your folders under it, how many apps each holds, and where the app is now. **Cross** moves it there, **Triangle** makes a **New Folder** in the highlighted column on the spot (you name it with the Vita's keyboard and it is selected, so one more **Cross** puts the app in it), **Circle** cancels (a folder made there and left empty is removed again). A move is confirmed with a line at the top of the screen.
+- **Organize Apps** (Options on any row of a column, or *Settings > VitaXMB Settings*) lists every app with the place it is in. **Cross** ticks, **Square** ticks all or none, **Triangle** moves what is ticked (or the highlighted app when nothing is ticked) through the same Move screen, **Circle** closes.
+- **Sort Apps into Columns** (*Settings > VitaXMB Settings*, and offered once at the first start with this version) moves emulators, utilities, music, video and network apps to their columns by name and title ID: for example RetroArch, PPSSPP and Adrenaline go to Emulators, VitaShell and Checkpoint to Utilities, ViTube and VLC to Video, music players to Music, Moonlight, Cordless and VitaRPS5 to Network. It asks first, never touches an app you already placed yourself, and never moves retail games or PSP / PS1 games. It is a guess from the name: whatever it gets wrong, Move to... fixes.
+
+### Folders
+
+- **New Folder** (Options on any column's row, on Memory Stick's games or on a folder) asks for a name and creates the folder in that column, then opens the picker.
+- The **picker** lists every installed app with a tick box. **Cross** ticks or unticks, **L / R** jump five rows, **Triangle** selects all or none, **Circle** saves and closes. An app that is already in another folder shows where; ticking it moves it here.
+- On a folder (or inside one): **Select Games** reopens the picker, **Rename Folder**, **Move Folder to...** (to another column, with everything in it; the screen follows it there), **Delete Folder** (asks first; the apps stay installed and return to the folder's column). Inside a folder, **Remove from Folder** takes the highlighted app out.
+
+Everything is stored in `ux0:data/VitaXMB/folders.txt` (plain text: an `F` line per folder with an optional `C` line for its column and `A` lines with title IDs, and `P` lines for apps placed straight in a column), so it survives uninstalling and reinstalling an app. The file of an older version still loads. 
+
+## Trophies
+
+Trophy progress is read from the Vita's own trophy database, so it matches the LiveArea's trophy bubble.
+
+- **Game > Trophy Collection** lists every game with trophies by name with its progress (for example *37%   19 / 51*). **Cross** opens a game's trophies.
+- On any game, **Options > Trophies** goes straight to that game's trophies.
+- A game's page shows its picture, a progress bar with the percentage, how many platinum, gold, silver and bronze trophies you have of how many exist, and every trophy with its grade-coloured cup, name, description and the date you got it. Locked trophies are dimmed; hidden ones stay hidden until unlocked. **Up / Down** scroll, **L / R** jump five, **Circle** goes back.
+
+The list shows the games the Vita knows trophies for, installed or not. A game that has never synced trophies shows "No trophy data for this game yet".
 
 ## Updates
 
@@ -281,6 +319,8 @@ VitaXMB can update itself from its GitHub releases (`dekiller82/VitaXMB`).
 - Tags are compared as `major.minor.patch` (`v1.2.0`, `1.3`); keep minor and patch under 100.
 
 ## Custom themes (beta)
+
+> **Columns of your own and the Emulators / Utilities columns do not work with every custom theme**: a theme that paints the whole category bar has no picture for them, so they are hidden and their apps show in Game. See [Columns, folders and moving apps](#columns-folders-and-moving-apps).
 
 **This is a beta. Please test it and tell me what you see.** VitaXMB can load the PSP's custom themes (`.ctf` and `.ptf`, the 6.60 / 6.61 CXMB kind). Put theme files in `ux0:data/VitaXMB/themes` (or `ux0:pspemu/PSP/THEME`) and choose one under *Settings > Theme Settings > Custom Theme (beta)*. Choosing *Off* returns to the stock look.
 
@@ -336,6 +376,10 @@ Tested on one console: an SD2Vita as `ux0:` plus a real memory card mounted as `
 | Confirmation Dialogs | On / Off | asks before leaving the XMB |
 | Game Launch Method | A-D | the system call and flag used to start a title |
 | Photo / Music / Video / Network Category | Shown / Hidden | hides that category from the bar; Settings and Game always stay |
+| Arrange Columns | (opens) | reorder, rename, hide, change the picture of, add and delete columns |
+| Emulators / Utilities Category | Automatic / Hidden | Automatic shows the column once an app is in it; see [Columns, folders and moving apps](#columns-folders-and-moving-apps) |
+| Organize Apps | (opens) | every app with its place; tick some and move them together |
+| Sort Apps into Columns | (asks) | puts emulators, utilities, music, video and network apps in their columns; never moves what you placed yourself |
 | Check for Updates at Start | On / Off | looks for a new release a few seconds after startup, see [Updates](#updates) |
 | Extra Storage (beta) | On / Off | experimental, see above |
 | Decrypt Artwork (beta) | On / Off | experimental, see above |
@@ -372,12 +416,12 @@ Release builds contain no debugging code. Configure with `-DVITAXMB_DEBUG=ON` to
 ```
 CMakeLists.txt            build definition (VPK, SELF, assets)
 src/main.c                the launcher: main loop and input
-src/core/                 data, config, items and menus, game scanning, artwork, settings, the updater
+src/core/                 data, config, items and menus, game scanning, artwork, settings, the updater, folders and columns (folders.h: where every app lives, the sort, columns.txt), trophies (trophy.h)
 src/media/                sound mixer, media scan, music player, video engines (video.h: FFmpeg, avp.h: the system player), the game boot movie (gameboot.h)
 src/render/               textures, drawing, text engine, backgrounds, waves
 src/theme/                PSP theme loader, RCO runtime, boot intro, theme sounds, the PSP engine's list styles and easing (paf.h)
-src/ui/                   layouts, lists, pages, dialogs, pickers, the video player screen (videoui.h)
-tools/                    build_ffmpeg.sh (+ the stack-size patch) and the scripts that made the music / video pictures
+src/ui/                   layouts, lists, pages, dialogs, pickers, Move to... (mover.h), Arrange Columns (arrange.h), the trophy page, the video player screen (videoui.h)
+tools/                    build_ffmpeg.sh (+ the stack-size patch), the scripts that made the music / video pictures, make_column_icons.py (the Emulators, Utilities and trophy icons)
 updater/main.c            the small installer app (VitaXMB Updater)
 psp/launcher/             the small PSP program that starts a game for Adrenaline (built with pspdev into assets/psp/vxmbboot.pbp)
 assets/lang/              the language files (one per PSP language), made by tools/lang
@@ -399,6 +443,23 @@ Everything in the tree is needed to build (apart from the FFmpeg libraries you b
 ## Changelog
 
 Every release has its own notes and VPK on the [Releases page](https://github.com/dekiller82/VitaXMB/releases). Each version includes everything from the ones before it.
+
+### [1.9.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.9.0) (2026-10-24)
+
+**Warning:** columns of your own, Emulators and Utilities do not work with every custom theme. Themes that paint the whole category bar (full-height panels or strips, like the Xbox 360 and Euphoria style ones) have no picture for them: those columns are hidden while such a theme is on and their apps appear in Game. Other themes show them with VitaXMB's own icons, which will not match the theme. Switch the theme off (*Settings > Theme Settings > Custom Theme > Off*) to see your columns.
+
+**New**
+
+- **Your apps where they belong.** Any app can live in any column: Photo, Music, Video, Game, Network, and two new ones, **Emulators** and **Utilities**, which are on the bar only while something is in them. Apps placed in a column are rows like the *Last Played* disc (their own icon, then their picture and title when selected); every icon is loaded ahead. Columns can hold folders of their own, and a folder can be moved to another column. The old `folders.txt` still works.
+- **Move to...** (Options on any app): a list of the columns and their folders showing where the app is now, with **New Folder** right there. **Organize Apps** ticks many apps and moves them together. **Sort Apps into Columns** (offered once at the first start, and in *Settings > VitaXMB Settings*) puts emulators, utilities, music, video and network apps in their columns and leaves your own choices and every retail and PSP game alone.
+- **Arrange Columns.** Reorder, rename, hide and give another picture to any column (18 to choose from), and make up to four columns of your own, or delete them (their apps go to Game). Saved in `ux0:data/VitaXMB/columns.txt`.
+- **Trophies without opening the LiveArea.** *Game > Trophy Collection* lists every game with its trophy progress; a game's Options has *Trophies*. The page shows the progress bar, how many platinum, gold, silver and bronze you have, and every trophy with its description and date (locked ones dimmed, hidden ones hidden). Read from the Vita's own trophy database, so it matches the LiveArea's.
+- **Tutorial** in the README: [sorting, moving, folders and columns step by step](#tutorial-tidy-your-vita-in-a-few-minutes).
+
+**Changed**
+
+- Every text of the new features is translated into the PSP's 12 languages (by hand; **corrections welcome**).
+- Options now show on every row of Photo, Music, Video, Network, Emulators, Utilities and the columns you made (New Folder, Organize Apps, Arrange Columns).
 
 ### [1.8.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.8.0) (2026-10-24)
 
@@ -578,6 +639,7 @@ First release.
 
 ## Known issues
 
+- **Custom themes and columns of your own.** Themes that paint the whole category bar (Xbox 360 and Euphoria style) cannot show Emulators, Utilities or columns you made; their apps are shown in Game while such a theme is on, and other themes show those columns with VitaXMB's icons, which do not match the theme. Turn the theme off to see your columns.
 - **Starting a game shows the Vita's LiveArea bubble transition** before the game appears. The system draws it whenever one app starts another, so no launcher (VitaShell and vita-launcher included) can skip it; only a shell-level plugin could. VitaXMB's own [NoLiveArea plugin](#nolivearea-plugin-beta) is that plugin: with it installed the bubble transition stays out of sight (the screen stays black while the game loads).
 - **System apps cannot be started by title ID** from an app (the Vita shows error `C2-12570-5`). VitaXMB therefore opens them through their own URI schemes (`wbapp0:` Browser, `settings_dlg:` Settings, `psns:` PlayStation Store, `pspy:` Party, `psnmsg:` Messages, `near:` Near, `photo:`, `music:`, `video:`). The Browser and the Settings pages are confirmed to work; the others come from a working third-party launcher but have not been tried on every setup.
 - If launch requests are being refused (the call returns `0x80802026` in a debug build), the console's app manager is in a bad state: reboot the Vita.

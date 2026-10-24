@@ -31,12 +31,17 @@ static void build_menus(void)
 	add_value(M_VITAXMB, "Startup Animation", SET_STARTUP, tex_launch);
 	add_value(M_VITAXMB, "Game Boot Logo", SET_BOOTLOGO, tex_launch);
 	add_value(M_VITAXMB, "No LiveArea Plugin (beta)", SET_NOLA, tex_launch);
+	add_value(M_VITAXMB, "Arrange Columns", SET_COLUMNS, tex_folder);
+	add_value(M_VITAXMB, "Organize Apps", SET_ORGANIZE, tex_folder);
+	add_value(M_VITAXMB, "Sort Apps into Columns", SET_SORT, tex_folder);
 	add_value(M_VITAXMB, "Confirmation Dialogs", SET_CONFIRM, tex_usb);
 	add_value(M_VITAXMB, "Game Launch Method", SET_LAUNCH, tex_launch);
 	add_value(M_VITAXMB, "Photo Category", SET_SHOW + CAT_PHOTO, tex_photo_s);
 	add_value(M_VITAXMB, "Music Category", SET_SHOW + CAT_MUSIC, tex_music_s);
 	add_value(M_VITAXMB, "Video Category", SET_SHOW + CAT_VIDEO, tex_video_s);
 	add_value(M_VITAXMB, "Network Category", SET_SHOW + CAT_NETWORK, tex_net_s);
+	add_value(M_VITAXMB, "Emulators Category", SET_SHOW + CAT_EMU, tex_game_s);
+	add_value(M_VITAXMB, "Utilities Category", SET_SHOW + CAT_UTIL, tex_psp);
 	add_value(M_VITAXMB, "Extra Storage (beta)", SET_EXTRA, tex_ms_s);
 	add_value(M_VITAXMB, "Check for Updates at Start", SET_AUTOUPDATE, tex_launch);
 	add_value(M_VITAXMB, "Decrypt Artwork (beta)", SET_ART, tex_photo_s);
@@ -66,9 +71,14 @@ static void build_menus(void)
 	if (it) it->submenu = M_SAVES;
 	it = add_item(CAT_GAME, KIND_FOLDER, "Memory Stick™", "", NULL, tex_ms_s);
 	if (it) it->submenu = M_MEMCARD;
+	it = add_item(CAT_GAME, KIND_FOLDER, "Trophy Collection", "", NULL, tex_trophy);
+	if (it) it->submenu = M_TROPHY;
 	menus[CAT_GAME].sel = 1;
 	items_tr = 0;
+	for (int c = 0; c < CAT_COUNT; c++) col_fixed[c] = menus[c].count;       /* what each column has of its own: the placed folders and apps come after it */
 
+
+	columns_load();
 	folders_load();
 	scan_apps();
 	scan_saves();

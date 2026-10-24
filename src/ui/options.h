@@ -1,9 +1,54 @@
 #pragma once
 
 /* ---- Options panel (triangle) ---- */
-enum { OPT_START, OPT_INFO, OPT_REFRESH, OPT_NEWFOLDER, OPT_SELECT, OPT_RENAME, OPT_DELFOLDER, OPT_REMOVE };
-static const char *opt_names[8] = { "Start", "Information", "Refresh List", "New Folder", "Select Games",
-                                    "Rename Folder", "Delete Folder", "Remove from Folder" };
+enum { OPT_START, OPT_INFO, OPT_REFRESH, OPT_NEWFOLDER, OPT_SELECT, OPT_RENAME, OPT_DELFOLDER, OPT_REMOVE, OPT_MOVE, OPT_MOVEFOLDER, OPT_ORGANIZE, OPT_TROPHIES, OPT_COLUMNS };
+static const char *opt_names[13] = { "Start", "Information", "Refresh List", "New Folder", "Select Games",
+                                     "Rename Folder", "Delete Folder", "Remove from Folder", "Move to...", "Move Folder to...", "Organize Apps", "Trophies", "Arrange Columns" };
+#define OPT_MAX 13
+
+/* a column that holds apps and folders (everything on the bar but Settings and Game, whose lists are Memory Stick) */
+static int is_host_col(int m) { return m < CAT_COUNT && m != CAT_SETTINGS && m != CAT_GAME; }
+
+/* The Options of a row: fills ids and returns how many. *folder is the folder they act on (-1 none), *newcol the column a new folder goes in. */
+static int options_for(int m, const Item *it, int *ids, int *folder, int *newcol)
+{
+	int n = 0;
+	char cid[16];
+	int app = it->kind == KIND_APP, troph = app && trophy_commid_for_app(it->id, cid, sizeof(cid));
+	*folder = -1;
+	*newcol = m == M_FOLDER ? open_col : (is_host_col(m) ? m : CAT_GAME);
+	if (it->kind == KIND_FOLDER && it->submenu == M_FOLDER) {                 /* a user folder */
+		*folder = it->value_id;
+		*newcol = folder_col[it->value_id];
+		ids[n++] = OPT_SELECT; ids[n++] = OPT_RENAME; ids[n++] = OPT_MOVEFOLDER; ids[n++] = OPT_DELFOLDER; ids[n++] = OPT_NEWFOLDER;
+	} else if (m == CAT_GAME) {                                                /* the last played game under Memory Stick */
+		ids[n++] = OPT_START; ids[n++] = OPT_INFO;
+		if (troph) ids[n++] = OPT_TROPHIES;
+		ids[n++] = OPT_MOVE;
+	} else if (m == M_MEMCARD) {
+		ids[n++] = OPT_START; ids[n++] = OPT_INFO;
+		if (troph) ids[n++] = OPT_TROPHIES;
+		ids[n++] = OPT_MOVE; ids[n++] = OPT_NEWFOLDER; ids[n++] = OPT_ORGANIZE; ids[n++] = OPT_COLUMNS; ids[n++] = OPT_REFRESH;
+	} else if (m == M_FOLDER) {
+		*folder = open_folder;
+		if (app) {
+			ids[n++] = OPT_START; ids[n++] = OPT_INFO;
+			if (troph) ids[n++] = OPT_TROPHIES;
+			ids[n++] = OPT_MOVE; ids[n++] = OPT_REMOVE;
+		}
+		ids[n++] = OPT_SELECT; ids[n++] = OPT_RENAME; ids[n++] = OPT_MOVEFOLDER; ids[n++] = OPT_DELFOLDER;
+	} else if (is_host_col(m)) {
+		if (app) {
+			ids[n++] = OPT_START; ids[n++] = OPT_INFO;
+			if (troph) ids[n++] = OPT_TROPHIES;
+			ids[n++] = OPT_MOVE;
+		}
+		ids[n++] = OPT_NEWFOLDER; ids[n++] = OPT_ORGANIZE; ids[n++] = OPT_COLUMNS;
+	} else {
+		ids[n++] = OPT_INFO; ids[n++] = OPT_REFRESH;
+	}
+	return n;
+}
 
 /* The panel at the right edge (Options, and the chooser): a theme's own picture when it has one (system_plugin.rco: tex_optionmenu_base,
  * a one-pixel row stretched over the panel), else the sky colours darkened. */

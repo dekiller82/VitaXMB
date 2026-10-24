@@ -244,3 +244,55 @@ software, which is slow. Expect stuttering.	программно, а это ме
 ✕  Play anyway          ○  Back	✕  Всё равно воспроизвести          ○  Назад
 %d song	Композиций: %d
 %d songs	Композиций: %d
+Emulators	Эмуляторы
+Utilities	Утилиты
+Trophy Collection	Коллекция трофеев
+Trophies	Трофеи
+Move to...	Переместить в…
+Move Folder to...	Переместить папку в…
+Organize Apps	Упорядочить приложения
+Sort Apps into Columns	Разложить приложения по столбцам
+Emulators Category	Категория «Эмуляторы»
+Utilities Category	Категория «Утилиты»
+%d app	Приложений: %d
+%d apps	Приложений: %d
+Moved to %s	Перемещено: %s
+%d apps moved to %s	Перемещено приложений: %d → %s
+%d app sorted	Разложено приложений: %d
+%d apps sorted	Разложено приложений: %d
+Move "%.40s" to	Переместить «%.40s» в
+Move %d apps to	Переместить приложения (%d) в
+Move the folder "%.40s" to	Переместить папку «%.40s» в
+Now	Сейчас
+Move here	Переместить сюда
+Move Selected	Переместить выбранное
+Move	Переместить
+Nothing to sort: every app is already in its place.	Сортировать нечего: все приложения уже на своих местах.
+Sort apps into columns?	Разложить приложения по столбцам?
+Sort your apps into columns?	Разложить ваши приложения по столбцам?
+Emulators, utilities, music, video and network apps\nmove to their own columns; games stay in Game.\nApps you placed yourself stay where they are.	Эмуляторы, утилиты, а также музыкальные, видео- и\nсетевые приложения попадут в свои столбцы; игры останутся в «Игре».\nПриложения, размещённые вручную, не затрагиваются.
+No trophies	Нет трофеев
+Play a game with trophies first	Сначала сыграйте в игру с трофеями
+No trophy data for this game yet	Данных о трофеях для этой игры пока нет
+%d of %d	%d из %d
+Hidden Trophy	Скрытый трофей
+Keep playing to reveal it.	Продолжайте играть, чтобы открыть его.
+Locked	Закрыт
+Apps	Приложения
+No apps here	Здесь нет приложений
+Options > Organize Apps	Опции > Упорядочить приложения
+Arrange Columns	Настроить столбцы
+New Column	Новый столбец
+New column	Новый столбец
+Rename column	Переименовать столбец
+Rename	Переименовать
+Show / Hide	Показать / скрыть
+Icon	Значок
+Delete	Удалить
+Drop	Положить
+Up / Down: move   Cross: drop	Вверх / вниз: двигать   ✕: положить
+Cross: pick up and move	✕: взять и переместить
+Delete the column "%.40s"?	Удалить столбец «%.40s»?
+Its apps move to Game.	Приложения переместятся в «Игру».
+Column %d	Столбец %d
+Column	Столбец

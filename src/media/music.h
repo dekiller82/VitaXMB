@@ -905,11 +905,16 @@ static void draw_column(int m, float xoff, float amul, float grow, float sub_p)
 		const float dmix = disc && gpic ? clampf(emph * 1.25f, 0.0f, 1.0f) : 0.0f;
 		if (disc) {
 			if (it->stock && dmix < 0.995f) {
-				vita2d_texture *tex = pt_swap(it->stock);
-				float isz = lerpf(112.0f, 120.0f, sel) * pt_menu_scale + 36.0f * grow * sel;
+				const int own = (it->tr & 8) && it->icon;                         /* a placed app: its own icon */
+				vita2d_texture *tex = own ? it->icon : pt_swap(it->stock);
+				float isz = own ? 76.0f + 36.0f * grow * sel : lerpf(112.0f, 120.0f, sel) * pt_menu_scale + 36.0f * grow * sel;
 				int da = (int)(a * (1.0f - dmix));
-				if (it->glow > 0.02f) draw_glow(tex, ix, y, isz, it->glow * 0.95f * (da / 255.0f));
-				draw_icon(tex, ix, y, isz, da);
+				if (!own && it->glow > 0.02f) draw_glow(tex, ix, y, isz, it->glow * 0.95f * (da / 255.0f));
+				if (own) {                                                           /* its true proportions: landscape art is not squeezed into a square */
+					float ow, oh;
+					fit_box(tex, isz * 1.45f, isz, &ow, &oh);
+					draw_icon_wh(tex, ix, y, ow, oh, da);
+				} else draw_icon(tex, ix, y, isz, da);
 			}
 			if (gpic && dmix > 0.005f) {
 				float w = 150.0f + 30.0f * grow * sel;                          /* the game list's own tile size */

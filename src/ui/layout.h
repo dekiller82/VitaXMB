@@ -297,7 +297,8 @@ static int menu_owner(int m)
 	if (m < CAT_COUNT) return m;
 	if (m == M_VIDEOS) return CAT_VIDEO;
 	if (m == M_TRACKS) return CAT_MUSIC;
-	if (m == M_MEMCARD || m == M_SAVES || m == M_FOLDER) return CAT_GAME;
+	if (m == M_FOLDER) return open_col;                          /* a folder opens in the column it is in */
+	if (m == M_MEMCARD || m == M_SAVES || m == M_TROPHY) return CAT_GAME;
 	return CAT_SETTINGS;
 }
 

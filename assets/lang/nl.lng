@@ -230,3 +230,55 @@ software, which is slow. Expect stuttering.	softwarematig gedecodeerd, wat traag
 ✕  Play anyway          ○  Back	✕  Toch afspelen          ○  Terug
 %d song	%d nummer
 %d songs	%d nummers
+Emulators	Emulators
+Utilities	Hulpprogramma’s
+Trophy Collection	Trofeeënverzameling
+Trophies	Trofeeën
+Move to...	Verplaatsen naar…
+Move Folder to...	Map verplaatsen naar…
+Organize Apps	Apps ordenen
+Sort Apps into Columns	Apps in kolommen sorteren
+Emulators Category	Categorie Emulators
+Utilities Category	Categorie Hulpprogramma’s
+%d app	%d app
+%d apps	%d apps
+Moved to %s	Verplaatst naar %s
+%d apps moved to %s	%d apps verplaatst naar %s
+%d app sorted	%d app gesorteerd
+%d apps sorted	%d apps gesorteerd
+Move "%.40s" to	Verplaats „%.40s” naar
+Move %d apps to	%d apps verplaatsen naar
+Move the folder "%.40s" to	Map „%.40s” verplaatsen naar
+Now	Huidig
+Move here	Hierheen verplaatsen
+Move Selected	Selectie verplaatsen
+Move	Verplaatsen
+Nothing to sort: every app is already in its place.	Niets te sorteren: elke app staat al op zijn plek.
+Sort apps into columns?	Apps in kolommen sorteren?
+Sort your apps into columns?	Je apps in kolommen sorteren?
+Emulators, utilities, music, video and network apps\nmove to their own columns; games stay in Game.\nApps you placed yourself stay where they are.	Emulators, hulpprogramma’s en muziek-, video- en\nnetwerk-apps gaan naar hun eigen kolommen; games blijven in Game.\nApps die je zelf hebt geplaatst blijven waar ze zijn.
+No trophies	Geen trofeeën
+Play a game with trophies first	Speel eerst een game met trofeeën
+No trophy data for this game yet	Nog geen trofeegegevens voor deze game
+%d of %d	%d van %d
+Hidden Trophy	Verborgen trofee
+Keep playing to reveal it.	Blijf spelen om hem te onthullen.
+Locked	Vergrendeld
+Apps	Apps
+No apps here	Hier staan geen apps
+Options > Organize Apps	Opties > Apps ordenen
+Arrange Columns	Kolommen indelen
+New Column	Nieuwe kolom
+New column	Nieuwe kolom
+Rename column	Kolom hernoemen
+Rename	Hernoemen
+Show / Hide	Tonen / verbergen
+Icon	Pictogram
+Delete	Verwijderen
+Drop	Neerzetten
+Up / Down: move   Cross: drop	Omhoog / omlaag: verplaatsen   ✕: neerzetten
+Cross: pick up and move	✕: oppakken en verplaatsen
+Delete the column "%.40s"?	Kolom „%.40s” verwijderen?
+Its apps move to Game.	De apps gaan naar Game.
+Column %d	Kolom %d
+Column	Kolom

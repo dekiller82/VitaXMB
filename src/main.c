@@ -37,6 +37,7 @@
 #include "core/folders.h"
 #include "core/lastplayed.h"
 #include "core/appdb.h"
+#include "core/trophy.h"
 #include "core/pspimg.h"
 #include "core/pspgames.h"
 #include "core/scan.h"
@@ -59,6 +60,9 @@
 #include "ui/options.h"
 #include "ui/chooser.h"
 #include "ui/picker.h"
+#include "ui/trophypage.h"
+#include "ui/mover.h"
+#include "ui/arrange.h"
 #include "ui/touch.h"
 #include "media/music.h"
 #include "media/video.h"
@@ -139,8 +143,9 @@ int main(void)
 	int dlg_sel = 0, dlg_action = ACT_NONE, dlg_force = 0;      /* dlg_force: a single "Restart now" button, no cancel */
 	const Item *dlg_item = NULL;
 	int opt_open = 0; float opt_t = 0.0f;                 /* Options panel */
-	int opt_ids[8], opt_n = 0, opt_sel = 0;
+	int opt_ids[OPT_MAX], opt_n = 0, opt_sel = 0;
 	int opt_folder = -1;                                  /* the folder the options act on */
+	int opt_col = CAT_GAME;                               /* the column a new folder goes in */
 	const Item *opt_item = NULL;
 	int opt_menu = 0;
 
@@ -193,8 +198,16 @@ int main(void)
 		snprintf(dlg_l2, sizeof(dlg_l2), "%s", T(NLA_NEWS));
 		dlg_action = ACT_REBOOT_DO; dlg_item = NULL; dlg_sel = 0; dlg_open = 1; dlg_force = 1;
 	}
+	if (!sort_asked && !dlg_open && autosort_apps(1) > 0) {      /* the first start with columns: offer to sort what is installed, once */
+		sort_asked = 1;
+		config_save();
+		snprintf(dlg_l1, sizeof(dlg_l1), "%s", T("Sort your apps into columns?"));
+		snprintf(dlg_l2, sizeof(dlg_l2), "%s", T(SORT_ASK_TEXT));
+		dlg_action = ACT_SORT_DO; dlg_item = NULL; dlg_sel = 0; dlg_open = 1;
+	}
 	for (;;) {
 		uint64_t prof_t0 = sceKernelGetProcessTimeWide();
+		cat_now = cat;
 		/* ---------------- input ---------------- */
 		prev = pad;
 		sceCtrlPeekBufferPositive(0, &pad, 1);
@@ -229,10 +242,13 @@ int main(void)
 			if (launching || startup_t < 0.45f || ime_active) tc.mode = TM_NONE;
 			else if (dlg_open) { tc.mode = TM_DLG; tc.dlg_sel = dlg_sel; }
 			else if (ch_open) tc.mode = TM_CHOOSER;
-			else if (pk_open) { tc.mode = TM_PICKER; tc.pk_sel = pk_sel; tc.pk_top = pk_top; }
+			else if (ac_open) { tc.mode = TM_ARRANGE; tc.ac_sel = ac_sel; tc.ac_top = ac_top; }
+			else if (mv_open) { tc.mode = TM_MOVER; tc.mv_sel = mv_sel; tc.mv_top = mv_top; }
+			else if (pk_open) { tc.mode = TM_PICKER; tc.pk_sel = pk_sel; tc.pk_top = pk_top; tc.pk_org = pk_mode == PK_ORGANIZE; }
 			else if (page_open == PAGE_PLAYER) tc.mode = TM_PLAYER;
 			else if (page_open == PAGE_VIDEO) tc.mode = TM_VIDEO;
 			else if (page_open == PAGE_UPDATE) tc.mode = TM_PAGE_UPDATE;
+			else if (page_open == PAGE_TROPHY) tc.mode = TM_TROPHY;
 			else if (page_open != PAGE_NONE) tc.mode = TM_PAGE;
 			else if (opt_open) {
 				int octx = opt_menu == M_VIDEOS ? POPT_VIDEO : (opt_menu == M_TRACKS ? POPT_MUSIC : (opt_menu == M_SAVES ? POPT_ETC : POPT_GAME));
@@ -265,17 +281,26 @@ int main(void)
 			if (r != 0) {
 				ime_active = 0;
 				if (r > 0 && ime_purpose == IME_NEW) {
-					int f = folder_new(nm);
+					int f = folder_new(nm, opt_col);
 					if (f >= 0) {
+						int fm = folder_col[f] == CAT_GAME ? M_MEMCARD : (cur == folder_col[f] ? cur : -1);
 						folders_save();
 						rebuild_game_lists();
-						for (int i = 0; i < menus[M_MEMCARD].count; i++)
-							if (menus[M_MEMCARD].items[i].kind == KIND_FOLDER && menus[M_MEMCARD].items[i].value_id == f) {
-								menus[M_MEMCARD].sel = i;
-								menus[M_MEMCARD].pos = (float)i;
+						for (int i = 0; fm >= 0 && i < menus[fm].count; i++)
+							if (menus[fm].items[i].kind == KIND_FOLDER && menus[fm].items[i].value_id == f) {
+								menus[fm].sel = i;
+								menus[fm].pos = (float)i;
 							}
 						pk_start(f);
 					}
+				} else if (r > 0 && ime_purpose == IME_MVNEW) {
+					mv_new_folder(nm);
+				} else if (r > 0 && ime_purpose == IME_COLNEW) {
+					int nc = col_create(nm);
+					if (nc >= 0) { columns_save(); cat_refresh_hidden(cat_now); rebuild_game_lists(); ac_select_col(nc); }
+				} else if (r > 0 && ime_purpose == IME_COLRENAME && ime_target >= 0 && ime_target < CAT_COUNT) {
+					folder_clean_name(col_title[ime_target], sizeof(col_title[0]), nm);
+					columns_save();
 				} else if (r > 0 && ime_purpose == IME_RENAME && ime_target >= 0 && ime_target < n_folders) {
 					folder_clean_name(folder_name[ime_target], sizeof(folder_name[0]), nm);
 					if (!folder_name[ime_target][0]) folder_default_name(folder_name[ime_target], sizeof(folder_name[0]));
@@ -313,17 +338,75 @@ int main(void)
 				sound_play(SND_CANCEL);
 				ch_open = 0;
 			}
+		} else if (ac_open) {
+			/* ---- Arrange Columns ---- */
+			int req = ac_input(pressed);
+			int tc2 = ac_sel < ac_n ? ac_rows[ac_sel] : -1;
+			if (req == AC_CLOSE) {
+				ac_open = 0;
+				cat_refresh_hidden(cat);
+				if (cat_hidden[cat]) {                                           /* the column the cursor was in is gone from the bar */
+					cat = CAT_GAME; cat_now = cat; cur = cat; depth = 0; prev_menu = -1; folder_trans = 0; in_t = out_t = 1.0f;
+				}
+			} else if (req == AC_NEW) {
+				char nm[40];
+				int made = 1;
+				for (int k = CAT_C1; k < CAT_COUNT; k++) made += col_custom[k];
+				snprintf(nm, sizeof(nm), T("Column %d"), made);
+				ime_begin(T("New column"), nm, IME_COLNEW, -1);
+			} else if (req == AC_RENAME && tc2 >= 0) {
+				ime_begin(T("Rename column"), col_name(tc2), IME_COLRENAME, tc2);
+			} else if (req == AC_DELETE && tc2 >= CAT_C1) {
+				snprintf(dlg_l1, sizeof(dlg_l1), T("Delete the column \"%.40s\"?"), col_name(tc2));
+				snprintf(dlg_l2, sizeof(dlg_l2), "%s", T("Its apps move to Game."));
+				dlg_action = ACT_COLDEL_DO; dlg_item = NULL; dlg_sel = 1; dlg_open = 1;
+			}
+		} else if (mv_open) {
+			/* ---- Move to... ---- */
+			if ((pressed & SCE_CTRL_UP)   && mv_sel > 0)        { mv_sel--; sound_play(SND_CURSOR); }
+			if ((pressed & SCE_CTRL_DOWN) && mv_sel < mv_n - 1) { mv_sel++; sound_play(SND_CURSOR); }
+			if (pressed & SCE_CTRL_LTRIGGER) { mv_sel = mv_sel - 5 < 0 ? 0 : mv_sel - 5; sound_play(SND_CURSOR); }
+			if (pressed & SCE_CTRL_RTRIGGER) { mv_sel = mv_sel + 5 > mv_n - 1 ? mv_n - 1 : mv_sel + 5; sound_play(SND_CURSOR); }
+			if ((pressed & SCE_CTRL_TRIANGLE) && mv_mode == MV_APPS) {          /* a new folder in the column of the highlighted row */
+				char nm[40];
+				folder_default_name(nm, sizeof(nm));
+				sound_play(SND_CONFIRM);
+				ime_begin(T("New folder"), nm, IME_MVNEW, -1);
+			}
+			if (pressed & SCE_CTRL_CROSS) {
+				int was_folder = mv_mode == MV_FOLDER;
+				sound_play(SND_CONFIRM);
+				mv_apply(pk_open && pk_mode == PK_ORGANIZE ? pk_on : NULL);
+				if (was_folder) {                                              /* follow the folder to its new column */
+					int tcol = mv_dest_col, fm = tcol == CAT_GAME ? M_MEMCARD : tcol;
+					cat = tcol; cat_now = cat; cat_refresh_hidden(cat);
+					depth = 0; prev_menu = -1; folder_trans = 0; in_t = out_t = 1.0f;
+					cur = cat;
+					open_col = tcol;
+					if (tcol == CAT_GAME) { menus[CAT_GAME].sel = 1; stack[0] = CAT_GAME; depth = 1; cur = M_MEMCARD; }
+					for (int i = 0; i < menus[fm].count; i++)
+						if (menus[fm].items[i].kind == KIND_FOLDER && menus[fm].items[i].value_id == mv_dest_folder) { menus[fm].sel = i; menus[fm].pos = (float)i; }
+					cat_ms = pt_ms_right;
+				}
+			} else if (pressed & SCE_CTRL_CIRCLE) {
+				sound_play(SND_CANCEL);
+				mv_cancel();
+			}
 		} else if (pk_open) {
-			/* ---- folder picker ---- */
+			/* ---- folder picker / Organize Apps ---- */
 			if ((pressed & SCE_CTRL_UP)   && pk_sel > 0)         { pk_sel--; sound_play(SND_CURSOR); }
 			if ((pressed & SCE_CTRL_DOWN) && pk_sel < n_all - 1) { pk_sel++; sound_play(SND_CURSOR); }
 			if (pressed & SCE_CTRL_LTRIGGER) { pk_sel = pk_sel - 5 < 0 ? 0 : pk_sel - 5; sound_play(SND_CURSOR); }
 			if (pressed & SCE_CTRL_RTRIGGER) { pk_sel = pk_sel + 5 > n_all - 1 ? (n_all > 0 ? n_all - 1 : 0) : pk_sel + 5; sound_play(SND_CURSOR); }
 			if ((pressed & SCE_CTRL_CROSS) && n_all) { pk_on[pk_sel] = !pk_on[pk_sel]; sound_play(SND_CURSOR); }
-			if (pressed & SCE_CTRL_TRIANGLE) {
+			if (pressed & (pk_mode == PK_ORGANIZE ? SCE_CTRL_SQUARE : SCE_CTRL_TRIANGLE)) {
 				int all = pk_count() == n_all;
 				for (int i = 0; i < n_all; i++) pk_on[i] = !all;
 				sound_play(SND_CURSOR);
+			}
+			if (pk_mode == PK_ORGANIZE && (pressed & SCE_CTRL_TRIANGLE) && n_all) {          /* move what is ticked, else the highlighted app */
+				sound_play(SND_CONFIRM);
+				if (pk_count()) mv_start_ticked(pk_on); else mv_start_app(pk_sel);
 			}
 			if (pressed & SCE_CTRL_CIRCLE) {
 				pk_apply();
@@ -361,6 +444,10 @@ int main(void)
 				if (upd_state == UPD_DOWNLOADING) upd_cancel = 1;
 				else if (upd_state != UPD_INSTALLING) page_open = PAGE_NONE;
 			}
+		} else if (page_open == PAGE_TROPHY) {
+			/* ---- a game's trophies ---- */
+			trophy_page_input(pressed);
+			if (pressed & SCE_CTRL_CIRCLE) { sound_play(SND_CANCEL); page_open = PAGE_NONE; }
 		} else if (page_open != PAGE_NONE) {
 			/* ---- information page ---- */
 			if (pressed & (SCE_CTRL_CIRCLE | SCE_CTRL_CROSS)) { sound_play(SND_CANCEL); page_open = PAGE_NONE; }
@@ -380,6 +467,11 @@ int main(void)
 				case OPT_RENAME:    act = ACT_RENAME; break;
 				case OPT_DELFOLDER: act = ACT_DELFOLDER_ASK; break;
 				case OPT_REMOVE:    act = ACT_REMOVE; break;
+				case OPT_MOVE:      act = ACT_MOVE; break;
+				case OPT_MOVEFOLDER: act = ACT_MOVEFOLDER; break;
+				case OPT_ORGANIZE:  act = ACT_ORGANIZE; break;
+				case OPT_TROPHIES:  act = ACT_TROPHIES; break;
+				case OPT_COLUMNS:   act = ACT_COLUMNS; break;
 				default:            act = ACT_REFRESH; break;
 				}
 				act_item = opt_item;
@@ -408,11 +500,12 @@ int main(void)
 			if (pressed & SCE_CTRL_CIRCLE) go_back = 1;
 
 			if (move_cat) {
-				int n = cat + move_cat;
-				while (n >= 0 && n < CAT_COUNT && cat_hidden[n]) n += move_cat;      /* skip hidden categories */
-				if (n >= 0 && n < CAT_COUNT) {
+				int n = cat_at_slot(cat_slot(cat) + move_cat);                 /* the next column on the bar, in the user's order */
+				if (n >= 0) {
 					cat_ms = move_cat > 0 ? pt_ms_right : pt_ms_left;
 					cat = n;
+					cat_now = cat;
+					cat_refresh_hidden(cat);
 					prev_menu = cur;
 					cur = cat;
 					depth = 0;
@@ -440,8 +533,13 @@ int main(void)
 				case KIND_FOLDER:
 					if ((pressed & SCE_CTRL_CROSS) && depth < MAX_DEPTH && it->submenu >= 0) {
 						sound_play(SND_CURSOR);
+						if (it->submenu == M_TROPHY) {          /* Trophy Collection: read the database */
+							menus[M_TROPHY].sel = 0;
+							trophy_fill_menu();
+						}
 						if (it->submenu == M_FOLDER) {          /* a user folder: fill its list first */
 							open_folder = it->value_id;
+							open_col = folder_col[open_folder];
 							menus[M_FOLDER].sel = 0;
 							fill_folder_menu(open_folder);
 						}
@@ -455,7 +553,9 @@ int main(void)
 					break;
 				case KIND_VALUE:
 					sound_play(it->value_id == SET_ART && !art_decrypt ? SND_CONFIRM : SND_CURSOR);
-					if (it->value_id == SET_ART && !art_decrypt) {
+					if (it->value_id == SET_ORGANIZE || it->value_id == SET_SORT || it->value_id == SET_COLUMNS) {
+						if (pressed & SCE_CTRL_CROSS) act = it->value_id == SET_SORT ? ACT_SORT_ASK : (it->value_id == SET_COLUMNS ? ACT_COLUMNS : ACT_ORGANIZE);
+					} else if (it->value_id == SET_ART && !art_decrypt) {
 						act = ACT_ARTDEC_ASK;      /* kernel modules: ask first */
 					} else if (it->value_id == SET_NOLA && !nla_on) {
 						if (nla_bundled()) act = ACT_NLA_ASK;      /* it edits the system's plugin list: ask first */
@@ -472,6 +572,7 @@ int main(void)
 					if (pressed & SCE_CTRL_CROSS) {
 						sound_play(SND_CURSOR);
 						if (it->value_id == PAGE_SYSINFO) { sysinfo_gather(); page_open = PAGE_SYSINFO; }
+						if (it->value_id == PAGE_TROPHY) { trophy_page_open(it->id); page_open = PAGE_TROPHY; }
 						if (it->value_id == PAGE_UPDATE) {
 							if (upd_state == UPD_IDLE || upd_state == UPD_UPTODATE || upd_state == UPD_FAILED) upd_request(UPD_CMD_CHECK);
 							page_open = PAGE_UPDATE;
@@ -513,36 +614,7 @@ int main(void)
 				sound_play(SND_CONFIRM);
 				opt_item = it;
 				opt_menu = cur;
-				opt_n = 0;
-				opt_folder = -1;
-				if (cur == M_MEMCARD && it->kind == KIND_FOLDER) {
-					opt_folder = it->value_id;
-					opt_ids[opt_n++] = OPT_SELECT;
-					opt_ids[opt_n++] = OPT_RENAME;
-					opt_ids[opt_n++] = OPT_DELFOLDER;
-					opt_ids[opt_n++] = OPT_NEWFOLDER;
-				} else if (cur == CAT_GAME) {                      /* the last played game under Memory Stick */
-					opt_ids[opt_n++] = OPT_START;
-					opt_ids[opt_n++] = OPT_INFO;
-				} else if (cur == M_MEMCARD) {
-					opt_ids[opt_n++] = OPT_START;
-					opt_ids[opt_n++] = OPT_INFO;
-					opt_ids[opt_n++] = OPT_NEWFOLDER;
-					opt_ids[opt_n++] = OPT_REFRESH;
-				} else if (cur == M_FOLDER) {
-					opt_folder = open_folder;
-					if (it->kind == KIND_APP) {
-						opt_ids[opt_n++] = OPT_START;
-						opt_ids[opt_n++] = OPT_INFO;
-						opt_ids[opt_n++] = OPT_REMOVE;
-					}
-					opt_ids[opt_n++] = OPT_SELECT;
-					opt_ids[opt_n++] = OPT_RENAME;
-					opt_ids[opt_n++] = OPT_DELFOLDER;
-				} else {
-					opt_ids[opt_n++] = OPT_INFO;
-					opt_ids[opt_n++] = OPT_REFRESH;
-				}
+				opt_n = options_for(cur, it, opt_ids, &opt_folder, &opt_col);
 				opt_sel = 0;
 				opt_open = 1;
 				sound_play(SND_OPTION);
@@ -585,6 +657,15 @@ int main(void)
 				snprintf(dlg_l1, sizeof(dlg_l1), T("Delete the folder \"%.40s\"?"), folder_name[opt_folder]);
 				snprintf(dlg_l2, sizeof(dlg_l2), "%s", T("The games stay installed."));
 				dlg_action = ACT_DELFOLDER_DO; dlg_item = NULL; dlg_sel = 1; dlg_open = 1;
+			}
+			act = ACT_NONE;
+		} else if (act == ACT_SORT_ASK) {
+			if (autosort_apps(1) == 0) {
+				note_show("%s", T("Nothing to sort: every app is already in its place."));
+			} else {
+				snprintf(dlg_l1, sizeof(dlg_l1), "%s", T("Sort apps into columns?"));
+				snprintf(dlg_l2, sizeof(dlg_l2), "%s", T(SORT_ASK_TEXT));
+				dlg_action = ACT_SORT_DO; dlg_item = NULL; dlg_sel = 0; dlg_open = 1;
 			}
 			act = ACT_NONE;
 		} else if (act == ACT_NLA_ASK) {
@@ -666,11 +747,47 @@ int main(void)
 			if (act_item) {
 				char rid[16];
 				snprintf(rid, sizeof(rid), "%s", act_item->id);
-				app_set_folder(rid, -1);
+				app_place(rid, open_col, -1);
 				folders_save();
 				rebuild_game_lists();
 			}
 			break;
+		case ACT_MOVE:
+			if (act_item) mv_start_app(mv_app_index(act_item->id));
+			break;
+		case ACT_MOVEFOLDER:
+			if (opt_folder >= 0 && opt_folder < n_folders) mv_start_folder(opt_folder);
+			break;
+		case ACT_ORGANIZE:
+			pk_start_organize();
+			break;
+		case ACT_COLUMNS:
+			ac_start();
+			break;
+		case ACT_COLDEL_DO:
+			if (ac_sel < ac_n && ac_rows[ac_sel] >= CAT_C1) {
+				col_delete(ac_rows[ac_sel]);
+				columns_save();
+				config_save();
+				rebuild_game_lists();
+				ac_build();
+				if (ac_sel >= ac_n) ac_sel = ac_n - 1;
+			}
+			break;
+		case ACT_TROPHIES:
+			if (act_item) {
+				char cid[16];
+				if (trophy_commid_for_app(act_item->id, cid, sizeof(cid))) { trophy_page_open(cid); page_open = PAGE_TROPHY; }
+			}
+			break;
+		case ACT_SORT_DO: {
+			int moved = autosort_apps(0);
+			char msg[96];
+			folders_save();
+			rebuild_game_lists();
+			snprintf(msg, sizeof(msg), T(moved == 1 ? "%d app sorted" : "%d apps sorted"), moved);
+			note_show("%s", msg);
+			break; }
 		case ACT_REFRESH:
 			if (opt_menu == M_MEMCARD) { scan_apps(); update_game_counts(); menus[M_MEMCARD].pos = (float)menus[M_MEMCARD].sel; }
 			if (opt_menu == M_SAVES)   { scan_saves(); update_game_counts(); menus[M_SAVES].pos = (float)menus[M_SAVES].sel; }
@@ -678,6 +795,7 @@ int main(void)
 		default: break;
 		}
 
+		{ static int limited; if (cols_limited() != limited) { limited = cols_limited(); rebuild_game_lists(); } }
 		lay = menu_layout(cur);
 		mn = &menus[cur];
 		uint64_t prof_t1 = sceKernelGetProcessTimeWide();
@@ -749,7 +867,7 @@ int main(void)
 			if (pic_alpha < 0.002f) pic_alpha = 0.0f;
 		}
 
-		pm_tick(dwell_item, dwell_t, !launching && !opt_open && page_open == PAGE_NONE && !dlg_open && (cur == M_MEMCARD || cur == M_FOLDER || cur == CAT_GAME));      /* a PSP game bubble: its film and its sound */
+		pm_tick(dwell_item, dwell_t, !launching && !opt_open && page_open == PAGE_NONE && !dlg_open && (cur == M_MEMCARD || cur == M_FOLDER || cur == CAT_GAME || (cur < CAT_COUNT && cur != CAT_SETTINGS)));      /* a PSP game bubble: its film and its sound */
 
 		/* ---------------- music upkeep ---------------- */
 		if (music_index >= 0 && mus_ready && mus_eof && mus_w == mus_r) {      /* track finished: next one */
@@ -820,6 +938,10 @@ int main(void)
 		if (dlg_t < 0.01f) dlg_t = 0.0f; else if (dlg_t > 0.99f) dlg_t = 1.0f;
 		ch_t = lerpf(ch_t, ch_open ? 1.0f : 0.0f, 0.3f);
 		if (ch_t < 0.01f) ch_t = 0.0f; else if (ch_t > 0.99f) ch_t = 1.0f;
+		ac_t = lerpf(ac_t, ac_open ? 1.0f : 0.0f, 0.3f);
+		if (ac_t < 0.01f) ac_t = 0.0f; else if (ac_t > 0.99f) ac_t = 1.0f;
+		mv_t = lerpf(mv_t, mv_open ? 1.0f : 0.0f, 0.3f);
+		if (mv_t < 0.01f) mv_t = 0.0f; else if (mv_t > 0.99f) mv_t = 1.0f;
 		pk_t = lerpf(pk_t, pk_open ? 1.0f : 0.0f, 0.3f);
 		if (pk_t < 0.01f) pk_t = 0.0f; else if (pk_t > 0.99f) pk_t = 1.0f;
 		{
@@ -927,8 +1049,8 @@ int main(void)
 			if (i != cat) a = (int)(a * (1.0f - hide));         /* only the open category stays */
 			if (a > 2) draw_icon(pt_cat[i] ? pt_cat[i] : cat_tex[i], x, CAT_Y, size, a);
 			if (sel > 0.3f)
-				ptext_vc(x - ptext_width(22, T(cat_names[i])) / 2.0f, CAT_Y + 58,
-				         WHITE((int)(255 * sel * (1.0f - fe) * su_bar)), 22, T(cat_names[i]));
+				ptext_vc(x - ptext_width(22, col_name(i)) / 2.0f, CAT_Y + 58,
+				         WHITE((int)(255 * sel * (1.0f - fe) * su_bar)), 22, col_name(i));
 		}
 
 		/* Lists. Each column is pinned to its category's x, so it travels with the bar.
@@ -972,7 +1094,7 @@ int main(void)
 			}
 		}
 
-		if (folder_t > 0.05f) {                       /* "back" arrow at the left edge of a game folder */
+		if (folder_t > 0.05f && depth > 0) {              /* "back" arrow at the left edge of a game folder */
 			int ba = (int)(230 * folder_t);
 			for (int i = 0; i < 18; i++)
 				vita2d_draw_rectangle(10 + i * 0.7f, 272 - (18 - i) * 0.55f - 0.0f, 1.0f, (18 - i) * 1.1f, WHITE(ba));
@@ -983,7 +1105,7 @@ int main(void)
 		/* "Options" pill, only where the triangle does something */
 		{
 			const Item *sit = menus[cur].count ? &menus[cur].items[menus[cur].sel] : NULL;
-			if (sit && item_has_options(cur, sit) && !dlg_open && !pk_open && !ch_open && !ime_active && page_open == PAGE_NONE && !launching)
+			if (sit && item_has_options(cur, sit) && !dlg_open && !pk_open && !mv_open && !ac_open && !ch_open && !ime_active && page_open == PAGE_NONE && !launching)
 				draw_options_pill((int)(255 * (1.0f - opt_t) * su_bar));
 		}
 
@@ -998,7 +1120,7 @@ int main(void)
 				draw_background(t, month);
 				bg_alpha = 1.0f;
 				draw_status(&dt);
-				if (page_shown == PAGE_UPDATE) draw_update_page(page_t); else draw_info_page(page_t);
+				if (page_shown == PAGE_UPDATE) draw_update_page(page_t); else if (page_shown == PAGE_TROPHY) draw_trophy_page(page_t); else draw_info_page(page_t);
 			}
 		}
 
@@ -1008,6 +1130,8 @@ int main(void)
 				draw_options_panel(opt_t, opt_ids, opt_n, opt_sel, &pal, octx);
 			}
 		if (pk_t > 0.0f) draw_picker(pk_t);
+		if (mv_t > 0.0f) draw_mover(mv_t);
+		if (ac_t > 0.0f) draw_arrange(ac_t);
 		if (ch_t > 0.0f) draw_chooser(ch_t, &pal);
 		if (dlg_t > 0.0f) draw_dialog(dlg_t, dlg_l1, dlg_l2, dlg_force ? 2 : dlg_sel);
 

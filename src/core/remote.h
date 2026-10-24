@@ -107,7 +107,8 @@ static void save_screenshot(const char *name)
 
 /* Actions queued by the UI and carried out once per frame, after input. */
 enum { ACT_NONE, ACT_EXIT_ASK, ACT_EXIT_DO, ACT_ARTDEC_ASK, ACT_ARTDEC_DO, ACT_URI, ACT_START, ACT_INFO, ACT_REFRESH,
-       ACT_NEWFOLDER, ACT_SELECT, ACT_RENAME, ACT_DELFOLDER_ASK, ACT_DELFOLDER_DO, ACT_REMOVE, ACT_NLA_ASK, ACT_NLA_DO, ACT_REBOOT_DO };
+       ACT_NEWFOLDER, ACT_SELECT, ACT_RENAME, ACT_DELFOLDER_ASK, ACT_DELFOLDER_DO, ACT_REMOVE, ACT_NLA_ASK, ACT_NLA_DO, ACT_REBOOT_DO,
+       ACT_MOVE, ACT_MOVEFOLDER, ACT_ORGANIZE, ACT_TROPHIES, ACT_SORT_ASK, ACT_SORT_DO, ACT_COLUMNS, ACT_COLDEL_DO };
 
 static void launch_uri(const char *uri)
 {
@@ -133,5 +134,6 @@ static int item_has_options(int m, const Item *it)
 	if (m == CAT_GAME) return it->kind == KIND_APP;             /* the last played game */
 	if (m == M_MEMCARD) return it->kind == KIND_APP || it->kind == KIND_FOLDER;
 	if (m == M_FOLDER) return 1;
+	if (m < CAT_COUNT && m != CAT_SETTINGS) return 1;           /* the other columns: New Folder, Organize, Arrange Columns */
 	return m == M_SAVES && it->id[0];
 }

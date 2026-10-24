@@ -568,3 +568,70 @@ ENTRIES += [
     ('%d song', O('%d 曲', '%d morceau', '%d canción', '%d Titel', '%d brano', '%d nummer', '%d música', 'Композиций: %d', '%d곡', '%d 首歌曲', '%d 首歌曲')),
     ('%d songs', O('%d 曲', '%d morceaux', '%d canciones', '%d Titel', '%d brani', '%d nummers', '%d músicas', 'Композиций: %d', '%d곡', '%d 首歌曲', '%d 首歌曲')),
 ]
+
+
+# ---- columns, Move to..., Organize Apps, the trophy page ----
+ENTRIES += [
+    ('Emulators', O('エミュレーター', 'Émulateurs', 'Emuladores', 'Emulatoren', 'Emulatori', 'Emulators', 'Emuladores', 'Эмуляторы', '에뮬레이터', '模擬器', '模拟器')),
+    ('Utilities', O('ユーティリティ', 'Utilitaires', 'Utilidades', 'Dienstprogramme', 'Utilità', 'Hulpprogramma’s', 'Utilitários', 'Утилиты', '유틸리티', '工具程式', '工具程序')),
+    ('Trophy Collection', O('トロフィーコレクション', 'Collection de trophées', 'Colección de trofeos', 'Trophäensammlung', 'Collezione trofei', 'Trofeeënverzameling', 'Coleção de troféus', 'Коллекция трофеев', '트로피 컬렉션', '獎盃收藏', '奖杯收藏')),
+    ('Trophies', O('トロフィー', 'Trophées', 'Trofeos', 'Trophäen', 'Trofei', 'Trofeeën', 'Troféus', 'Трофеи', '트로피', '獎盃', '奖杯')),
+    ('Move to...', O('移動先…', 'Déplacer vers…', 'Mover a…', 'Verschieben nach …', 'Sposta in…', 'Verplaatsen naar…', 'Mover para…', 'Переместить в…', '이동…', '移至…', '移至…')),
+    ('Move Folder to...', O('フォルダーの移動先…', 'Déplacer le dossier vers…', 'Mover carpeta a…', 'Ordner verschieben nach …', 'Sposta cartella in…', 'Map verplaatsen naar…', 'Mover pasta para…', 'Переместить папку в…', '폴더 이동…', '移動資料夾至…', '移动文件夹至…')),
+    ('Organize Apps', O('アプリを整理', 'Organiser les apps', 'Organizar apps', 'Apps ordnen', 'Organizza app', 'Apps ordenen', 'Organizar apps', 'Упорядочить приложения', '앱 정리', '整理應用程式', '整理应用程序')),
+    ('Sort Apps into Columns', O('アプリを自動で分類', 'Trier les apps par colonne', 'Ordenar apps en columnas', 'Apps in Spalten sortieren', 'Ordina app nelle colonne', 'Apps in kolommen sorteren', 'Ordenar apps em colunas', 'Разложить приложения по столбцам', '앱을 열별로 정렬', '將應用程式分類到欄位', '将应用程序分类到栏目')),
+    ('Emulators Category', O('エミュレーターカテゴリー', 'Catégorie Émulateurs', 'Categoría Emuladores', 'Kategorie Emulatoren', 'Categoria Emulatori', 'Categorie Emulators', 'Categoria Emuladores', 'Категория «Эмуляторы»', '에뮬레이터 카테고리', '模擬器類別', '模拟器类别')),
+    ('Utilities Category', O('ユーティリティカテゴリー', 'Catégorie Utilitaires', 'Categoría Utilidades', 'Kategorie Dienstprogramme', 'Categoria Utilità', 'Categorie Hulpprogramma’s', 'Categoria Utilitários', 'Категория «Утилиты»', '유틸리티 카테고리', '工具程式類別', '工具程序类别')),
+    ('%d app', O('%d 個', '%d app', '%d app', '%d App', '%d app', '%d app', '%d app', 'Приложений: %d', '앱 %d개', '%d 個應用程式', '%d 个应用程序')),
+    ('%d apps', O('%d 個', '%d apps', '%d apps', '%d Apps', '%d app', '%d apps', '%d apps', 'Приложений: %d', '앱 %d개', '%d 個應用程式', '%d 个应用程序')),
+    ('Moved to %s', O('%s に移動しました', 'Déplacé vers %s', 'Movido a %s', 'Verschoben nach %s', 'Spostato in %s', 'Verplaatst naar %s', 'Movido para %s', 'Перемещено: %s', '%s(으)로 이동함', '已移至 %s', '已移至 %s')),
+    ('%d apps moved to %s', O('%d 個のアプリを %s に移動しました', '%d apps déplacées vers %s', '%d apps movidas a %s', '%d Apps nach %s verschoben', '%d app spostate in %s', '%d apps verplaatst naar %s', '%d apps movidas para %s', 'Перемещено приложений: %d → %s', '앱 %d개를 %s(으)로 이동함', '已將 %d 個應用程式移至 %s', '已将 %d 个应用程序移至 %s')),
+    ('%d app sorted', O('%d 個のアプリを分類しました', '%d app triée', '%d app ordenada', '%d App sortiert', '%d app ordinata', '%d app gesorteerd', '%d app ordenada', 'Разложено приложений: %d', '앱 %d개 정렬됨', '已分類 %d 個應用程式', '已分类 %d 个应用程序')),
+    ('%d apps sorted', O('%d 個のアプリを分類しました', '%d apps triées', '%d apps ordenadas', '%d Apps sortiert', '%d app ordinate', '%d apps gesorteerd', '%d apps ordenadas', 'Разложено приложений: %d', '앱 %d개 정렬됨', '已分類 %d 個應用程式', '已分类 %d 个应用程序')),
+    ('Move "%.40s" to', O('「%.40s」の移動先', 'Déplacer « %.40s » vers', 'Mover «%.40s» a', '„%.40s“ verschieben nach', 'Sposta «%.40s» in', 'Verplaats „%.40s” naar', 'Mover «%.40s» para', 'Переместить «%.40s» в', '“%.40s” 이동 위치', '將「%.40s」移至', '将“%.40s”移至')),
+    ('Move %d apps to', O('%d 個のアプリの移動先', 'Déplacer %d apps vers', 'Mover %d apps a', '%d Apps verschieben nach', 'Sposta %d app in', '%d apps verplaatsen naar', 'Mover %d apps para', 'Переместить приложения (%d) в', '앱 %d개 이동 위치', '將 %d 個應用程式移至', '将 %d 个应用程序移至')),
+    ('Move the folder "%.40s" to', O('フォルダー「%.40s」の移動先', 'Déplacer le dossier « %.40s » vers', 'Mover la carpeta «%.40s» a', 'Ordner „%.40s“ verschieben nach', 'Sposta la cartella «%.40s» in', 'Map „%.40s” verplaatsen naar', 'Mover a pasta «%.40s» para', 'Переместить папку «%.40s» в', '폴더 “%.40s” 이동 위치', '將資料夾「%.40s」移至', '将文件夹“%.40s”移至')),
+    ('Now', O('現在', 'Actuel', 'Actual', 'Aktuell', 'Attuale', 'Huidig', 'Atual', 'Сейчас', '현재', '目前', '当前')),
+    ('Move here', O('ここに移動', 'Déplacer ici', 'Mover aquí', 'Hierher verschieben', 'Sposta qui', 'Hierheen verplaatsen', 'Mover para aqui', 'Переместить сюда', '여기로 이동', '移至此處', '移至此处')),
+    ('Move Selected', O('選択を移動', 'Déplacer la sélection', 'Mover selección', 'Auswahl verschieben', 'Sposta selezione', 'Selectie verplaatsen', 'Mover seleção', 'Переместить выбранное', '선택 항목 이동', '移動所選項目', '移动所选项目')),
+    ('Move', O('移動', 'Déplacer', 'Mover', 'Verschieben', 'Sposta', 'Verplaatsen', 'Mover', 'Переместить', '이동', '移動', '移动')),
+    ('Nothing to sort: every app is already in its place.', O('分類するものはありません。すべて配置済みです。', 'Rien à trier : chaque app est déjà à sa place.', 'Nada que ordenar: todas las apps ya están en su sitio.', 'Nichts zu sortieren: Alle Apps sind schon am richtigen Platz.', 'Niente da ordinare: ogni app è già al suo posto.', 'Niets te sorteren: elke app staat al op zijn plek.', 'Nada para ordenar: todas as apps já estão no lugar.', 'Сортировать нечего: все приложения уже на своих местах.', '정렬할 항목이 없습니다. 모든 앱이 이미 제자리에 있습니다.', '沒有需要分類的項目：所有應用程式都已就位。', '没有需要分类的项目：所有应用程序都已就位。')),
+    ('Sort apps into columns?', O('アプリを列ごとに分類しますか？', 'Trier les apps par colonne ?', '¿Ordenar las apps en columnas?', 'Apps in Spalten sortieren?', 'Ordinare le app nelle colonne?', 'Apps in kolommen sorteren?', 'Ordenar as apps em colunas?', 'Разложить приложения по столбцам?', '앱을 열별로 정렬할까요?', '要將應用程式分類到欄位嗎？', '要将应用程序分类到栏目吗？')),
+    ('Sort your apps into columns?', O('インストール済みのアプリを列ごとに分類しますか？', 'Trier vos apps par colonne ?', '¿Ordenar tus apps en columnas?', 'Deine Apps in Spalten sortieren?', 'Ordinare le tue app nelle colonne?', 'Je apps in kolommen sorteren?', 'Ordenar as suas apps em colunas?', 'Разложить ваши приложения по столбцам?', '설치된 앱을 열별로 정렬할까요?', '要將您的應用程式分類到欄位嗎？', '要将您的应用程序分类到栏目吗？')),
+    ('Emulators, utilities, music, video and network apps\nmove to their own columns; games stay in Game.\nApps you placed yourself stay where they are.', O('エミュレーター、ユーティリティ、音楽・ビデオ・ネットワークの\nアプリは専用の列へ移動し、ゲームは「ゲーム」に残ります。\n自分で配置したアプリはそのままです。', 'Les émulateurs, utilitaires et apps de musique, vidéo\net réseau vont dans leurs propres colonnes ; les jeux restent dans Jeu.\nLes apps que vous avez placées restent où elles sont.', 'Los emuladores, utilidades y apps de música, vídeo\ny red pasan a sus propias columnas; los juegos siguen en Juego.\nLas apps que colocaste tú se quedan donde están.', 'Emulatoren, Dienstprogramme sowie Musik-, Video- und\nNetzwerk-Apps wandern in eigene Spalten; Spiele bleiben unter Spiel.\nApps, die du selbst platziert hast, bleiben, wo sie sind.', 'Emulatori, utilità e app di musica, video e rete\nvanno nelle loro colonne; i giochi restano in Gioco.\nLe app che hai spostato tu restano dove sono.', 'Emulators, hulpprogramma’s en muziek-, video- en\nnetwerk-apps gaan naar hun eigen kolommen; games blijven in Game.\nApps die je zelf hebt geplaatst blijven waar ze zijn.', 'Emuladores, utilitários e apps de música, vídeo\ne rede vão para as suas próprias colunas; os jogos ficam em Jogo.\nAs apps que colocou ficam onde estão.', 'Эмуляторы, утилиты, а также музыкальные, видео- и\nсетевые приложения попадут в свои столбцы; игры останутся в «Игре».\nПриложения, размещённые вручную, не затрагиваются.', '에뮬레이터, 유틸리티, 음악·비디오·네트워크 앱은\n각각의 열로 이동하고 게임은 게임에 남습니다.\n직접 배치한 앱은 그대로 유지됩니다.', '模擬器、工具程式與音樂、影片、網路類應用程式\n會移到各自的欄位；遊戲仍留在「遊戲」。\n您自行放置的應用程式不會變動。', '模拟器、工具程序以及音乐、视频、网络类应用程序\n将移到各自的栏目；游戏仍留在“游戏”。\n您自行放置的应用程序不会变动。')),
+    ('No trophies', O('トロフィーがありません', 'Aucun trophée', 'Sin trofeos', 'Keine Trophäen', 'Nessun trofeo', 'Geen trofeeën', 'Sem troféus', 'Нет трофеев', '트로피 없음', '沒有獎盃', '没有奖杯')),
+    ('Play a game with trophies first', O('トロフィー対応ゲームを先に遊んでください', 'Jouez d’abord à un jeu avec trophées', 'Juega antes a un juego con trofeos', 'Spiele zuerst ein Spiel mit Trophäen', 'Prima gioca a un gioco con trofei', 'Speel eerst een game met trofeeën', 'Jogue primeiro um jogo com troféus', 'Сначала сыграйте в игру с трофеями', '먼저 트로피가 있는 게임을 플레이하세요', '請先遊玩支援獎盃的遊戲', '请先游玩支持奖杯的游戏')),
+    ('No trophy data for this game yet', O('このゲームのトロフィーデータはまだありません', 'Pas encore de données de trophées pour ce jeu', 'Aún no hay datos de trofeos de este juego', 'Für dieses Spiel gibt es noch keine Trophäendaten', 'Ancora nessun dato sui trofei per questo gioco', 'Nog geen trofeegegevens voor deze game', 'Ainda sem dados de troféus deste jogo', 'Данных о трофеях для этой игры пока нет', '이 게임의 트로피 데이터가 아직 없습니다', '此遊戲尚無獎盃資料', '此游戏尚无奖杯数据')),
+    ('%d of %d', O('%d / %d', '%d sur %d', '%d de %d', '%d von %d', '%d su %d', '%d van %d', '%d de %d', '%d из %d', '%d / %d', '%d / %d', '%d / %d')),
+    ('Hidden Trophy', O('隠しトロフィー', 'Trophée caché', 'Trofeo oculto', 'Versteckte Trophäe', 'Trofeo nascosto', 'Verborgen trofee', 'Troféu oculto', 'Скрытый трофей', '숨겨진 트로피', '隱藏獎盃', '隐藏奖杯')),
+    ('Keep playing to reveal it.', O('プレイを続けると明らかになります。', 'Continuez à jouer pour le révéler.', 'Sigue jugando para revelarlo.', 'Spiele weiter, um sie aufzudecken.', 'Continua a giocare per scoprirlo.', 'Blijf spelen om hem te onthullen.', 'Continue a jogar para o revelar.', 'Продолжайте играть, чтобы открыть его.', '계속 플레이하면 공개됩니다.', '繼續遊玩即可揭曉。', '继续游玩即可揭晓。')),
+    ('Locked', O('未獲得', 'Verrouillé', 'Bloqueado', 'Gesperrt', 'Bloccato', 'Vergrendeld', 'Bloqueado', 'Закрыт', '잠김', '未解鎖', '未解锁')),
+]
+
+
+# ---- columns, Move to..., Organize Apps, the trophy page ----
+ENTRIES += [
+    ('Apps', O('アプリ', 'Apps', 'Apps', 'Apps', 'App', 'Apps', 'Apps', 'Приложения', '앱', '應用程式', '应用程序')),
+    ('No apps here', O('ここにアプリはありません', 'Aucune app ici', 'No hay apps aquí', 'Hier sind keine Apps', 'Nessuna app qui', 'Hier staan geen apps', 'Sem apps aqui', 'Здесь нет приложений', '여기에 앱이 없습니다', '這裡沒有應用程式', '这里没有应用程序')),
+    ('Options > Organize Apps', O('オプション > アプリを整理', 'Options > Organiser les apps', 'Opciones > Organizar apps', 'Optionen > Apps ordnen', 'Opzioni > Organizza app', 'Opties > Apps ordenen', 'Opções > Organizar apps', 'Опции > Упорядочить приложения', '옵션 > 앱 정리', '選項 > 整理應用程式', '选项 > 整理应用程序')),
+    ('Arrange Columns', O('カテゴリーを並べ替え', 'Organiser les colonnes', 'Ordenar columnas', 'Spalten anordnen', 'Disponi colonne', 'Kolommen indelen', 'Organizar colunas', 'Настроить столбцы', '열 정렬', '排列欄位', '排列栏目')),
+    ('New Column', O('新しい列', 'Nouvelle colonne', 'Nueva columna', 'Neue Spalte', 'Nuova colonna', 'Nieuwe kolom', 'Nova coluna', 'Новый столбец', '새 열', '新增欄位', '新建栏目')),
+    ('New column', O('新しい列', 'Nouvelle colonne', 'Nueva columna', 'Neue Spalte', 'Nuova colonna', 'Nieuwe kolom', 'Nova coluna', 'Новый столбец', '새 열', '新增欄位', '新建栏目')),
+    ('Rename column', O('列の名前を変更', 'Renommer la colonne', 'Renombrar columna', 'Spalte umbenennen', 'Rinomina colonna', 'Kolom hernoemen', 'Mudar o nome da coluna', 'Переименовать столбец', '열 이름 변경', '重新命名欄位', '重命名栏目')),
+    ('Rename', O('名前変更', 'Renommer', 'Renombrar', 'Umbenennen', 'Rinomina', 'Hernoemen', 'Mudar nome', 'Переименовать', '이름 변경', '重新命名', '重命名')),
+    ('Show / Hide', O('表示 / 非表示', 'Afficher / masquer', 'Mostrar / ocultar', 'Ein / Aus', 'Mostra / nascondi', 'Tonen / verbergen', 'Mostrar / ocultar', 'Показать / скрыть', '표시 / 숨김', '顯示 / 隱藏', '显示 / 隐藏')),
+    ('Icon', O('アイコン', 'Icône', 'Icono', 'Symbol', 'Icona', 'Pictogram', 'Ícone', 'Значок', '아이콘', '圖示', '图标')),
+    ('Delete', O('削除', 'Supprimer', 'Eliminar', 'Löschen', 'Elimina', 'Verwijderen', 'Eliminar', 'Удалить', '삭제', '刪除', '删除')),
+    ('Drop', O('置く', 'Poser', 'Soltar', 'Ablegen', 'Rilascia', 'Neerzetten', 'Largar', 'Положить', '놓기', '放下', '放下')),
+    ('Up / Down: move   Cross: drop', O('上 / 下: 移動   ✕: 置く', 'Haut / bas : déplacer   ✕ : poser', 'Arriba / abajo: mover   ✕: soltar', 'Hoch / runter: bewegen   ✕: ablegen', 'Su / giù: sposta   ✕: rilascia', 'Omhoog / omlaag: verplaatsen   ✕: neerzetten', 'Cima / baixo: mover   ✕: largar', 'Вверх / вниз: двигать   ✕: положить', '위 / 아래: 이동   ✕: 놓기', '上 / 下：移動   ✕：放下', '上 / 下：移动   ✕：放下')),
+    ('Cross: pick up and move', O('✕: 持ち上げて移動', '✕ : saisir et déplacer', '✕: coger y mover', '✕: aufnehmen und bewegen', '✕: afferra e sposta', '✕: oppakken en verplaatsen', '✕: pegar e mover', '✕: взять и переместить', '✕: 잡아서 이동', '✕：拿起並移動', '✕：拿起并移动')),
+    ('Delete the column "%.40s"?', O('列「%.40s」を削除しますか？', 'Supprimer la colonne « %.40s » ?', '¿Eliminar la columna «%.40s»?', 'Spalte „%.40s“ löschen?', 'Eliminare la colonna «%.40s»?', 'Kolom „%.40s” verwijderen?', 'Eliminar a coluna «%.40s»?', 'Удалить столбец «%.40s»?', '열 “%.40s”을(를) 삭제할까요?', '要刪除欄位「%.40s」嗎？', '要删除栏目“%.40s”吗？')),
+    ('Its apps move to Game.', O('アプリは「ゲーム」に移動します。', 'Ses apps passent dans Jeu.', 'Sus apps pasan a Juego.', 'Die Apps wandern nach Spiel.', 'Le sue app passano in Gioco.', 'De apps gaan naar Game.', 'As apps passam para Jogo.', 'Приложения переместятся в «Игру».', '앱은 게임으로 이동합니다.', '其中的應用程式會移到「遊戲」。', '其中的应用程序将移到“游戏”。')),
+    ('Column %d', O('列 %d', 'Colonne %d', 'Columna %d', 'Spalte %d', 'Colonna %d', 'Kolom %d', 'Coluna %d', 'Столбец %d', '열 %d', '欄位 %d', '栏目 %d')),
+]
+
+
+# ---- columns, Move to..., Organize Apps, the trophy page ----
+ENTRIES += [
+    ('Column', O('列', 'Colonne', 'Columna', 'Spalte', 'Colonna', 'Kolom', 'Coluna', 'Столбец', '열', '欄位', '栏目')),
+]

@@ -235,3 +235,55 @@ software, which is slow. Expect stuttering.	via software, che è lento. Aspettat
 ✕  Play anyway          ○  Back	✕  Riproduci comunque          ○  Indietro
 %d song	%d brano
 %d songs	%d brani
+Emulators	Emulatori
+Utilities	Utilità
+Trophy Collection	Collezione trofei
+Trophies	Trofei
+Move to...	Sposta in…
+Move Folder to...	Sposta cartella in…
+Organize Apps	Organizza app
+Sort Apps into Columns	Ordina app nelle colonne
+Emulators Category	Categoria Emulatori
+Utilities Category	Categoria Utilità
+%d app	%d app
+%d apps	%d app
+Moved to %s	Spostato in %s
+%d apps moved to %s	%d app spostate in %s
+%d app sorted	%d app ordinata
+%d apps sorted	%d app ordinate
+Move "%.40s" to	Sposta «%.40s» in
+Move %d apps to	Sposta %d app in
+Move the folder "%.40s" to	Sposta la cartella «%.40s» in
+Now	Attuale
+Move here	Sposta qui
+Move Selected	Sposta selezione
+Move	Sposta
+Nothing to sort: every app is already in its place.	Niente da ordinare: ogni app è già al suo posto.
+Sort apps into columns?	Ordinare le app nelle colonne?
+Sort your apps into columns?	Ordinare le tue app nelle colonne?
+Emulators, utilities, music, video and network apps\nmove to their own columns; games stay in Game.\nApps you placed yourself stay where they are.	Emulatori, utilità e app di musica, video e rete\nvanno nelle loro colonne; i giochi restano in Gioco.\nLe app che hai spostato tu restano dove sono.
+No trophies	Nessun trofeo
+Play a game with trophies first	Prima gioca a un gioco con trofei
+No trophy data for this game yet	Ancora nessun dato sui trofei per questo gioco
+%d of %d	%d su %d
+Hidden Trophy	Trofeo nascosto
+Keep playing to reveal it.	Continua a giocare per scoprirlo.
+Locked	Bloccato
+Apps	App
+No apps here	Nessuna app qui
+Options > Organize Apps	Opzioni > Organizza app
+Arrange Columns	Disponi colonne
+New Column	Nuova colonna
+New column	Nuova colonna
+Rename column	Rinomina colonna
+Rename	Rinomina
+Show / Hide	Mostra / nascondi
+Icon	Icona
+Delete	Elimina
+Drop	Rilascia
+Up / Down: move   Cross: drop	Su / giù: sposta   ✕: rilascia
+Cross: pick up and move	✕: afferra e sposta
+Delete the column "%.40s"?	Eliminare la colonna «%.40s»?
+Its apps move to Game.	Le sue app passano in Gioco.
+Column %d	Colonna %d
+Column	Colonna

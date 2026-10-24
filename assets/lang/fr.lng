@@ -235,3 +235,55 @@ software, which is slow. Expect stuttering.	par logiciel, ce qui est lent. Atten
 ✕  Play anyway          ○  Back	✕  Lire quand même          ○  Retour
 %d song	%d morceau
 %d songs	%d morceaux
+Emulators	Émulateurs
+Utilities	Utilitaires
+Trophy Collection	Collection de trophées
+Trophies	Trophées
+Move to...	Déplacer vers…
+Move Folder to...	Déplacer le dossier vers…
+Organize Apps	Organiser les apps
+Sort Apps into Columns	Trier les apps par colonne
+Emulators Category	Catégorie Émulateurs
+Utilities Category	Catégorie Utilitaires
+%d app	%d app
+%d apps	%d apps
+Moved to %s	Déplacé vers %s
+%d apps moved to %s	%d apps déplacées vers %s
+%d app sorted	%d app triée
+%d apps sorted	%d apps triées
+Move "%.40s" to	Déplacer « %.40s » vers
+Move %d apps to	Déplacer %d apps vers
+Move the folder "%.40s" to	Déplacer le dossier « %.40s » vers
+Now	Actuel
+Move here	Déplacer ici
+Move Selected	Déplacer la sélection
+Move	Déplacer
+Nothing to sort: every app is already in its place.	Rien à trier : chaque app est déjà à sa place.
+Sort apps into columns?	Trier les apps par colonne ?
+Sort your apps into columns?	Trier vos apps par colonne ?
+Emulators, utilities, music, video and network apps\nmove to their own columns; games stay in Game.\nApps you placed yourself stay where they are.	Les émulateurs, utilitaires et apps de musique, vidéo\net réseau vont dans leurs propres colonnes ; les jeux restent dans Jeu.\nLes apps que vous avez placées restent où elles sont.
+No trophies	Aucun trophée
+Play a game with trophies first	Jouez d’abord à un jeu avec trophées
+No trophy data for this game yet	Pas encore de données de trophées pour ce jeu
+%d of %d	%d sur %d
+Hidden Trophy	Trophée caché
+Keep playing to reveal it.	Continuez à jouer pour le révéler.
+Locked	Verrouillé
+Apps	Apps
+No apps here	Aucune app ici
+Options > Organize Apps	Options > Organiser les apps
+Arrange Columns	Organiser les colonnes
+New Column	Nouvelle colonne
+New column	Nouvelle colonne
+Rename column	Renommer la colonne
+Rename	Renommer
+Show / Hide	Afficher / masquer
+Icon	Icône
+Delete	Supprimer
+Drop	Poser
+Up / Down: move   Cross: drop	Haut / bas : déplacer   ✕ : poser
+Cross: pick up and move	✕ : saisir et déplacer
+Delete the column "%.40s"?	Supprimer la colonne « %.40s » ?
+Its apps move to Game.	Ses apps passent dans Jeu.
+Column %d	Colonne %d
+Column	Colonne

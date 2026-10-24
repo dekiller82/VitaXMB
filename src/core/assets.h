@@ -14,7 +14,7 @@ static vita2d_texture *xicon(const char *name)
 }
 
 static vita2d_texture *cat_tex[CAT_COUNT];
-static vita2d_texture *tex_theme, *tex_psp, *tex_exit, *tex_photo_s, *tex_music_s, *tex_video_s, *tex_net_s, *tex_game_s, *tex_savedata_s, *tex_ms_s, *tex_launch, *tex_badge, *tex_browser, *tex_remote, *tex_sharing, *tex_date, *tex_usb, *tex_rss, *tex_manual, *tex_lftv, *tex_folder, *tex_umd;
+static vita2d_texture *tex_theme, *tex_psp, *tex_exit, *tex_photo_s, *tex_music_s, *tex_video_s, *tex_net_s, *tex_game_s, *tex_savedata_s, *tex_ms_s, *tex_launch, *tex_badge, *tex_browser, *tex_remote, *tex_sharing, *tex_date, *tex_usb, *tex_rss, *tex_manual, *tex_lftv, *tex_folder, *tex_umd, *tex_trophy, *tex_trophy_cup;
 
 static void load_icons(void)
 {
@@ -24,6 +24,10 @@ static void load_icons(void)
 	cat_tex[CAT_VIDEO]    = xicon("video");
 	cat_tex[CAT_GAME]     = xicon("game");
 	cat_tex[CAT_NETWORK]  = xicon("network");
+	cat_tex[CAT_EMU]      = xicon("emulator");
+	cat_tex[CAT_UTIL]     = xicon("utility");
+	tex_trophy    = xicon("trophy");
+	tex_trophy_cup = xicon("trophy_cup");
 	tex_theme   = xicon("cnf_theme");
 	tex_psp     = xicon("cnf_psp");
 	tex_exit    = xicon("cnf_save_energy");

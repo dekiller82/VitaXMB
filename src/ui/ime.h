@@ -1,7 +1,7 @@
 #pragma once
 
 /* ---- the system's on-screen keyboard, for naming folders ---- */
-enum { IME_NEW, IME_RENAME };
+enum { IME_NEW, IME_RENAME, IME_MVNEW, IME_COLNEW, IME_COLRENAME };
 static int ime_active, ime_purpose, ime_target, ime_fake;
 static uint16_t ime_title[32], ime_init[SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1], ime_buf[SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1];
 

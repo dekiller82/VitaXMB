@@ -20,6 +20,7 @@ int sqlite3_bind_text(sqlite3_stmt *stmt, int idx, const char *text, int nbytes,
 int sqlite3_step(sqlite3_stmt *stmt);
 const unsigned char *sqlite3_column_text(sqlite3_stmt *stmt, int col);
 int sqlite3_finalize(sqlite3_stmt *stmt);
+int sqlite3_column_int(sqlite3_stmt *stmt, int col);
 #define APPDB_SQLITE_ROW 100
 #define APPDB_SQLITE_OPEN_READONLY 1
 #define APPDB_TRANSIENT ((void (*)(void *))-1)
@@ -56,15 +57,26 @@ static void appdb_begin(void)
 	appdb_state = 0;
 }
 
-static int appdb_open(void)
+/* Loads the system's SQLite module once (the app database and the trophy database both use it). */
+static int sql_ready;
+static int sql_init(void)
 {
-	if (appdb_state) return appdb_state > 0;
-	appdb_state = -1;
+	if (sql_ready) return sql_ready > 0;
+	sql_ready = -1;
 	if (sceSysmoduleLoadModule(SCE_SYSMODULE_SQLITE) < 0) { trace("appdb: SceSqlite did not load\n"); return 0; }
 	/* the module has no allocator of its own: without one every open fails with SQLITE_NOMEM (7) */
 	static SceSqliteMallocMethods mm = { appdb_malloc, appdb_realloc, appdb_free };
 	int cr = sceSqliteConfigMallocMethods(&mm);
 	trace("appdb: allocator set -> %08x\n", cr);
+	sql_ready = 1;
+	return 1;
+}
+
+static int appdb_open(void)
+{
+	if (appdb_state) return appdb_state > 0;
+	appdb_state = -1;
+	if (!sql_init()) return 0;
 	const char *path = appdb_copy() ? APPDB_COPY : APPDB_SRC;
 	int r = sqlite3_open_v2(path, &appdb, APPDB_SQLITE_OPEN_READONLY, NULL);
 	trace("appdb: open %s -> %d\n", path, r);
