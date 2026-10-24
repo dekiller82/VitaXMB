@@ -26,6 +26,8 @@
 - [Starting VitaXMB when the Vita turns on](#starting-vitaxmb-when-the-vita-turns-on)
 - [Building from source](#building-from-source)
 - [How it works](#how-it-works)
+- [PSP games](#psp-games)
+- [Languages](#languages)
 - [Game artwork](#game-artwork)
 - [Music and video](#music-and-video) (video player beta)
 - [Folders](#folders)
@@ -52,7 +54,9 @@
 **Made for the Vita**
 
 - **Game** lists every installed title and homebrew bubble (and your saved data), reads each app's own LiveArea artwork, and starts it. *Information* shows title, ID, version and location.
-- **Last played:** the game you started last sits under Memory Stick with the PSP's UMD icon, like the disc in a PSP's drive. Select it to start the game again.
+- **Last played:** the game you started last sits under Memory Stick with the PSP's UMD icon, like the disc in a PSP's drive. Move the cursor onto it and the disc gives way to the game's own landscape picture (and, for a PSP game, its video and sound), the way the PSP's XMB does it. Select it to start the game again.
+- **All your PSP and PS1 games, with or without a bubble.** Every ISO / CSO in `ux0:pspemu/ISO` and every `EBOOT.PBP` in `ux0:pspemu/PSP/GAME` is listed in *Game* under its real name, with its ICON0 and PIC1 artwork, whether or not Adrenaline made a LiveArea bubble for it. Resting on one plays its **ICON1.PMF video and SND0.AT3 sound**, like the PSP's XMB (see [PSP games](#psp-games)).
+- **The PSP's own languages.** *Settings > System Settings > System Language* switches VitaXMB between the 12 languages of the PSP (Japanese, English, French, Spanish, German, Italian, Dutch, Portuguese, Russian, Korean, Traditional and Simplified Chinese), or follows the Vita's language (*Automatic*). The texts come from the PSP firmware's own language tables; only VitaXMB's own settings are translated by hand. Game, save, music and video titles are never translated (see [Languages](#languages)).
 - **Game boot movie.** Starting a game plays the PSP's own game boot movie, with the start-game jingle and a logo laid over it, and then starts the game. The logo is **PSV / PlayStation Vita** by default; *Game Boot Logo* in *Settings > VitaXMB Settings* switches it to the PSP's own picture (**PSP / PlayStation Portable**).
 - **The PS button stays out of the way inside VitaXMB:** it no longer drops to the LiveArea, like the PSP's XMB (a long press still opens the Vita's quick menu). Leave VitaXMB with *Exit to LiveArea* in Settings.
 - **Touch screen** support for the whole XMB (see [Controls](#controls)).
@@ -198,6 +202,24 @@ The font clone shipped in `assets/font.otf` has been **baseline-normalised**. Th
 
 Any OpenType/TrueType font can be dropped in as `assets/font.otf`.
 
+## PSP games
+
+VitaXMB lists the PSP and PS1 games Adrenaline can run, even those that have no LiveArea bubble:
+
+- **Where it looks:** ISO and CSO files in `ux0:pspemu/ISO`, and every `EBOOT.PBP` in a folder of `ux0:pspemu/PSP/GAME` (homebrew and PS1 games). The title comes from the game's `PARAM.SFO`; ICON0 and PIC1 are cached in `ux0:data/VitaXMB/psp` after the first read. A game that already has a bubble is not listed twice.
+- **Video and sound:** a game's `ICON1.PMF` replaces its icon while the cursor rests on it, and its `SND0.AT3` plays as music, as on the PSP. It is read straight from the ISO / CSO / PBP.
+- **Starting a game without a bubble:** Adrenaline 8 has no way to start an ISO by itself, so VitaXMB uses Adrenaline's *Autorun*: it puts a small PSP program (`ux0:pspemu/PSP/GAME/BOOT/EBOOT.PBP`) in place, sets Adrenaline's start-program option, and starts Adrenaline. The PSP program mounts the game and starts it. VitaXMB puts Adrenaline's option back the next time it starts. If you have the AdrBubbleBooter modules installed, VitaXMB uses a bubble for the games that have one.
+- Adrenaline's own LiveArea bubbles keep working as before.
+
+## Languages
+
+*Settings > System Settings > System Language* chooses *Automatic* (the Vita's language, English when the PSP does not have it) or one of the PSP's 12 languages. The change is immediate and is saved.
+
+- The words of the XMB (categories, the Settings pages, dialogs, the Options panel, the Memory Stick lists and their counts) come from the PSP 6.60 firmware's own language tables, so they read as they do on a PSP. Texts the PSP never had (VitaXMB's own settings, the updater, the NoLiveArea page) are translated by hand.
+- Japanese uses the firmware's `jpn0.pgf` font; Korean and Simplified Chinese use the Vita's own system fonts (the PSP's Korean font stores its letters in a form VitaXMB cannot read).
+- Titles of games, saves, songs and videos are shown as they are.
+- Tools to rebuild the language files from a firmware dump are in `tools/lang`.
+
 ## Game artwork
 
 Rows show the landscape *gate* image of the app's LiveArea and, on rest, its background. They are found in this order: the app's own `sce_sys/livearea` (homebrew), LiveArea's copy in `ur0:appmeta/<id>/livearea`, and the plain `pic0.png` copy in `ur0:appmeta/<id>`.
@@ -296,6 +318,7 @@ Tested on one console: an SD2Vita as `ux0:` plus a real memory card mounted as `
 | Sound Effects | On / Off | UI sounds and music mixing are independent |
 | Startup Animation | On / Off | the PSP boot animation, played once each time the console starts (not every time VitaXMB opens), then fade in + slide in |
 | Game Boot Logo | PSV / PSP | the logo laid over the game boot movie when a game starts: **PSV / PlayStation Vita** (default) or **PSP / PlayStation Portable** (the PSP's own picture) |
+| System Language | Automatic / the 12 PSP languages | *System Settings* page; see [Languages](#languages) |
 | No LiveArea Plugin (beta) | On / Off | installs / removes the bundled NoLiveArea plugin, see [NoLiveArea plugin](#nolivearea-plugin-beta); needs a restart |
 | Confirmation Dialogs | On / Off | asks before leaving the XMB |
 | Game Launch Method | A-D | the system call and flag used to start a title |
@@ -343,6 +366,8 @@ src/theme/                PSP theme loader, RCO runtime, boot intro, theme sound
 src/ui/                   layouts, lists, pages, dialogs, pickers, the video player screen (videoui.h)
 tools/                    build_ffmpeg.sh (+ the stack-size patch) and the scripts that made the music / video pictures
 updater/main.c            the small installer app (VitaXMB Updater)
+psp/launcher/             the small PSP program that starts a game for Adrenaline (built with pspdev into assets/psp/vxmbboot.pbp)
+assets/lang/              the language files (one per PSP language), made by tools/lang
 assets/psp/               the PSP boot intro resource, the game boot movie (gameboot.h264) and the Vita boot logo (psv_logo.png); music/ and video/: the PSP's list and control-panel pictures at native size
 plugin/nolivearea/        the NoLiveArea taiHEN plugin (the built file is assets/plugin/NoLiveArea.suprx)
 sce_sys/                  bubble icon and LiveArea files of the VitaXMB app itself
@@ -361,6 +386,21 @@ Everything in the tree is needed to build (apart from the FFmpeg libraries you b
 ## Changelog
 
 Every release has its own notes and VPK on the [Releases page](https://github.com/dekiller82/VitaXMB/releases). Each version includes everything from the ones before it.
+
+### [1.8.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.8.0) (2026-10-24)
+
+**New**
+
+- **Languages.** *Settings > System Settings > System Language*: Automatic (the Vita's language) or any of the PSP's 12 languages (Japanese, English, French, Spanish, German, Italian, Dutch, Portuguese, Russian, Korean, Traditional and Simplified Chinese). The texts come from the PSP firmware's own language tables; VitaXMB's own settings are translated by hand. Names of games, saves, songs and videos are not translated. Japanese uses the firmware's font, Korean and Simplified Chinese the Vita's system fonts.
+- **PSP and PS1 games without a bubble.** Every ISO / CSO in `ux0:pspemu/ISO` and every `EBOOT.PBP` in `ux0:pspemu/PSP/GAME` is listed in *Game* with its real name, ICON0 and PIC1. They start through Adrenaline's Autorun with a small PSP launcher that ships inside VitaXMB; Adrenaline's start option is put back the next time VitaXMB starts.
+- **PSP game video and sound.** On a PSP game, ICON1.PMF plays in place of the icon and SND0.AT3 plays as music, like the PSP's XMB (FFmpeg now includes the ATRAC3 / ATRAC3+ decoders).
+- **The Last Played disc** shows the UMD until the cursor is on it, then changes into the game's landscape picture (and its video and sound), with the title beside it, in the size of the game list's tile.
+
+**Changed**
+
+- The *Memory Stick* lines (free space, song and game counts, "Open in Photos") and the Settings category names follow the chosen language.
+- The *Known issues* entry about the LiveArea bubble transition now points to the NoLiveArea plugin.
+- This release is built without any debug hooks (`VITAXMB_DEBUG` and the plugin's `NLA_DEBUG` are off).
 
 ### [1.7.2](https://github.com/dekiller82/VitaXMB/releases/tag/v1.7.2) (2026-10-23)
 
@@ -526,7 +566,7 @@ First release.
 
 ## Known issues
 
-- **Starting a game shows the Vita's LiveArea bubble transition** before the game appears. The system draws it whenever one app starts another, so no launcher (VitaShell and vita-launcher included) can skip it; only a shell-level plugin could.
+- **Starting a game shows the Vita's LiveArea bubble transition** before the game appears. The system draws it whenever one app starts another, so no launcher (VitaShell and vita-launcher included) can skip it; only a shell-level plugin could. VitaXMB's own [NoLiveArea plugin](#nolivearea-plugin-beta) is that plugin: with it installed the bubble transition stays out of sight (the screen stays black while the game loads).
 - **System apps cannot be started by title ID** from an app (the Vita shows error `C2-12570-5`). VitaXMB therefore opens them through their own URI schemes (`wbapp0:` Browser, `settings_dlg:` Settings, `psns:` PlayStation Store, `pspy:` Party, `psnmsg:` Messages, `near:` Near, `photo:`, `music:`, `video:`). The Browser and the Settings pages are confirmed to work; the others come from a working third-party launcher but have not been tried on every setup.
 - If launch requests are being refused (the call returns `0x80802026` in a debug build), the console's app manager is in a bad state: reboot the Vita.
 - `ux0:music`, `ux0:video` and `ux0:picture` cannot be read by apps; use the Adrenaline folders or the Vita's own apps.

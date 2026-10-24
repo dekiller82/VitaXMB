@@ -13,10 +13,11 @@ include("${VITASDK}/share/vita.cmake" REQUIRED)
 
 set(VITA_APP_NAME "VitaXMB")
 set(VITA_TITLEID  "VXMB00001")
-set(VITA_VERSION  "01.72")
-set(APP_VERSION   "1.7.2")      # the same release as VITA_VERSION, as the updater compares it with the GitHub tag
+set(VITA_VERSION  "01.80")
+set(APP_VERSION   "1.8.0")      # the same release as VITA_VERSION, as the updater compares it with the GitHub tag
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2 -std=gnu11")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2 -std=gnu11 -ffunction-sections -fdata-sections")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")      # the FFmpeg libraries bring more code than the app uses: fewer relocations for vita-elf-create, a smaller eboot
 
 add_executable(${PROJECT_NAME} src/main.c third_party/dr_libs/stb_vorbis.c)
 set_source_files_properties(third_party/dr_libs/stb_vorbis.c PROPERTIES COMPILE_DEFINITIONS "STB_VORBIS_NO_STDIO;STB_VORBIS_NO_PUSHDATA_API")
@@ -43,7 +44,7 @@ target_link_libraries(${PROJECT_NAME}
   SceAppMgr_stub SceRtc_stub ScePower_stub SceIofilemgr_stub
   SceKernelThreadMgr_stub SceProcessmgr_stub SceAudio_stub
   VitaShellUser_stub_weak taihen_stub SceVshBridge_stub SceLibKernel_stub
-  SceShellSvc_stub SceTouch_stub SceNet_stub SceNetCtl_stub ScePromoterUtil_stub SceRegistryMgr_stub SceSqlite_stub
+  SceAppUtil_stub SceShellSvc_stub SceTouch_stub SceNet_stub SceNetCtl_stub ScePromoterUtil_stub SceRegistryMgr_stub SceSqlite_stub
 )
 
 # Bundle everything under assets/ at the same relative path inside app0:

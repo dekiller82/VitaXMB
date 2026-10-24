@@ -6,7 +6,7 @@
 /* ------------------------------------------------------------------ */
 
 #define ATLAS_W 2048
-#define ATLAS_H 1024
+#define ATLAS_H 2048
 #define GLYPH_SLOTS 4096        /* power of two */
 #define GLYPH_PAD 2
 #define SHADOW_PAD 8
@@ -159,16 +159,25 @@ static Glyph *glyph_get(uint32_t cp, unsigned int size, int sub)
 		if (g->key == 0) {
 			if (atlas_dirty) return NULL;
 
-			if (cp & 0x100000) {                 /* a glyph of the theme's PGF font */
+			if (cp & 0x100000) {                 /* a glyph of a PGF font: the UI's (the theme's or the stock one), a fallback, or a Chinese bitmap */
 				PtGlyph pg;
+				int fi = (int)((cp >> 16) & 15);
 				g->key = key;
 				g->aw = g->ah = g->sw = g->sh = 0;
 				g->adv = 0;
-				if (!pt_font || !pt_glyph(pt_font, cp & 0xFFFFF, &pg)) return g;
 				float sc = pt_font_scale(size);
-				g->adv = pg.adv / 64.0f * sc;
-				uint8_t *src = pt_glyph_bitmap(pt_font, &pg);
-				if (!src) return g;
+				uint8_t *src = NULL;
+				if (fi == PF_SYS) {                                            /* the Vita's system font, at the PGF fonts' scale */
+					if (!pt_sys_glyph(cp & 0xFFFF, &pg, &src)) return g;
+					g->adv = pg.adv / 64.0f * sc;
+					if (!src) return g;
+				} else {
+					PtFont *pf = pt_fb_font(fi);
+					if (!pf || !pt_glyph(pf, cp & 0xFFFF, &pg)) return g;
+					g->adv = pg.adv / 64.0f * sc;
+					src = pt_glyph_bitmap(pf, &pg);
+					if (!src) return g;
+				}
 				/* place the scaled bitmap with its top-left at (left, -top) from the pen, shifted by sub/4 px */
 				float x0 = pg.left * sc + sub * 0.25f, y0 = -pg.top * sc;
 				int ox0 = (int)floorf(x0), oy0 = (int)floorf(y0);
@@ -310,12 +319,18 @@ static int text_shape(unsigned int size, const char *s, Shaped *out)
 		while (*u && n < MAX_SHAPED) {
 			uint32_t cp;
 			if (u[0] < 0x80) { cp = u[0]; u += 1; }
-			else if ((u[0] & 0xE0) == 0xC0 && u[1]) { cp = ((u[0] & 0x1F) << 6) | (u[1] & 0x3F); u += 2; }
-			else if ((u[0] & 0xF0) == 0xE0 && u[1] && u[2]) { cp = ((u[0] & 0x0F) << 12) | ((u[1] & 0x3F) << 6) | (u[2] & 0x3F); u += 3; }
+			else if ((u[0] & 0xE0) == 0xC0 && (u[1] & 0xC0) == 0x80) { cp = ((u[0] & 0x1F) << 6) | (u[1] & 0x3F); u += 2; }
+			else if ((u[0] & 0xF0) == 0xE0 && (u[1] & 0xC0) == 0x80 && (u[2] & 0xC0) == 0x80) { cp = ((u[0] & 0x0F) << 12) | ((u[1] & 0x3F) << 6) | (u[2] & 0x3F); u += 3; }
 			else { ok = 0; break; }
 			float adv = pt_font_adv(cp, size);
-			if (adv < 0) { ok = 0; break; }
-			out[n].gid = 0x100000u | cp; out[n].adv = adv; out[n].xoff = 0; n++;
+			int fi = PF_UI;
+			if (adv < 0) {                                                  /* kana, kanji and Hangul come from the firmware's other fonts */
+				float a1;
+				fi = pt_fb_pick(cp, &a1);
+				if (!fi) { ok = 0; break; }
+				adv = a1 * pt_font_scale(size);
+			}
+			out[n].gid = 0x100000u | ((uint32_t)fi << 16) | cp; out[n].adv = adv; out[n].xoff = 0; n++;
 		}
 		if (ok && n) return n;
 	}
@@ -382,6 +397,7 @@ static void text_draw(float x, float y, unsigned int col, unsigned int size, con
 			int sub = (int)((px - fl) * 4.0f + 0.5f);
 			int gx = (int)fl;
 			if (sub == 4) { sub = 0; gx++; }
+			if ((sh[i].gid & 0x100000) && ((sh[i].gid >> 16) & 15)) { sub = 0; gx = (int)floorf(px + 0.5f); }          /* kana, kanji and Hangul: no quarter-pixel positions, a quarter of the pictures to keep */
 			Glyph *g = glyph_get(sh[i].gid, size, sub);
 			if (g) {
 				/* vita2d's rotate-style draw takes the CENTRE of the quad, hence +w/2, +h/2 */

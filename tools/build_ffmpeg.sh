@@ -18,7 +18,7 @@ cd "$SRC"
 python3 "$HERE/ffmpeg_vita_patch.py" "$SRC" || python "$HERE/ffmpeg_vita_patch.py" "$SRC"
 
 VIDEO_DEC=h264,hevc,mpeg4,msmpeg4v1,msmpeg4v2,msmpeg4v3,mpeg2video,mpeg1video,vp8,vp9,vc1,wmv1,wmv2,wmv3,h263,h263p,flv,mjpeg,theora,rv10,rv20,rv30,rv40,cinepak
-AUDIO_DEC=aac,aac_latm,ac3,eac3,dca,mp1,mp2,mp3,flac,vorbis,opus,alac,wmav1,wmav2,wmapro,pcm_s16le,pcm_s16be,pcm_s24le,pcm_s24be,pcm_s32le,pcm_s8,pcm_u8,pcm_f32le,adpcm_ms,adpcm_ima_wav,adpcm_ima_qt,truehd,mlp,ape,wavpack,tta,cook
+AUDIO_DEC=atrac3,atrac3p,aac,aac_latm,ac3,eac3,dca,mp1,mp2,mp3,flac,vorbis,opus,alac,wmav1,wmav2,wmapro,pcm_s16le,pcm_s16be,pcm_s24le,pcm_s24be,pcm_s32le,pcm_s8,pcm_u8,pcm_f32le,adpcm_ms,adpcm_ima_wav,adpcm_ima_qt,truehd,mlp,ape,wavpack,tta,cook
 SUB_DEC=subrip,srt,ass,ssa,webvtt,mov_text,dvdsub,dvbsub,pgssub,text
 DEMUX=matroska,mov,avi,asf,mpegts,mpegps,mpegvideo,flv,ogg,mp3,flac,wav,aac,ac3,eac3,dts,dtshd,h264,hevc,m4v,aiff,ape,wv,tta,srt,ass,webvtt,mpjpeg,rm,truehd,mlp,vc1
 PARSERS=h264,hevc,mpeg4video,mpegvideo,mpegaudio,aac,aac_latm,ac3,dca,flac,vorbis,opus,vp8,vp9,vc1,h263,mjpeg,dvdsub,dvbsub

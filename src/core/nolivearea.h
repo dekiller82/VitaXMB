@@ -253,13 +253,13 @@ static void nla_toggle(void)
 {
 	if (nla_enabled()) {
 		int r = nla_remove();
-		if (r) note_show("Could not remove the plugin (%s)", r == -2 ? "no config.txt" : "config not writable");
-		else { note_show("NoLiveArea removed.", NULL); nla_reboot_ask = 1; }
+		if (r) note_show(T("Could not remove the plugin (%s)"), r == -2 ? T("no config.txt") : T("config not writable"));
+		else { note_show(T("NoLiveArea removed."), NULL); nla_reboot_ask = 1; }
 	} else {
 		int r = nla_install();
-		if (r == -1) note_show("The plugin file is missing from this install%s", "");
-		else if (r) note_show("Could not install the plugin (code %s)", r == -2 ? "no config.txt" : (r == -3 ? "copy failed" : "config not writable"));
-		else { note_show("NoLiveArea installed.", NULL); nla_reboot_ask = 1; }
+		if (r == -1) note_show(T("The plugin file is missing from this install%s"), "");
+		else if (r) note_show(T("Could not install the plugin (code %s)"), r == -2 ? T("no config.txt") : (r == -3 ? T("copy failed") : T("config not writable")));
+		else { note_show(T("NoLiveArea installed."), NULL); nla_reboot_ask = 1; }
 	}
 }
 

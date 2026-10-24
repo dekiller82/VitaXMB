@@ -599,7 +599,7 @@ static void scan_music(void)
 			}
 	}
 	qsort(menus[M_TRACKS].items, menus[M_TRACKS].count, sizeof(Item), item_cmp);
-	if (menus[M_TRACKS].count == 0) add_item(M_TRACKS, KIND_INFO, "No songs", "Put MP3, FLAC, OGG, WAV or AIFF files in ux0:music", NULL, tex_music_s);
+	if (menus[M_TRACKS].count == 0) { int keep = items_tr; items_tr = 3; add_item(M_TRACKS, KIND_INFO, "No songs", "Put MP3, FLAC, OGG, WAV or AIFF files in ux0:music", NULL, tex_music_s); items_tr = keep; }
 	if (menus[M_TRACKS].sel >= menus[M_TRACKS].count) menus[M_TRACKS].sel = 0;
 	music_index = -1;
 }
@@ -767,8 +767,8 @@ static void draw_track_row(const Item *it, int number, float y, float xoff, floa
 	}
 
 	float maxw = 820.0f - tx;
-	ptext_vc_fit(tx - text_bearing(28, it->title), y - 20, WHITE(a), 28, it->title, maxw);
-	if (it->sub[0]) ptext_vc_fit(tx - text_bearing(22, it->sub), y + 22, WHITE(a), 22, it->sub, maxw);
+	ptext_vc_fit(tx - text_bearing(28, item_title(it)), y - 20, WHITE(a), 28, item_title(it), maxw);
+	if (item_sub(it)[0]) ptext_vc_fit(tx - text_bearing(22, item_sub(it)), y + 22, WHITE(a), 22, item_sub(it), maxw);
 	else if (sel < 0.5f) ptext_vc_fit(tx - text_bearing(22, "-"), y + 22, WHITE(a), 22, "-", maxw);   /* no artist: the PSP shows a dash */
 	if (sel > 0.3f) {
 		draw_rule(tx - 1, 948, y, (int)(a * clampf(sel * 1.4f - 0.2f, 0.0f, 1.0f)));
@@ -807,9 +807,9 @@ static void draw_player(float alpha, int closing)
 		char num[8];
 		snprintf(num, sizeof(num), "%d", music_index + 1);
 		ptext_vc(74 - ptext_width(34, num) / 2.0f, 112, WHITE(a), 34, num);
-		ptext_vc_fit(150 - text_bearing(30, it->title), 91, WHITE(a), 30, it->title, 790.0f);
+		ptext_vc_fit(150 - text_bearing(30, item_title(it)), 91, WHITE(a), 30, item_title(it), 790.0f);
 		draw_rule(150, 948, 106, a);
-		if (it->sub[0]) ptext_vc_fit(150 - text_bearing(24, it->sub), 133, WHITE(a), 24, it->sub, 640.0f);
+		if (item_sub(it)[0]) ptext_vc_fit(150 - text_bearing(24, item_sub(it)), 133, WHITE(a), 24, item_sub(it), 640.0f);
 		draw_mp3_pill(828, 119, a, it->path);
 	}
 
@@ -869,8 +869,8 @@ static void draw_column(int m, float xoff, float amul, float grow, float sub_p)
 		const float bottom = 352.0f, cx = 480.0f + xoff;
 		draw_icon_wh(tex, cx, bottom - h / 2.0f, w, h, a);
 		if (!(themed && th >= 70.0f)) {
-			ptext_vc(cx - ptext_width(PT_TITLE(28), it->title) / 2.0f, bottom + 28.0f, WHITE(a), PT_TITLE(28), it->title);
-			if (it->sub[0]) ptext_vc(cx - ptext_width(PT_SUB(22), it->sub) / 2.0f, bottom + 58.0f, WHITE(a * 8 / 10), PT_SUB(22), it->sub);
+			ptext_vc(cx - ptext_width(PT_TITLE(28), item_title(it)) / 2.0f, bottom + 28.0f, WHITE(a), PT_TITLE(28), item_title(it));
+			if (item_sub(it)[0]) ptext_vc(cx - ptext_width(PT_SUB(22), item_sub(it)) / 2.0f, bottom + 58.0f, WHITE(a * 8 / 10), PT_SUB(22), item_sub(it));
 		}
 		return;
 	}
@@ -897,7 +897,33 @@ static void draw_column(int m, float xoff, float amul, float grow, float sub_p)
 
 		float ix = icon_x + xoff;
 		if (m == CAT_SETTINGS && sp < 0.5f && (pt_owned(pt_swap(it->stock)) || it->icon)) ix += (218.0f - 207.0f) * (1.0f - sp);   /* a theme's own icons have no hanging wrench badge: centre them under the category icon */
-		if (it->icon && it->icon_rect) {
+		/* the UMD (the game started last): the disc until the cursor is on it, then the game's landscape picture in a tile like the game list's,
+		 * the film (ICON1.PMF) once that plays; the title moves right to stay clear of the tile */
+		const int disc = (it->tr & 4) != 0 && sp < 0.01f;
+		vita2d_texture *gpic = disc ? pm_icon_tex_for(it) : NULL;
+		if (disc && !gpic) gpic = it->icon;
+		const float dmix = disc && gpic ? clampf(emph * 1.25f, 0.0f, 1.0f) : 0.0f;
+		if (disc) {
+			if (it->stock && dmix < 0.995f) {
+				vita2d_texture *tex = pt_swap(it->stock);
+				float isz = lerpf(112.0f, 120.0f, sel) * pt_menu_scale + 36.0f * grow * sel;
+				int da = (int)(a * (1.0f - dmix));
+				if (it->glow > 0.02f) draw_glow(tex, ix, y, isz, it->glow * 0.95f * (da / 255.0f));
+				draw_icon(tex, ix, y, isz, da);
+			}
+			if (gpic && dmix > 0.005f) {
+				float w = 150.0f + 30.0f * grow * sel;                          /* the game list's own tile size */
+				float h = w * vita2d_texture_get_height(gpic) / vita2d_texture_get_width(gpic);
+				const float bw = w, bh = h;
+				int ga = (int)(a * dmix);
+				if (gpic == it->icon && !it->icon_rect) {                      /* not landscape art: framed like the game list does */
+					vita2d_draw_rectangle(ix - bw / 2 + 2, y - bh / 2 + 3, bw, bh, RGBA8(0, 0, 0, ga * 25 / 100));
+					vita2d_draw_rectangle(ix - bw / 2, y - bh / 2, bw, bh, RGBA8(18, 28, 38, ga * 80 / 100));
+					vita2d_draw_rectangle(ix - bw / 2, y - bh / 2, bw, 2, WHITE(ga * 35 / 100));
+				}
+				draw_icon_wh(gpic, ix, y, w, h, ga);
+			}
+		} else if (it->icon && it->icon_rect) {
 			/* LiveArea gate image: a landscape rectangle like the PSP's ICON0 */
 			float w = 150.0f + 30.0f * grow * sel;
 			float h = w * vita2d_texture_get_height(it->icon) / vita2d_texture_get_width(it->icon);
@@ -915,13 +941,14 @@ static void draw_column(int m, float xoff, float amul, float grow, float sub_p)
 		int ta = (int)(a * (1.0f - sp));
 		if (ta <= 4) continue;
 		float tx = text_x + xoff;
-		float maxw = SCREEN_W - 24.0f - text_x;
-		if (it->sub[0]) {
-			ptext_vc_row(tx - text_bearing(PT_TITLE(28), it->title), y - 20, WHITE(ta), PT_TITLE(28), it->title, maxw, emph > 0.5f);
-			ptext_vc_row(tx - text_bearing(PT_SUB(22), it->sub), y + 22, WHITE(ta), PT_SUB(22), it->sub, maxw, emph > 0.5f);
+		if (dmix > 0.0f) tx = lerpf(tx, ix + 90.0f + 22.0f, dmix);               /* right of the tile */
+		float maxw = SCREEN_W - 24.0f - (tx - xoff);
+		if (item_sub(it)[0]) {
+			ptext_vc_row(tx - text_bearing(PT_TITLE(28), item_title(it)), y - 20, WHITE(ta), PT_TITLE(28), item_title(it), maxw, emph > 0.5f);
+			ptext_vc_row(tx - text_bearing(PT_SUB(22), item_sub(it)), y + 22, WHITE(ta), PT_SUB(22), item_sub(it), maxw, emph > 0.5f);
 			if (emph > 0.3f) draw_rule(tx - 1, 950, y, (int)(ta * clampf(emph * 1.4f - 0.2f, 0.0f, 1.0f)));
 		} else {
-			ptext_vc_row(tx - text_bearing(PT_TITLE(28), it->title), y, WHITE(ta), PT_TITLE(28), it->title, maxw, emph > 0.5f);
+			ptext_vc_row(tx - text_bearing(PT_TITLE(28), item_title(it)), y, WHITE(ta), PT_TITLE(28), item_title(it), maxw, emph > 0.5f);
 		}
 	}
 }

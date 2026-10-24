@@ -12,6 +12,7 @@
 #include "core/common.h"
 #include "render/xform.h"
 #include "theme/paf.h"
+#include "core/lang.h"
 #include "core/data.h"
 #include "core/assets.h"
 #include "media/sound.h"
@@ -36,6 +37,8 @@
 #include "core/folders.h"
 #include "core/lastplayed.h"
 #include "core/appdb.h"
+#include "core/pspimg.h"
+#include "core/pspgames.h"
 #include "core/scan.h"
 #include "core/nolivearea.h"
 #include "core/settings.h"
@@ -61,6 +64,7 @@
 #include "media/video.h"
 #include "media/avp.h"
 #include "media/gameboot.h"
+#include "media/pspmedia.h"
 #include <psp2/shellutil.h>
 #include "ui/videoui.h"
 #include "core/remote.h"
@@ -83,9 +87,11 @@ int main(void)
 	menus_init();
 	ensure_dirs();
 	config_load();
+	lang_apply();
 	pt_init();
 	nla_on = nla_enabled();
 	if (nla_on && nla_bundled()) nla_refresh();          /* a VitaXMB update brings a new plugin file: copy it over, a restart follows */
+	psp_autorun_restore();                                 /* Adrenaline's Autorun, switched on to start a PSP game, goes back */
 	build_menus();
 	for (int mi = 0; mi < M_COUNT; mi++)
 		for (int ji = 0; ji < menus[mi].count; ji++)
@@ -178,13 +184,13 @@ int main(void)
 	if (!nla_asked && nla_bundled() && !nla_on) {      /* first start: offer the NoLiveArea plugin once */
 		nla_asked = 1;
 		config_save();
-		snprintf(dlg_l1, sizeof(dlg_l1), "Install the NoLiveArea plugin?");
-		snprintf(dlg_l2, sizeof(dlg_l2), "%s", NLA_ASK_TEXT);
+		snprintf(dlg_l1, sizeof(dlg_l1), "%s", T("Install the NoLiveArea plugin?"));
+		snprintf(dlg_l2, sizeof(dlg_l2), "%s", T(NLA_ASK_TEXT));
 		dlg_action = ACT_NLA_DO; dlg_item = NULL; dlg_sel = 1; dlg_open = 1;
 	}
 	if (nla_on && nla_restart_pending()) {              /* the plugin file was replaced by an update: the old build is still loaded */
-		snprintf(dlg_l1, sizeof(dlg_l1), "Restart required");
-		snprintf(dlg_l2, sizeof(dlg_l2), "%s", NLA_NEWS);
+		snprintf(dlg_l1, sizeof(dlg_l1), "%s", T("Restart required"));
+		snprintf(dlg_l2, sizeof(dlg_l2), "%s", T(NLA_NEWS));
 		dlg_action = ACT_REBOOT_DO; dlg_item = NULL; dlg_sel = 0; dlg_open = 1; dlg_force = 1;
 	}
 	for (;;) {
@@ -567,7 +573,7 @@ int main(void)
 		/* ---- carry out whatever the UI asked for ---- */
 		if (act == ACT_EXIT_ASK) {
 			if (confirm_dialogs) {
-				snprintf(dlg_l1, sizeof(dlg_l1), "Exit VitaXMB and return to the LiveArea?");
+				snprintf(dlg_l1, sizeof(dlg_l1), "%s", T("Exit VitaXMB and return to the LiveArea?"));
 				dlg_l2[0] = 0;
 				dlg_action = ACT_EXIT_DO; dlg_item = NULL; dlg_sel = 0; dlg_open = 1;
 				act = ACT_NONE;
@@ -576,27 +582,27 @@ int main(void)
 			}
 		} else if (act == ACT_DELFOLDER_ASK) {
 			if (opt_folder >= 0 && opt_folder < n_folders) {
-				snprintf(dlg_l1, sizeof(dlg_l1), "Delete the folder \"%.40s\"?", folder_name[opt_folder]);
-				snprintf(dlg_l2, sizeof(dlg_l2), "The games stay installed.");
+				snprintf(dlg_l1, sizeof(dlg_l1), T("Delete the folder \"%.40s\"?"), folder_name[opt_folder]);
+				snprintf(dlg_l2, sizeof(dlg_l2), "%s", T("The games stay installed."));
 				dlg_action = ACT_DELFOLDER_DO; dlg_item = NULL; dlg_sel = 1; dlg_open = 1;
 			}
 			act = ACT_NONE;
 		} else if (act == ACT_NLA_ASK) {
-			snprintf(dlg_l1, sizeof(dlg_l1), "Install the NoLiveArea plugin?");
-			snprintf(dlg_l2, sizeof(dlg_l2), "%s", NLA_ASK_TEXT);
+			snprintf(dlg_l1, sizeof(dlg_l1), "%s", T("Install the NoLiveArea plugin?"));
+			snprintf(dlg_l2, sizeof(dlg_l2), "%s", T(NLA_ASK_TEXT));
 			dlg_action = ACT_NLA_DO; dlg_item = NULL; dlg_sel = 1; dlg_open = 1;
 			act = ACT_NONE;
 		} else if (act == ACT_ARTDEC_ASK) {
-			snprintf(dlg_l1, sizeof(dlg_l1), "Decrypt game artwork?");
-			snprintf(dlg_l2, sizeof(dlg_l2), "Loads VitaShell's kernel modules. Experimental.");
+			snprintf(dlg_l1, sizeof(dlg_l1), "%s", T("Decrypt game artwork?"));
+			snprintf(dlg_l2, sizeof(dlg_l2), "%s", T("Loads VitaShell's kernel modules. Experimental."));
 			dlg_action = ACT_ARTDEC_DO; dlg_item = NULL; dlg_sel = 1; dlg_open = 1;
 			act = ACT_NONE;
 		}
 
 		if (nla_reboot_ask && !dlg_open && act == ACT_NONE) {      /* the plugin list changed: taiHEN only reads it at start */
 			nla_reboot_ask = 0;
-			snprintf(dlg_l1, sizeof(dlg_l1), "Restart the Vita now?");
-			snprintf(dlg_l2, sizeof(dlg_l2), "The plugin change applies after a restart.");
+			snprintf(dlg_l1, sizeof(dlg_l1), "%s", T("Restart the Vita now?"));
+			snprintf(dlg_l2, sizeof(dlg_l2), "%s", T("The plugin change applies after a restart."));
 			dlg_action = ACT_REBOOT_DO; dlg_item = NULL; dlg_sel = 0; dlg_open = 1;
 		}
 
@@ -632,13 +638,13 @@ int main(void)
 		case ACT_NEWFOLDER: {
 			char nm[40];
 			folder_default_name(nm, sizeof(nm));
-			ime_begin("New folder", nm, IME_NEW, -1);
+			ime_begin(T("New folder"), nm, IME_NEW, -1);
 			break; }
 		case ACT_SELECT:
 			if (opt_folder >= 0 && opt_folder < n_folders) pk_start(opt_folder);
 			break;
 		case ACT_RENAME:
-			if (opt_folder >= 0 && opt_folder < n_folders) ime_begin("Rename folder", folder_name[opt_folder], IME_RENAME, opt_folder);
+			if (opt_folder >= 0 && opt_folder < n_folders) ime_begin(T("Rename folder"), folder_name[opt_folder], IME_RENAME, opt_folder);
 			break;
 		case ACT_DELFOLDER_DO:
 			if (opt_folder >= 0 && opt_folder < n_folders) {
@@ -743,6 +749,8 @@ int main(void)
 			if (pic_alpha < 0.002f) pic_alpha = 0.0f;
 		}
 
+		pm_tick(dwell_item, dwell_t, !launching && !opt_open && page_open == PAGE_NONE && !dlg_open && (cur == M_MEMCARD || cur == M_FOLDER || cur == CAT_GAME));      /* a PSP game bubble: its film and its sound */
+
 		/* ---------------- music upkeep ---------------- */
 		if (music_index >= 0 && mus_ready && mus_eof && mus_w == mus_r) {      /* track finished: next one */
 			int total = menus[M_TRACKS].count;
@@ -772,7 +780,7 @@ int main(void)
 			for (int i = 0; i < menus[CAT_SETTINGS].count; i++) {
 				Item *ui = &menus[CAT_SETTINGS].items[i];
 				if (ui->kind == KIND_PAGE && ui->value_id == PAGE_UPDATE) {
-					if (upd_found) snprintf(ui->sub, sizeof(ui->sub), "Update available: %s", upd_tag); else ui->sub[0] = 0;
+					if (upd_found) snprintf(ui->sub, sizeof(ui->sub), T("Update available: %s"), upd_tag); else ui->sub[0] = 0;
 				}
 			}
 		}
@@ -919,8 +927,8 @@ int main(void)
 			if (i != cat) a = (int)(a * (1.0f - hide));         /* only the open category stays */
 			if (a > 2) draw_icon(pt_cat[i] ? pt_cat[i] : cat_tex[i], x, CAT_Y, size, a);
 			if (sel > 0.3f)
-				ptext_vc(x - ptext_width(22, cat_names[i]) / 2.0f, CAT_Y + 58,
-				         WHITE((int)(255 * sel * (1.0f - fe) * su_bar)), 22, cat_names[i]);
+				ptext_vc(x - ptext_width(22, T(cat_names[i])) / 2.0f, CAT_Y + 58,
+				         WHITE((int)(255 * sel * (1.0f - fe) * su_bar)), 22, T(cat_names[i]));
 		}
 
 		/* Lists. Each column is pinned to its category's x, so it travels with the bar.

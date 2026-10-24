@@ -9,7 +9,7 @@ static const char *cat_names[CAT_COUNT] = { "Settings", "Photo", "Music", "Video
 
 enum { KIND_INFO, KIND_APP, KIND_EXIT, KIND_FOLDER, KIND_VALUE, KIND_URI, KIND_PAGE, KIND_TRACK, KIND_VIDEO };
 /* values for KIND_VALUE rows */
-enum { SET_THEME, SET_CLOCK, SET_SOUND, SET_STARTUP, SET_CONFIRM, SET_LAUNCH, SET_ART, SET_EXTRA, SET_CUSTOM, SET_AUTOUPDATE, SET_BATTPCT, SET_NOLA, SET_BOOTLOGO, SET_SHOW };   /* SET_SHOW + category: show / hide that category */
+enum { SET_THEME, SET_CLOCK, SET_SOUND, SET_STARTUP, SET_CONFIRM, SET_LAUNCH, SET_ART, SET_EXTRA, SET_CUSTOM, SET_AUTOUPDATE, SET_BATTPCT, SET_NOLA, SET_BOOTLOGO, SET_LANG, SET_SHOW };   /* SET_SHOW + category: show / hide that category */
 /* values for KIND_PAGE rows */
 enum { PAGE_NONE, PAGE_SYSINFO, PAGE_GAMEINFO, PAGE_PLAYER, PAGE_UPDATE, PAGE_VIDEO };
 
@@ -43,7 +43,13 @@ typedef struct {
 	float glow;                /* 0..1, eases to 1 on the selected row (snappier than the scroll animation) */
 	char uri[96];              /* KIND_URI: what to launch */
 	char path[256];            /* files: where it lives (videos, ...) */
+	int tr;                    /* 1: the title, 2: the subtitle is one of the UI's own texts, shown through T() */
 } Item;
+
+static int items_tr;           /* add_item gives new items this tr */
+static const char *T(const char *en);
+static const char *item_title(const Item *it) { return (it->tr & 1) ? T(it->title) : it->title; }
+static const char *item_sub(const Item *it) { return (it->tr & 2) ? T(it->sub) : it->sub; }
 
 typedef struct {
 	Item *items;            /* heap array of cap entries (menus_init) */

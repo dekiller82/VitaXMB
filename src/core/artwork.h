@@ -60,6 +60,7 @@ static void resolve_meta_impl(Item *it)
 	if (it->meta_resolved) return;
 	it->meta_resolved = 1;
 	if (it->kind != KIND_APP || !it->id[0]) return;
+	if (it->path[0]) return;                                         /* a PSP game of Adrenaline's folders: its icon and background are the files psp_add_game cached */
 
 	char d[112];
 	snprintf(d, sizeof(d), CACHE_ROOT "/%s/", it->id);
@@ -143,9 +144,9 @@ static void update_game_counts(void)
 	uint64_t max_size = 0, free_size = 0;
 	if (sceAppMgrGetDevInfo("ux0:", &max_size, &free_size) >= 0 && max_size) {
 		if (free_size >= (1ULL << 30))
-			snprintf(card->sub, sizeof(card->sub), "Free Space  %u GB", (unsigned)((free_size + (1ULL << 29)) >> 30));
+			snprintf(card->sub, sizeof(card->sub), T("Free Space  %u GB"), (unsigned)((free_size + (1ULL << 29)) >> 30));
 		else
-			snprintf(card->sub, sizeof(card->sub), "Free Space  %u MB", (unsigned)(free_size >> 20));
+			snprintf(card->sub, sizeof(card->sub), T("Free Space  %u MB"), (unsigned)(free_size >> 20));
 	} else {
 		card->sub[0] = 0;
 	}

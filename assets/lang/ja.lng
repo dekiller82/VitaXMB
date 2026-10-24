@@ -1,0 +1,247 @@
+Settings	設定
+Photo	フォト
+Music	ミュージック
+Video	ビデオ
+Game	ゲーム
+Network	ネットワーク
+System Settings	本体設定
+Theme Settings	テーマ設定
+Network Settings	ネットワーク設定
+System Information	本体情報
+System Language	表示言語
+System Update	システムアップデート
+Color	カラー
+Custom Theme (beta)	カスタムテーマ (beta)
+Wi-Fi Settings	ワイヤレスLAN設定
+Memory Stick™	メモリースティック™
+Internet Browser	インターネットブラウザー
+Saved Data Utility	セーブデータ管理
+PlayStation Store	PlayStation®Store
+Automatic	自動
+Automatic (by month)	月ごと
+12-hour	12時間
+24-hour	24時間
+Off	切
+On	入
+Off (none found)	オフ(見つかりません)
+On (none)	オン(なし)
+On (%s)	入 (%s)
+On (%d cards)	オン(%d 枚)
+Hidden	非表示
+Shown	表示
+Unavailable	利用できません
+Information	情報
+Start	起動
+Options	オプション
+Yes	はい
+No	いいえ
+Cancel	中止
+Select	選択
+Back	戻る
+Done	完了
+All / None	すべて / なし
+Refresh List	リストを更新
+New Folder	新しいフォルダー
+Select Games	ゲームを選ぶ
+Rename Folder	フォルダー名を変更
+Delete Folder	フォルダーを削除
+Remove from Folder	フォルダーから外す
+New folder	新しいフォルダー
+Rename folder	フォルダー名を変更
+Network Update	ネットワークアップデート
+Exit to LiveArea	LiveAreaに戻る
+VitaXMB Settings	VitaXMB設定
+Vita System Settings	Vitaシステム設定
+Vita Themes	Vitaのテーマ
+Sign In to PlayStation Network	PlayStation Networkにサインイン
+Party	パーティー
+Messages	メッセージ
+Near	near
+Clock Format	時計の表示形式
+Battery Percentage	バッテリー残量(%)
+Sound Effects	効果音
+Startup Animation	起動アニメーション
+Game Boot Logo	ゲーム起動ロゴ
+No LiveArea Plugin (beta)	LiveAreaなしプラグイン(ベータ)
+Confirmation Dialogs	確認ダイアログ
+Game Launch Method	ゲームの起動方法
+Photo Category	フォトカテゴリー
+Music Category	ミュージックカテゴリー
+Video Category	ビデオカテゴリー
+Network Category	ネットワークカテゴリー
+Extra Storage (beta)	追加ストレージ(ベータ)
+Check for Updates at Start	起動時に更新を確認
+Decrypt Artwork (beta)	アートワークを復号(ベータ)
+A: standard	A: 標準
+B: open flag	B: オープンフラグ
+C: launch flag	C: 起動フラグ
+D: stay open	D: 開いたまま
+January	1月
+February	2月
+March	3月
+April	4月
+May	5月
+June	6月
+July	7月
+August	8月
+September	9月
+October	10月
+November	11月
+December	12月
+No preview	プレビューなし
+Random	ランダム
+Random: %.32s	ランダム: %.32s
+System Software	システムソフトウェア
+Nickname	ニックネーム
+MAC Address	MACアドレス
+Battery	バッテリー
+Title	タイトル
+Details	詳細情報
+Version	バージョン
+Location	場所
+Unknown	不明
+Model	モデル
+Processor	プロセッサー
+Disc ID	ディスクID
+Title ID	タイトルID
+Category	カテゴリー
+Game (application)	ゲーム(アプリケーション)
+Storage (%s)	ストレージ (%s)
+%.1f GB free of %.1f GB	空き %.1f GB / %.1f GB
+mounted	マウント済み
+ (charging)	 (充電中)
+Free Space  %u GB	空き容量  %u GB
+Free Space  %u MB	空き容量  %u MB
+Last Played	最後に遊んだゲーム
+Open in Photos	フォトで開く
+Empty folder	フォルダーは空です
+Options > Select Games	オプション > ゲームを選ぶ
+Empty	空
+%d game	%d 本
+%d games	%d 本
+No games found	ゲームが見つかりません
+Nothing in ux0:app	ux0:app は空です
+No saved data	セーブデータがありません
+Nothing in ux0:user/00/savedata	ux0:user/00/savedata は空です
+No videos	ビデオがありません
+Put videos in ux0:video	ビデオを ux0:video に入れてください
+No songs	曲がありません
+Put MP3, FLAC, OGG, WAV or AIFF files in ux0:music	MP3、FLAC、OGG、WAV、AIFF ファイルを ux0:music に入れてください
+Folder %d	フォルダー %d
+Games in "%s"	「%s」のゲーム
+%d selected	%d 件選択中
+In: %s	場所: %s
+No games installed	ゲームがインストールされていません
+Restart now	今すぐ再起動
+Restart required	再起動が必要です
+Restart the Vita now?	Vitaを今すぐ再起動しますか?
+The plugin change applies after a restart.	プラグインの変更は再起動後に反映されます。
+Exit VitaXMB and return to the LiveArea?	VitaXMBを終了してLiveAreaに戻りますか?
+Delete the folder "%.40s"?	フォルダー「%.40s」を削除しますか?
+The games stay installed.	ゲームはインストールされたままです。
+Install the NoLiveArea plugin?	NoLiveAreaプラグインをインストールしますか?
+Keeps the LiveArea out of sight:\n- Turning the Vita on: VitaXMB opens by itself, no LiveArea.\n- Starting a game: the screen stays black while it loads.\n- Closing a game: VitaXMB opens again.\nPressing the PS button in a game still shows the LiveArea.	LiveAreaを表示させません:\n- Vitaの電源を入れると、LiveAreaなしでVitaXMBが自動で開きます。\n- ゲームの起動中は画面が黒いままです。\n- ゲームを終了するとVitaXMBが再び開きます。\nゲーム中にPSボタンを押すと、LiveAreaが表示されます。
+VitaXMB was updated and replaced the NoLiveArea plugin.\nNew: if VitaXMB is ever uninstalled while the plugin\nstays, it no longer tries to open it on every app\nyou close. It works again once VitaXMB is back.\nThe old version stays loaded until the Vita restarts.\nRestart now to load the new version.	VitaXMBが更新され、NoLiveAreaプラグインが置き換えられました。\n新機能: VitaXMBがアンインストールされてもプラグインが\n残っている場合、アプリを閉じるたびに開こうとしなくなりました。\nVitaXMBが戻れば再び動作します。\n古いバージョンはVitaを再起動するまで読み込まれたままです。\n今すぐ再起動して新しいバージョンを読み込みます。
+NoLiveArea installed.	NoLiveAreaをインストールしました。
+NoLiveArea removed.	NoLiveAreaを削除しました。
+Could not install the plugin (code %s)	プラグインをインストールできませんでした (%s)
+Could not remove the plugin (%s)	プラグインを削除できませんでした (%s)
+The plugin file is missing from this install%s	このインストールにプラグインファイルがありません%s
+no config.txt	config.txt がありません
+config not writable	config に書き込めません
+copy failed	コピーに失敗
+Decrypt game artwork?	ゲームのアートワークを復号しますか?
+Loads VitaShell's kernel modules. Experimental.	VitaShellのカーネルモジュールを読み込みます。実験的な機能です。
+Checking GitHub...	GitHubを確認しています...
+VitaXMB %s is up to date.	VitaXMB %s は最新です。
+Check again	もう一度確認
+Version %s is available (you have %s).	バージョン %s を利用できます(現在のバージョン: %s)。
+Install	インストール
+Downloading %s...	%s をダウンロード中...
+%.1f of %.1f MB	%.1f / %.1f MB
+Installing... please wait	インストール中... しばらくお待ちください
+Do not close the application.	アプリケーションを終了しないでください。
+%s is installed.	%s をインストールしました。
+The app restarts to finish the update.	アップデートを完了するためアプリが再起動します。
+The update is downloaded.	アップデートをダウンロードしました。
+It could not be installed from here.	ここからはインストールできませんでした。
+Install ux0:data/VitaXMB/update.vpk with VitaShell to finish the update.	アップデートを完了するには、VitaShellで ux0:data/VitaXMB/update.vpk をインストールしてください。
+The update did not work.	アップデートに失敗しました。
+Try again	もう一度試す
+Looks for a newer VitaXMB on GitHub.	GitHubで新しいVitaXMBを探します。
+Check now	今すぐ確認
+Up / Down: scroll	上 / 下: スクロール
+Update available: %s	アップデートがあります: %s
+Update available: %s   (Settings > Network Update)	アップデートがあります: %s  (設定 > ネットワークアップデート)
+VitaXMB was updated to %s	VitaXMBを %s に更新しました
+the new version	新しいバージョン
+The update did not install (%s)	アップデートをインストールできませんでした (%s)
+Audio Options	音声切りかえ
+Subtitle Options	字幕切りかえ
+Go To	ジャンプ
+Screen Mode	画面モード
+Display	画面表示
+Help	ヘルプ
+Previous	前
+Next	次
+Fast Reverse	早戻し
+Fast Forward	早送り
+Slow Motion	スロー
+Frame Advance	コマ送り
+Play	再生
+Playback Speed (+)	再生速度(+)
+Playback Speed (-)	再生速度(-)
+Pause	一時停止
+Stop	停止
+A-B Repeat	A-Bリピート
+Repeat	リピート
+Shuffle	シャッフル
+Clear	クリア
+Repeat Off	リピート　切
+Title Repeat	タイトル　リピート
+Folder Repeat	フォルダー　リピート
+Shuffle On	シャッフル　入
+Shuffle Off	シャッフル　切
+Normal	ノーマル
+Zoom	ズーム
+Full Screen	フル
+Original	オリジナル
+Chapter %d	チャプター %d
+Normal speed	通常速度
+A set	A を設定
+B set: repeating	B を設定: リピート中
+A-B Repeat off	A-Bリピート オフ
+Repeat, A-B Repeat and Shuffle cleared	リピート、A-Bリピート、シャッフルを解除しました
+Output: Left and right	出力: 左右
+Output: Left only	出力: 左のみ
+Output: Right only	出力: 右のみ
+Resumed at %s	%s から再開
+Play / pause	再生 / 一時停止
+Stop and go back	停止して戻る
+Show the control panel	コントロールパネルを表示
+Change the screen mode	画面モードを変更
+Previous / next	前へ / 次へ
+Tap: 10 seconds; hold: search	タップ: 10秒; 長押し: サーチ
+This help	このヘルプ
+Show the information	情報を表示
+Video player (BETA)	ビデオプレーヤー(ベータ)
+In the control panel: the d-pad chooses, ✕ uses, ○ closes	コントロールパネル: 方向キーで選び、✕で決定、○で閉じる
+Container: %s   %d kbit/s	コンテナー: %s   %d kbit/s
+Decoder: %s	デコーダー: %s
+hardware (system player)	ハードウェア(システムプレーヤー)
+software (FFmpeg)	ソフトウェア(FFmpeg)
+Audio: %s %s (%d tracks)	音声: %s %s (%d トラック)
+Subtitles: %d track	字幕: %d トラック
+Subtitles: %d tracks	字幕: %d トラック
+ (none loaded yet)	 (まだ読み込まれていません)
+This video can't be played	このビデオは再生できません
+Press ○ to go back	○で戻る
+This video is bigger than 720p	このビデオは720pより大きいです
+This video is large for software decoding	このビデオはソフトウェアデコードには大きすぎます
+The Vita can't play pictures this size smoothly.	Vitaはこのサイズの映像を滑らかに再生できません。
+Expect stuttering, dropped frames or a failure to start.	コマ落ちやカクつき、再生開始の失敗が起こることがあります。
+The Vita's hardware can't play this file, so it is decoded in	Vitaのハードウェアではこのファイルを再生できないため、
+software, which is slow. Expect stuttering.	ソフトウェアでデコードします。処理が遅く、カクつきます。
+✕  Play anyway          ○  Back	✕  このまま再生          ○  戻る
+%d song	%d 曲
+%d songs	%d 曲

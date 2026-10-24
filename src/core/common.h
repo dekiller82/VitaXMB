@@ -9,7 +9,10 @@
 #include <string.h>
 #include <math.h>
 
+#include <malloc.h>
+#include <psp2/pvf.h>
 #include <psp2/ctrl.h>
+#include <psp2/apputil.h>
 #include <psp2/appmgr.h>
 #include <psp2/rtc.h>
 #include <psp2/power.h>

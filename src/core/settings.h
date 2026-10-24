@@ -1,37 +1,45 @@
 #pragma once
 
 static void rescan_media(void);
+static void update_music_count(void);              /* media/media_scan.h */
+static void rebuild_game_lists(void);              /* core/folders.h */
 
 static const char *theme_names[13] = { "Automatic (by month)", "January", "February", "March", "April",
 	"May", "June", "July", "August", "September", "October", "November", "December" };
 static const char *launch_names[4] = { "A: standard", "B: open flag", "C: launch flag", "D: stay open" };
 
+/* shown through T() where they are drawn: the names of the themes are the PSP's own month names */
+
 static void setting_text(int id, char *out, size_t n)
 {
-	const char *onoff[2] = { "Off", "On" };
+	const char *onoff[2] = { T("Off"), T("On") };
 	switch (id) {
-	case SET_THEME:   snprintf(out, n, "%s", theme_names[theme]); break;
-	case SET_CLOCK:   snprintf(out, n, "%s", clock24 ? "24-hour" : "12-hour"); break;
+	case SET_THEME:   snprintf(out, n, "%s", T(theme_names[theme])); break;
+	case SET_CLOCK:   snprintf(out, n, "%s", clock24 ? T("24-hour") : T("12-hour")); break;
+	case SET_LANG:
+		if (lang_setting == 0) snprintf(out, n, "%s (%s)", T("Automatic"), lang_native[lang_system()]);
+		else snprintf(out, n, "%s", lang_native[lang_setting - 1]);
+		break;
 	case SET_SOUND:   snprintf(out, n, "%s", onoff[sound_on]); break;
 	case SET_STARTUP: snprintf(out, n, "%s", onoff[startup_anim]); break;
 	case SET_BOOTLOGO: snprintf(out, n, "%s", boot_logo ? "PSV / PlayStation Vita" : "PSP / PlayStation Portable"); break;
 	case SET_AUTOUPDATE: snprintf(out, n, "%s", onoff[auto_update]); break;
 	case SET_BATTPCT: snprintf(out, n, "%s", onoff[batt_pct]); break;
-	case SET_NOLA:    snprintf(out, n, "%s", nla_bundled() ? onoff[nla_on] : "Unavailable"); break;
+	case SET_NOLA:    snprintf(out, n, "%s", nla_bundled() ? onoff[nla_on] : T("Unavailable")); break;
 	case SET_CONFIRM: snprintf(out, n, "%s", onoff[confirm_dialogs]); break;
-	case SET_LAUNCH:  snprintf(out, n, "%s", launch_names[launch_mode]); break;
+	case SET_LAUNCH:  snprintf(out, n, "%s", T(launch_names[launch_mode])); break;
 	case SET_ART:     snprintf(out, n, "%s", onoff[art_decrypt]); break;
 	case SET_CUSTOM:  pt_text(out, n); break;
 	case SET_EXTRA: {
-		if (!extra_storage) { snprintf(out, n, "Off"); break; }
+		if (!extra_storage) { snprintf(out, n, "%s", T("Off")); break; }
 		char devs[4][8];
 		int nd = extra_devs(devs);
-		if (nd == 0) snprintf(out, n, "On (none)");
-		else if (nd == 1) snprintf(out, n, "On (%s)", devs[0]);
-		else snprintf(out, n, "On (%d cards)", nd);
+		if (nd == 0) snprintf(out, n, "%s", T("On (none)"));
+		else if (nd == 1) snprintf(out, n, T("On (%s)"), devs[0]);
+		else snprintf(out, n, T("On (%d cards)"), nd);
 		break; }
 	default:
-		if (id >= SET_SHOW && id < SET_SHOW + CAT_COUNT) snprintf(out, n, "%s", cat_hidden[id - SET_SHOW] ? "Hidden" : "Shown");
+		if (id >= SET_SHOW && id < SET_SHOW + CAT_COUNT) snprintf(out, n, "%s", cat_hidden[id - SET_SHOW] ? T("Hidden") : T("Shown"));
 		else out[0] = 0;
 	}
 }
@@ -52,6 +60,11 @@ static void setting_change(int id, int dir)
 	switch (id) {
 	case SET_THEME:   theme = (theme + dir + 13) % 13; break;
 	case SET_CLOCK:   clock24 = !clock24; break;
+	case SET_LANG:
+		lang_setting = (lang_setting + (dir >= 0 ? 1 : -1) + LANG_COUNT + 1) % (LANG_COUNT + 1);
+		lang_apply();
+		update_game_counts(); update_music_count(); rebuild_game_lists();          /* "Free Space", "N songs", "N games" carry the old language */
+		break;
 	case SET_SOUND:   sound_on = !sound_on; break;
 	case SET_STARTUP: startup_anim = !startup_anim; break;
 	case SET_BOOTLOGO: boot_logo = !boot_logo; break;

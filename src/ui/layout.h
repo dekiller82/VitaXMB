@@ -25,9 +25,11 @@ static void launch_request(const Item *it)
 {
 	static const int flags[4] = { 0xFFFFF, 0x20000, 0x40000, 0xFFFFF };
 	char uri[64];
-	snprintf(uri, sizeof(uri), "psgm:play?titleid=%s", it->id);
+	const char *tid = it->id;
+	if (it->path[0]) { int fb; tid = psp_launch_id(it, &fb); }       /* a PSP game without a bubble: a borrowed bubble starts it */
+	snprintf(uri, sizeof(uri), "psgm:play?titleid=%s", tid);
 	lastplayed_save(it->id);
-	if (nla_on && !strcmp(it->id, "PSPEMUCFW")) {                      /* Adrenaline 8 restarts itself once; tell the NoLiveArea plugin not to react (see plugin/nolivearea) */
+	if (nla_on && !strcmp(tid, "PSPEMUCFW")) {                      /* Adrenaline 8 restarts itself once; tell the NoLiveArea plugin not to react (see plugin/nolivearea) */
 		SceUID af = sceIoOpen("ux0:data/NoLiveArea/adrenaline", SCE_O_WRONLY | SCE_O_CREAT, 0777);
 		if (af >= 0) sceIoClose(af);
 	}
@@ -321,8 +323,12 @@ static void draw_rule(float x0, float x1, float y, int la);
 
 /* The picture a row shows: its own icon once it is loaded; before that (or when it has none) a theme's loading / broken
  * picture for a game or a save; else the app's own icon. */
+static vita2d_texture *pm_icon_tex_for(const Item *it);          /* media/pspmedia.h */
+
 static vita2d_texture *item_pic(const Item *it, int menu)
 {
+	vita2d_texture *film = pm_icon_tex_for(it);                   /* a PSP game's ICON1.PMF, while it plays */
+	if (film) return film;
 	if (it->icon) return it->icon;
 	if (it->kind == KIND_APP || menu == M_SAVES) {
 		int loading = !it->icon_tried || (it->load_state >= 1 && it->load_state <= 3);
@@ -346,33 +352,62 @@ static void draw_folder_column(int m, float xoff, float amul, float pic_a)
 
 		const Item *it = &mn->items[j];
 		float ix = FOLDER_X + pt_list_dx + xoff;
-		vita2d_texture *tex = item_pic(it, m);
-		if (!tex) continue;
 		float w, h;
-		if (it->icon) fit_box(tex, bw, bh, &w, &h);
-		else icon_dims(tex, fminf(bh, it->stock == tex_folder ? 92.0f : 84.0f), &w, &h);   /* the 64px stock icons stay small */
-		if (it->icon && !it->icon_rect) {            /* no landscape art: frame the square icon like one */
-			vita2d_draw_rectangle(ix - bw / 2 + 3, y - bh / 2 + 4, bw, bh, RGBA8(0, 0, 0, a * 25 / 100));
-			vita2d_draw_rectangle(ix - bw / 2, y - bh / 2, bw, bh, RGBA8(18, 28, 38, a * 80 / 100));
-			vita2d_draw_rectangle(ix - bw / 2, y - bh / 2, bw, 2, WHITE(a * 35 / 100));
+		int own;
+		if (it->tr & 4) {
+			/* the UMD (the game started last): the disc while the cursor is elsewhere; on it, the disc gives way to the game's own landscape picture,
+			 * which is its film (ICON1.PMF) once that plays, as the PSP's XMB does */
+			vita2d_texture *gpic = pm_icon_tex_for(it);
+			if (!gpic) gpic = it->icon;
+			float mix = gpic ? clampf(it->glow * 1.25f, 0.0f, 1.0f) : 0.0f;
+			if (!it->stock && !gpic) continue;
+			if (it->stock && mix < 0.995f) {
+				float dw, dh;
+				icon_dims(pt_swap(it->stock), fminf(bh, 84.0f), &dw, &dh);
+				draw_icon_wh(pt_swap(it->stock), ix, y, dw, dh, (int)(a * (1.0f - mix)));
+			}
+			own = mix > 0.5f;
+			w = h = 0;
+			if (gpic && mix > 0.005f) {
+				fit_box(gpic, bw, bh, &w, &h);
+				int ga = (int)(a * mix);
+				if (gpic == it->icon && !it->icon_rect) {
+					vita2d_draw_rectangle(ix - bw / 2 + 3, y - bh / 2 + 4, bw, bh, RGBA8(0, 0, 0, ga * 25 / 100));
+					vita2d_draw_rectangle(ix - bw / 2, y - bh / 2, bw, bh, RGBA8(18, 28, 38, ga * 80 / 100));
+					vita2d_draw_rectangle(ix - bw / 2, y - bh / 2, bw, 2, WHITE(ga * 35 / 100));
+				}
+				draw_icon_wh(gpic, ix, y, w, h, ga);
+			}
+			if (!own) { icon_dims(pt_swap(it->stock), fminf(bh, 84.0f), &w, &h); }
+		} else {
+			vita2d_texture *tex = item_pic(it, m);
+			if (!tex) continue;
+			own = it->icon || tex == pm_icon_tex_for(it);
+			if (own) fit_box(tex, bw, bh, &w, &h);
+			else icon_dims(tex, fminf(bh, it->stock == tex_folder ? 92.0f : 84.0f), &w, &h);   /* the 64px stock icons stay small */
+			if (it->icon && !it->icon_rect && tex == it->icon) {            /* no landscape art: frame the square icon like one */
+				vita2d_draw_rectangle(ix - bw / 2 + 3, y - bh / 2 + 4, bw, bh, RGBA8(0, 0, 0, a * 25 / 100));
+				vita2d_draw_rectangle(ix - bw / 2, y - bh / 2, bw, bh, RGBA8(18, 28, 38, a * 80 / 100));
+				vita2d_draw_rectangle(ix - bw / 2, y - bh / 2, bw, 2, WHITE(a * 35 / 100));
+			}
+			draw_icon_wh(tex, ix, y, w, h, a);
 		}
-		draw_icon_wh(tex, ix, y, w, h, a);
 
 		if (t < 0.5f) {                               /* selected row: label unless art covers it */
 			int ta = (int)(a * (1.0f - clampf(pic_a * 1.6f, 0.0f, 1.0f)) * (1.0f - t * 2.0f));
 			if (ta > 4) {
-				float tx = ix + (it->icon ? bw / 2 + 24 : w / 2 + 29);      /* the small stock icons keep the label close */
+				float tx = ix + (own ? bw / 2 + 24 : w / 2 + 29);      /* the small stock icons keep the label close */
 				float maxw = SCREEN_W - 24.0f - tx;
-				if (it->sub[0] && !it->icon) {                    /* like the other lists: title above the rule, subtitle below */
-					ptext_vc_row(tx - text_bearing(PT_TITLE(28), it->title), y - 21, WHITE(ta), PT_TITLE(28), it->title, maxw, 1);
-					ptext_vc_row(tx - text_bearing(PT_SUB(22), it->sub), y + 23, WHITE(ta * 8 / 10), PT_SUB(22), it->sub, maxw, 1);
+				if (item_sub(it)[0] && !it->icon && !(it->tr & 4)) {   /* like the other lists: title above the rule, subtitle below */
+					ptext_vc_row(tx - text_bearing(PT_TITLE(28), item_title(it)), y - 21, WHITE(ta), PT_TITLE(28), item_title(it), maxw, 1);
+					ptext_vc_row(tx - text_bearing(PT_SUB(22), item_sub(it)), y + 23, WHITE(ta * 8 / 10), PT_SUB(22), item_sub(it), maxw, 1);
 					draw_rule(tx - 1, 948, y, ta);
-				} else if (it->sub[0]) {
-					ptext_vc_row(tx - text_bearing(PT_TITLE(28), it->title), y - 15, WHITE(ta), PT_TITLE(28), it->title, maxw, 1);
-					ptext_vc_row(tx - text_bearing(PT_SUB(20), it->sub), y + 17, WHITE(ta * 7 / 10), PT_SUB(20), it->sub, maxw, 1);
+				} else if (item_sub(it)[0]) {
+					ptext_vc_row(tx - text_bearing(PT_TITLE(28), item_title(it)), y - 15, WHITE(ta), PT_TITLE(28), item_title(it), maxw, 1);
+					ptext_vc_row(tx - text_bearing(PT_SUB(20), item_sub(it)), y + 17, WHITE(ta * 7 / 10), PT_SUB(20), item_sub(it), maxw, 1);
 					draw_rule(tx - 1, 948, y, ta);
 				} else {
-					ptext_vc_row(tx - text_bearing(PT_TITLE(28), it->title), y, WHITE(ta), PT_TITLE(28), it->title, maxw, 1);
+					ptext_vc_row(tx - text_bearing(PT_TITLE(28), item_title(it)), y, WHITE(ta), PT_TITLE(28), item_title(it), maxw, 1);
 				}
 			}
 		}

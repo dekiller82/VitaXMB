@@ -39,9 +39,9 @@ static void draw_options_panel(float t, const int *ids, int n, int sel, const Pa
 	for (int i = 0; i < n; i++) {
 		float y = y0 + i * row;
 		if (i == sel) vita2d_draw_rectangle(px + 3, y - row / 2 + 1, SCREEN_W - px - 3, row - 2, RGBA8(255, 255, 255, a * 20 / 100));
-		ptext_vc(px + 11, y, WHITE(i == sel ? a : a * 78 / 100), ptext_width(fs, opt_names[ids[i]]) > SCREEN_W - px - 22 ? fs * 0.86f : fs, opt_names[ids[i]]);
+		ptext_vc(px + 11, y, WHITE(i == sel ? a : a * 78 / 100), ptext_width(fs, T(opt_names[ids[i]])) > SCREEN_W - px - 22 ? fs * 0.86f : fs, T(opt_names[ids[i]]));
 		if (ids[i] == OPT_START && i == sel) {
-			float bx = px + 11 + ptext_width((unsigned)fs, "Start") + 12;
+			float bx = px + 11 + ptext_width((unsigned)fs, T("Start")) + 12;
 			vita2d_draw_rectangle(bx, y - 11, 66, 22, RGBA8(0, 0, 0, a * 55 / 100));
 			ptext_vc(bx + 6, y, WHITE(a), 17, "START");
 		}

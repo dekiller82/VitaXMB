@@ -1,0 +1,248 @@
+Settings	설정
+Photo	사진
+Music	음악
+Video	비디오
+Game	게임
+Network	네트워크
+System Settings	시스템 설정
+Theme Settings	테마 설정
+Network Settings	네트워크 설정
+System Information	시스템 정보
+System Language	시스템 언어
+System Update	시스템 업데이트
+Color	컬러
+Custom Theme (beta)	사용자 지정 테마 (beta)
+Wi-Fi Settings	무선랜 설정
+Internet Browser	인터넷 브라우저
+Saved Data Utility	저장 데이터 유틸리티
+PlayStation Store	PlayStation®Store
+Automatic	자동
+Automatic (by month)	월별
+12-hour	12 시간
+24-hour	24 시간
+Off	끄기
+On	켜기
+Off (none found)	끔 (찾을 수 없음)
+On (none)	켬 (없음)
+On (%s)	켜기 (%s)
+On (%d cards)	켬 (카드 %d개)
+Hidden	숨김
+Shown	표시
+Unavailable	사용할 수 없음
+Information	정보
+Start	기동
+Options	옵션
+Yes	예
+No	아니요
+OK	확인
+Cancel	취소
+Select	선택
+Back	돌아가기
+Done	완료
+All / None	모두 / 없음
+Refresh List	목록 새로 고침
+New Folder	새 폴더
+Select Games	게임 선택
+Rename Folder	폴더 이름 변경
+Delete Folder	폴더 삭제
+Remove from Folder	폴더에서 제거
+New folder	새 폴더
+Rename folder	폴더 이름 변경
+Network Update	네트워크 업데이트
+Exit to LiveArea	LiveArea로 나가기
+VitaXMB Settings	VitaXMB 설정
+Vita System Settings	Vita 시스템 설정
+Vita Themes	Vita 테마
+Sign In to PlayStation Network	PlayStation Network에 로그인
+Party	파티
+Messages	메시지
+Near	near
+Clock Format	시계 형식
+Battery Percentage	배터리 잔량(%)
+Sound Effects	효과음
+Startup Animation	시작 애니메이션
+Game Boot Logo	게임 시작 로고
+No LiveArea Plugin (beta)	LiveArea 없음 플러그인 (베타)
+Confirmation Dialogs	확인 대화상자
+Game Launch Method	게임 실행 방식
+Photo Category	사진 카테고리
+Music Category	음악 카테고리
+Video Category	비디오 카테고리
+Network Category	네트워크 카테고리
+Extra Storage (beta)	추가 저장소 (베타)
+Check for Updates at Start	시작 시 업데이트 확인
+Decrypt Artwork (beta)	아트워크 복호화 (베타)
+A: standard	A: 표준
+B: open flag	B: open 플래그
+C: launch flag	C: launch 플래그
+D: stay open	D: 열어 둠
+January	1월
+February	2월
+March	3월
+April	4월
+May	5월
+June	6월
+July	7월
+August	8월
+September	9월
+October	10월
+November	11월
+December	12월
+No preview	미리보기 없음
+Random	무작위
+Random: %.32s	무작위: %.32s
+System Software	시스템 소프트웨어
+Nickname	닉네임
+MAC Address	MAC 어드레스
+Battery	배터리
+Title	타이틀
+Details	상세 정보
+Version	버전
+Location	장소
+Unknown	알 수 없음
+Model	모델
+Processor	프로세서
+Disc ID	디스크 ID
+Title ID	타이틀 ID
+Category	카테고리
+Game (application)	게임(응용 프로그램)
+Storage (%s)	저장소 (%s)
+%.1f GB free of %.1f GB	%.1f GB 사용 가능 / %.1f GB
+mounted	마운트됨
+ (charging)	 (충전 중)
+Free Space  %u GB	빈 용량  %u GB
+Free Space  %u MB	빈 용량  %u MB
+Last Played	마지막 플레이
+Open in Photos	사진에서 열기
+Empty folder	빈 폴더
+Options > Select Games	옵션 > 게임 선택
+Empty	비어 있음
+%d game	게임 %d개
+%d games	게임 %d개
+No games found	게임을 찾을 수 없음
+Nothing in ux0:app	ux0:app이 비어 있음
+No saved data	저장 데이터 없음
+Nothing in ux0:user/00/savedata	ux0:user/00/savedata가 비어 있음
+No videos	비디오 없음
+Put videos in ux0:video	ux0:video에 비디오를 넣으세요
+No songs	곡 없음
+Put MP3, FLAC, OGG, WAV or AIFF files in ux0:music	ux0:music에 MP3, FLAC, OGG, WAV, AIFF 파일을 넣으세요
+Folder %d	폴더 %d
+Games in "%s"	“%s”의 게임
+%d selected	%d개 선택됨
+In: %s	위치: %s
+No games installed	설치된 게임 없음
+Restart now	지금 다시 시작
+Restart required	다시 시작이 필요합니다
+Restart the Vita now?	Vita를 지금 다시 시작하시겠습니까?
+The plugin change applies after a restart.	플러그인 변경은 다시 시작한 후에 적용됩니다.
+Exit VitaXMB and return to the LiveArea?	VitaXMB를 종료하고 LiveArea로 돌아가시겠습니까?
+Delete the folder "%.40s"?	“%.40s” 폴더를 삭제하시겠습니까?
+The games stay installed.	게임은 설치된 상태로 유지됩니다.
+Install the NoLiveArea plugin?	NoLiveArea 플러그인을 설치하시겠습니까?
+Keeps the LiveArea out of sight:\n- Turning the Vita on: VitaXMB opens by itself, no LiveArea.\n- Starting a game: the screen stays black while it loads.\n- Closing a game: VitaXMB opens again.\nPressing the PS button in a game still shows the LiveArea.	LiveArea가 보이지 않게 합니다:\n- Vita를 켜면 LiveArea 없이 VitaXMB가 자동으로 열립니다.\n- 게임을 시작하면 로딩 중 화면이 검게 유지됩니다.\n- 게임을 종료하면 VitaXMB가 다시 열립니다.\n게임 중 PS 버튼을 누르면 LiveArea가 표시됩니다.
+VitaXMB was updated and replaced the NoLiveArea plugin.\nNew: if VitaXMB is ever uninstalled while the plugin\nstays, it no longer tries to open it on every app\nyou close. It works again once VitaXMB is back.\nThe old version stays loaded until the Vita restarts.\nRestart now to load the new version.	VitaXMB가 업데이트되어 NoLiveArea 플러그인을 교체했습니다.\n새 기능: VitaXMB가 삭제되었는데 플러그인이 남아 있어도\n앱을 닫을 때마다 열려고 시도하지 않습니다.\nVitaXMB가 다시 설치되면 다시 작동합니다.\n이전 버전은 Vita를 다시 시작할 때까지 로드된 상태로 남습니다.\n지금 다시 시작하여 새 버전을 로드하세요.
+NoLiveArea installed.	NoLiveArea가 설치되었습니다.
+NoLiveArea removed.	NoLiveArea가 제거되었습니다.
+Could not install the plugin (code %s)	플러그인을 설치할 수 없습니다 (코드 %s)
+Could not remove the plugin (%s)	플러그인을 제거할 수 없습니다 (%s)
+The plugin file is missing from this install%s	이 설치본에 플러그인 파일이 없습니다%s
+no config.txt	config.txt 없음
+config not writable	config에 쓸 수 없음
+copy failed	복사 실패
+Decrypt game artwork?	게임 아트워크를 복호화하시겠습니까?
+Loads VitaShell's kernel modules. Experimental.	VitaShell의 커널 모듈을 불러옵니다. 실험적 기능입니다.
+Checking GitHub...	GitHub 확인 중...
+VitaXMB %s is up to date.	VitaXMB %s이(가) 최신 버전입니다.
+Check again	다시 확인
+Version %s is available (you have %s).	버전 %s을(를) 사용할 수 있습니다 (현재 %s).
+Install	설치
+Downloading %s...	%s 다운로드 중...
+%.1f of %.1f MB	%.1f / %.1f MB
+Installing... please wait	설치 중... 잠시 기다려 주세요
+Do not close the application.	응용 프로그램을 종료하지 마세요.
+%s is installed.	%s이(가) 설치되었습니다.
+The app restarts to finish the update.	업데이트를 완료하기 위해 앱이 다시 시작됩니다.
+The update is downloaded.	업데이트를 다운로드했습니다.
+It could not be installed from here.	여기에서는 설치할 수 없었습니다.
+Install ux0:data/VitaXMB/update.vpk with VitaShell to finish the update.	업데이트를 완료하려면 VitaShell로 ux0:data/VitaXMB/update.vpk를 설치하세요.
+The update did not work.	업데이트에 실패했습니다.
+Try again	다시 시도
+Looks for a newer VitaXMB on GitHub.	GitHub에서 새 VitaXMB를 찾습니다.
+Check now	지금 확인
+Up / Down: scroll	위 / 아래: 스크롤
+Update available: %s	업데이트 가능: %s
+Update available: %s   (Settings > Network Update)	업데이트 가능: %s  (설정 > 네트워크 업데이트)
+VitaXMB was updated to %s	VitaXMB가 %s(으)로 업데이트되었습니다
+the new version	새 버전
+The update did not install (%s)	업데이트가 설치되지 않았습니다 (%s)
+Loading...	불러오기 중입니다.
+Audio Options	음성 변경
+Subtitle Options	자막 변경
+Go To	이동
+Screen Mode	스크린 모드
+Display	화면 표시
+Help	도움말
+Previous	이전
+Next	다음
+Fast Reverse	빨리 되돌아가기
+Fast Forward	빨리가기
+Slow Motion	느린 재생
+Frame Advance	프레임 전진
+Play	재생
+Playback Speed (+)	재생 속도 (+)
+Playback Speed (-)	재생 속도 (-)
+Pause	일시 정지
+Stop	정지
+A-B Repeat	A-B 반복
+Repeat	반복
+Shuffle	셔플
+Clear	해제
+Repeat Off	반복 끄기
+Title Repeat	타이틀 반복
+Folder Repeat	폴더 반복
+Shuffle On	셔플 켜기
+Shuffle Off	셔플 끄기
+Normal	표준
+Zoom	줌
+Full Screen	풀 스크린
+Original	오리지널
+Chapter %d	챕터 %d
+Normal speed	보통 속도
+A set	A 설정됨
+B set: repeating	B 설정됨: 반복 중
+A-B Repeat off	A-B 반복 끔
+Repeat, A-B Repeat and Shuffle cleared	반복, A-B 반복, 셔플이 해제되었습니다
+Output: Left and right	출력: 왼쪽과 오른쪽
+Output: Left only	출력: 왼쪽만
+Output: Right only	출력: 오른쪽만
+Resumed at %s	%s부터 재개
+Play / pause	재생 / 일시 정지
+Stop and go back	정지 후 돌아가기
+Show the control panel	컨트롤 패널 표시
+Change the screen mode	화면 모드 변경
+Previous / next	이전 / 다음
+Tap: 10 seconds; hold: search	누르기: 10초; 길게 누르기: 탐색
+This help	이 도움말
+Show the information	정보 표시
+Video player (BETA)	비디오 플레이어 (베타)
+In the control panel: the d-pad chooses, ✕ uses, ○ closes	컨트롤 패널: 방향 버튼으로 선택, ✕로 사용, ○로 닫기
+Container: %s   %d kbit/s	컨테이너: %s   %d kbit/s
+Decoder: %s	디코더: %s
+hardware (system player)	하드웨어(시스템 플레이어)
+software (FFmpeg)	소프트웨어(FFmpeg)
+Audio: %s %s (%d tracks)	오디오: %s %s (%d 트랙)
+Subtitles: %d track	자막: %d 트랙
+Subtitles: %d tracks	자막: %d 트랙
+ (none loaded yet)	 (아직 불러오지 않음)
+This video can't be played	이 비디오는 재생할 수 없습니다
+Press ○ to go back	○를 눌러 돌아가기
+This video is bigger than 720p	이 비디오는 720p보다 큽니다
+This video is large for software decoding	이 비디오는 소프트웨어 디코딩에는 큽니다
+The Vita can't play pictures this size smoothly.	Vita는 이 크기의 영상을 부드럽게 재생할 수 없습니다.
+Expect stuttering, dropped frames or a failure to start.	끊김, 프레임 누락 또는 시작 실패가 발생할 수 있습니다.
+The Vita's hardware can't play this file, so it is decoded in	Vita의 하드웨어로는 이 파일을 재생할 수 없어
+software, which is slow. Expect stuttering.	소프트웨어로 디코딩합니다. 느리므로 끊길 수 있습니다.
+✕  Play anyway          ○  Back	✕  그래도 재생          ○  뒤로
+%d song	%d곡
+%d songs	%d곡

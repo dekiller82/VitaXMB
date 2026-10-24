@@ -14,6 +14,7 @@ static Item *add_item(int m, int kind, const char *title, const char *sub, const
 	it->kind = kind;
 	it->submenu = -1;
 	it->stock = stock;
+	it->tr = items_tr;
 	snprintf(it->title, sizeof(it->title), "%s", title);
 	snprintf(it->sub, sizeof(it->sub), "%s", sub ? sub : "");
 	snprintf(it->id, sizeof(it->id), "%s", id ? id : "");

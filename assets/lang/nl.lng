@@ -1,0 +1,232 @@
+Settings	Instellingen
+Photo	Foto
+Music	Muziek
+Network	Netwerk
+System Settings	Systeeminstellingen
+Theme Settings	Thema-instellingen
+Network Settings	Netwerkinstellingen
+System Information	Systeeminformatie
+System Language	Systeemtaal
+System Update	Systeemupdate
+Color	Kleur
+Custom Theme (beta)	Aangepaste thema (beta)
+Wi-Fi Settings	WLAN-instellingen
+Internet Browser	Internetbrowser
+Saved Data Utility	Hulpprogramma voor opgeslagen data
+PlayStation Store	PlayStation®Store
+Automatic	Automatisch
+Automatic (by month)	Elke maand
+12-hour	12-uursklok
+24-hour	24-uursklok
+Off	Uit
+On	Aan
+Off (none found)	Uit (geen gevonden)
+On (none)	Aan (geen)
+On (%s)	Aan (%s)
+On (%d cards)	Aan (%d kaarten)
+Hidden	Verborgen
+Shown	Zichtbaar
+Unavailable	Niet beschikbaar
+Information	Informatie
+Options	Opties
+Yes	Ja
+No	Nee
+OK	Bevestigen
+Cancel	Annuleren
+Select	Selecteren
+Back	Terug
+Done	Klaar
+All / None	Alles / Niets
+Refresh List	Lijst vernieuwen
+New Folder	Nieuwe map
+Select Games	Spellen kiezen
+Rename Folder	Map hernoemen
+Delete Folder	Map verwijderen
+Remove from Folder	Uit map verwijderen
+New folder	Nieuwe map
+Rename folder	Map hernoemen
+Network Update	Netwerkupdate
+Exit to LiveArea	Naar LiveArea gaan
+VitaXMB Settings	VitaXMB-instellingen
+Vita System Settings	Systeeminstellingen van de Vita
+Vita Themes	Thema's van de Vita
+Sign In to PlayStation Network	Aanmelden bij PlayStation Network
+Messages	Berichten
+Near	near
+Clock Format	Klokformaat
+Battery Percentage	Batterijpercentage
+Sound Effects	Geluidseffecten
+Startup Animation	Opstartanimatie
+Game Boot Logo	Logo bij het starten van een spel
+No LiveArea Plugin (beta)	Plugin zonder LiveArea (bèta)
+Confirmation Dialogs	Bevestigingsvensters
+Game Launch Method	Spelstartmethode
+Photo Category	Categorie Foto
+Music Category	Categorie Muziek
+Video Category	Categorie Video
+Network Category	Categorie Netwerk
+Extra Storage (beta)	Extra opslag (bèta)
+Check for Updates at Start	Bij het starten naar updates zoeken
+Decrypt Artwork (beta)	Artwork ontsleutelen (bèta)
+A: standard	A: standaard
+B: open flag	B: open-vlag
+C: launch flag	C: launch-vlag
+D: stay open	D: open blijven
+January	Januari
+February	Februari
+March	Maart
+May	Mei
+June	Juni
+July	Juli
+August	Augustus
+October	Oktober
+No preview	Geen voorbeeld
+Random	Willekeurig
+Random: %.32s	Willekeurig: %.32s
+System Software	Systeemsoftware
+Nickname	Alias
+MAC Address	MAC-adres
+Battery	Batterij
+Title	Titel
+Version	Versie
+Location	Locatie
+Unknown	Onbekend
+Disc ID	Schijf-ID
+Title ID	Titel-ID
+Category	Categorie
+Game (application)	Spel (applicatie)
+Storage (%s)	Opslag (%s)
+%.1f GB free of %.1f GB	%.1f GB vrij van %.1f GB
+mounted	gekoppeld
+ (charging)	 (wordt opgeladen)
+Free Space  %u GB	Vrije ruimte  %u GB
+Free Space  %u MB	Vrije ruimte  %u MB
+Last Played	Laatst gespeeld
+Open in Photos	Openen in Foto’s
+Empty folder	Lege map
+Options > Select Games	Opties > Spellen kiezen
+Empty	Leeg
+%d game	%d spel
+%d games	%d spellen
+No games found	Geen spellen gevonden
+Nothing in ux0:app	Niets in ux0:app
+No saved data	Geen opgeslagen gegevens
+Nothing in ux0:user/00/savedata	Niets in ux0:user/00/savedata
+No videos	Geen video’s
+Put videos in ux0:video	Zet video’s in ux0:video
+No songs	Geen nummers
+Put MP3, FLAC, OGG, WAV or AIFF files in ux0:music	Zet MP3-, FLAC-, OGG-, WAV- of AIFF-bestanden in ux0:music
+Folder %d	Map %d
+Games in "%s"	Spellen in ‘%s’
+%d selected	%d geselecteerd
+No games installed	Geen spellen geïnstalleerd
+Restart now	Nu opnieuw opstarten
+Restart required	Opnieuw opstarten vereist
+Restart the Vita now?	De Vita nu opnieuw opstarten?
+The plugin change applies after a restart.	De plugin-wijziging geldt na een herstart.
+Exit VitaXMB and return to the LiveArea?	VitaXMB afsluiten en terug naar LiveArea?
+Delete the folder "%.40s"?	Map ‘%.40s’ verwijderen?
+The games stay installed.	De spellen blijven geïnstalleerd.
+Install the NoLiveArea plugin?	De NoLiveArea-plugin installeren?
+Keeps the LiveArea out of sight:\n- Turning the Vita on: VitaXMB opens by itself, no LiveArea.\n- Starting a game: the screen stays black while it loads.\n- Closing a game: VitaXMB opens again.\nPressing the PS button in a game still shows the LiveArea.	Houdt de LiveArea uit beeld:\n- Vita aanzetten: VitaXMB opent vanzelf, zonder LiveArea.\n- Een spel starten: het scherm blijft zwart tijdens het laden.\n- Een spel sluiten: VitaXMB opent weer.\nDe PS-knop in een spel toont nog steeds de LiveArea.
+VitaXMB was updated and replaced the NoLiveArea plugin.\nNew: if VitaXMB is ever uninstalled while the plugin\nstays, it no longer tries to open it on every app\nyou close. It works again once VitaXMB is back.\nThe old version stays loaded until the Vita restarts.\nRestart now to load the new version.	VitaXMB is bijgewerkt en heeft de NoLiveArea-plugin vervangen.\nNieuw: als VitaXMB wordt verwijderd terwijl de plugin blijft,\nprobeert die het niet meer te openen bij elke gesloten app.\nHet werkt weer zodra VitaXMB terug is.\nDe oude versie blijft geladen tot de Vita opnieuw start.\nStart nu opnieuw op om de nieuwe versie te laden.
+NoLiveArea installed.	NoLiveArea geïnstalleerd.
+NoLiveArea removed.	NoLiveArea verwijderd.
+Could not install the plugin (code %s)	De plugin kon niet worden geïnstalleerd (code %s)
+Could not remove the plugin (%s)	De plugin kon niet worden verwijderd (%s)
+The plugin file is missing from this install%s	Het pluginbestand ontbreekt in deze installatie%s
+no config.txt	geen config.txt
+config not writable	config niet beschrijfbaar
+copy failed	kopiëren mislukt
+Decrypt game artwork?	Artwork van spellen ontsleutelen?
+Loads VitaShell's kernel modules. Experimental.	Laadt de kernelmodules van VitaShell. Experimenteel.
+Checking GitHub...	GitHub wordt gecontroleerd...
+VitaXMB %s is up to date.	VitaXMB %s is up-to-date.
+Check again	Opnieuw controleren
+Version %s is available (you have %s).	Versie %s is beschikbaar (u hebt %s).
+Install	Installeren
+Downloading %s...	%s wordt gedownload...
+%.1f of %.1f MB	%.1f van %.1f MB
+Installing... please wait	Installeren... even geduld
+Do not close the application.	Sluit de applicatie niet.
+%s is installed.	%s is geïnstalleerd.
+The app restarts to finish the update.	De applicatie start opnieuw op om de update te voltooien.
+The update is downloaded.	De update is gedownload.
+It could not be installed from here.	Het kon van hieruit niet worden geïnstalleerd.
+Install ux0:data/VitaXMB/update.vpk with VitaShell to finish the update.	Installeer ux0:data/VitaXMB/update.vpk met VitaShell om de update te voltooien.
+The update did not work.	De update is mislukt.
+Try again	Opnieuw proberen
+Looks for a newer VitaXMB on GitHub.	Zoekt op GitHub naar een nieuwere VitaXMB.
+Check now	Nu controleren
+Up / Down: scroll	Omhoog / Omlaag: scrollen
+Update available: %s	Update beschikbaar: %s
+Update available: %s   (Settings > Network Update)	Update beschikbaar: %s  (Instellingen > Netwerkupdate)
+VitaXMB was updated to %s	VitaXMB is bijgewerkt naar %s
+the new version	de nieuwe versie
+The update did not install (%s)	De update is niet geïnstalleerd (%s)
+Loading...	Bezig met laden...
+Audio Options	Geluidsopties
+Subtitle Options	Ondertitelingsopties
+Go To	Ga naar
+Screen Mode	Schermmodus
+Display	Weergeven
+Previous	Vorige
+Next	Volgende
+Fast Reverse	Snel terugspoelen
+Fast Forward	Snel vooruitspoelen
+Slow Motion	Slow motion
+Frame Advance	Volgende frame
+Play	Afspelen
+Playback Speed (+)	Playback-snelheid (+)
+Playback Speed (-)	Playback-snelheid (-)
+Pause	Pauze
+Stop	Stoppen
+A-B Repeat	A-B herhalen
+Repeat	Herhalen
+Shuffle	Willekeurig
+Clear	Wissen
+Repeat Off	Herhalen uit.
+Title Repeat	Titel herhalen
+Folder Repeat	Map herhalen
+Shuffle On	Willekeurig Aan
+Shuffle Off	Willekeurig Uit
+Normal	Normaal
+Zoom	Zoomen
+Full Screen	Volledig scherm
+Original	Standaard
+Chapter %d	Hoofdstuk %d
+Normal speed	Normale snelheid
+A set	A ingesteld
+B set: repeating	B ingesteld: herhalen
+A-B Repeat off	A-B herhalen uit
+Repeat, A-B Repeat and Shuffle cleared	Herhalen, A-B herhalen en willekeurig afspelen gewist
+Output: Left and right	Uitvoer: links en rechts
+Output: Left only	Uitvoer: alleen links
+Output: Right only	Uitvoer: alleen rechts
+Resumed at %s	Hervat op %s
+Play / pause	Afspelen / pauze
+Stop and go back	Stoppen en teruggaan
+Show the control panel	Bedieningspaneel tonen
+Change the screen mode	Schermmodus wijzigen
+Previous / next	Vorige / volgende
+Tap: 10 seconds; hold: search	Tikken: 10 seconden; vasthouden: zoeken
+This help	Deze help
+Show the information	Informatie tonen
+Video player (BETA)	Videospeler (BÈTA)
+In the control panel: the d-pad chooses, ✕ uses, ○ closes	In het paneel: pijltjes kiezen, ✕ gebruikt, ○ sluit
+hardware (system player)	hardware (systeemspeler)
+Audio: %s %s (%d tracks)	Audio: %s %s (%d sporen)
+Subtitles: %d track	Ondertitels: %d spoor
+Subtitles: %d tracks	Ondertitels: %d sporen
+ (none loaded yet)	 (nog geen geladen)
+This video can't be played	Deze video kan niet worden afgespeeld
+Press ○ to go back	Druk op ○ om terug te gaan
+This video is bigger than 720p	Deze video is groter dan 720p
+This video is large for software decoding	Deze video is groot voor softwaredecodering
+The Vita can't play pictures this size smoothly.	De Vita kan beelden van deze grootte niet vloeiend afspelen.
+Expect stuttering, dropped frames or a failure to start.	Verwacht haperingen, overgeslagen beelden of een mislukte start.
+The Vita's hardware can't play this file, so it is decoded in	De hardware van de Vita kan dit bestand niet afspelen, dus het wordt
+software, which is slow. Expect stuttering.	softwarematig gedecodeerd, wat traag is. Verwacht haperingen.
+✕  Play anyway          ○  Back	✕  Toch afspelen          ○  Terug
+%d song	%d nummer
+%d songs	%d nummers

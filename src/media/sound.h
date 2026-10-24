@@ -21,6 +21,13 @@ static int16_t mus_ring[MUS_RING * 2];
 static volatile unsigned mus_w, mus_r;
 static volatile int mus_playing;
 static volatile uint64_t mus_consumed;
+/* A PSP game's own sound (media/pspmedia.h): its worker thread fills this ring, the mixer plays it with a fade that follows bgm_target. */
+#define BGM_RING 32768
+static int16_t bgm_ring[BGM_RING * 2];
+static volatile unsigned bgm_w, bgm_r;
+static volatile float bgm_target;                 /* 1: play, 0: fade out */
+static volatile float bgm_gain_now;
+
 #define VIS_N 1024
 static int16_t vis_buf[VIS_N];
 static volatile unsigned vis_w;
@@ -163,6 +170,25 @@ static int audio_thread(SceSize args, void *argp)
 			if (n > AUDIO_GRAIN) n = AUDIO_GRAIN;
 			for (int k = 0; k < n * 2; k++) acc[k] += s->data[pos * 2 + k];
 			s->pos = pos + n;
+		}
+		{
+			static float gain;
+			if (!sound_on) bgm_target = 0.0f;
+			gain += gain < bgm_target ? 0.03f : -0.1f;                    /* about 0.7 s in, 0.2 s out */
+			if (gain > 1.0f) gain = 1.0f;
+			if (gain < 0.0f) gain = 0.0f;
+			bgm_gain_now = gain;
+			unsigned avail = bgm_w - bgm_r;
+			if (gain > 0.0f && avail) {
+				unsigned n = avail < AUDIO_GRAIN ? avail : AUDIO_GRAIN;
+				int g = (int)(gain * 62.0f);                              /* 0.6 at the most: it plays under the menu sounds */
+				for (unsigned i = 0; i < n; i++) {
+					unsigned idx = (bgm_r + i) & (BGM_RING - 1);
+					acc[i * 2] += bgm_ring[idx * 2] * g / 100;
+					acc[i * 2 + 1] += bgm_ring[idx * 2 + 1] * g / 100;
+				}
+				bgm_r += n;
+			}
 		}
 		if (mus_playing) {
 			unsigned avail = mus_w - mus_r;

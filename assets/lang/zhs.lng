@@ -1,0 +1,247 @@
+Settings	设定
+Photo	照片
+Music	音乐
+Video	视频影像
+Game	游戏
+Network	网络
+System Settings	主机设定
+Theme Settings	主题设定
+Network Settings	网络设定
+System Information	主机信息
+System Language	系统语言
+System Update	系统升级
+Color	颜色
+Custom Theme (beta)	自订/定制主题 (beta)
+Wi-Fi Settings	无线LAN设定
+Internet Browser	互联网浏览器
+Saved Data Utility	管理存档数据
+PlayStation Store	PlayStation®Store
+Automatic	自动
+Automatic (by month)	每月
+12-hour	12小时制
+24-hour	24小时制
+Off	关
+On	开
+Off (none found)	关闭(未找到)
+On (none)	开启(无)
+On (%s)	开 (%s)
+On (%d cards)	开启(%d 张卡)
+Hidden	隐藏
+Shown	显示
+Unavailable	无法使用
+Information	信息
+Start	开始
+Options	选项
+Yes	是
+No	否
+Cancel	取消
+Select	选择
+Back	返回
+Done	完成
+All / None	全部 / 无
+Refresh List	刷新列表
+New Folder	新建文件夹
+Select Games	选择游戏
+Rename Folder	重命名文件夹
+Delete Folder	删除文件夹
+Remove from Folder	从文件夹移除
+New folder	新建文件夹
+Rename folder	重命名文件夹
+Network Update	网络更新
+Exit to LiveArea	返回 LiveArea
+VitaXMB Settings	VitaXMB 设置
+Vita System Settings	Vita 系统设置
+Vita Themes	Vita 主题
+Sign In to PlayStation Network	登录 PlayStation Network
+Party	派对
+Messages	信息
+Near	near
+Clock Format	时钟格式
+Battery Percentage	电池电量百分比
+Sound Effects	音效
+Startup Animation	启动动画
+Game Boot Logo	游戏启动标志
+No LiveArea Plugin (beta)	免 LiveArea 插件(测试版)
+Confirmation Dialogs	确认对话框
+Game Launch Method	游戏启动方式
+Photo Category	照片类别
+Music Category	音乐类别
+Video Category	视频影像类别
+Network Category	网络类别
+Extra Storage (beta)	额外存储设备(测试版)
+Check for Updates at Start	启动时检查更新
+Decrypt Artwork (beta)	解密图像(测试版)
+A: standard	A:标准
+B: open flag	B:open 标志
+C: launch flag	C:launch 标志
+D: stay open	D:保持打开
+January	1月
+February	2月
+March	3月
+April	4月
+May	5月
+June	6月
+July	7月
+August	8月
+September	9月
+October	10月
+November	11月
+December	12月
+No preview	无预览
+Random	随机
+Random: %.32s	随机:%.32s
+System Software	系统软件
+Nickname	昵称
+MAC Address	MAC地址
+Battery	电池
+Title	标题
+Details	详细信息
+Version	版本
+Location	位置
+Unknown	不明
+Model	型号
+Processor	处理器
+Disc ID	光盘 ID
+Title ID	标题 ID
+Category	类别
+Game (application)	游戏(应用程序)
+Storage (%s)	存储设备 (%s)
+%.1f GB free of %.1f GB	可用 %.1f GB / 共 %.1f GB
+mounted	已挂载
+ (charging)	 (充电中)
+Free Space  %u GB	剩余容量  %u GB
+Free Space  %u MB	剩余容量  %u MB
+Last Played	上次游玩
+Open in Photos	在“照片”中打开
+Empty folder	空文件夹
+Options > Select Games	选项 > 选择游戏
+Empty	空
+%d game	%d 款游戏
+%d games	%d 款游戏
+No games found	未找到游戏
+Nothing in ux0:app	ux0:app 中没有内容
+No saved data	没有存档数据
+Nothing in ux0:user/00/savedata	ux0:user/00/savedata 中没有内容
+No videos	没有视频
+Put videos in ux0:video	请将视频放入 ux0:video
+No songs	没有歌曲
+Put MP3, FLAC, OGG, WAV or AIFF files in ux0:music	请将 MP3、FLAC、OGG、WAV 或 AIFF 文件放入 ux0:music
+Folder %d	文件夹 %d
+Games in "%s"	“%s”中的游戏
+%d selected	已选择 %d 项
+In: %s	位于:%s
+No games installed	没有已安装的游戏
+Restart now	立即重新启动
+Restart required	需要重新启动
+Restart the Vita now?	要立即重新启动 Vita 吗?
+The plugin change applies after a restart.	插件的更改将在重新启动后生效。
+Exit VitaXMB and return to the LiveArea?	要退出 VitaXMB 并返回 LiveArea 吗?
+Delete the folder "%.40s"?	要删除文件夹“%.40s”吗?
+The games stay installed.	游戏仍会保持安装。
+Install the NoLiveArea plugin?	要安装 NoLiveArea 插件吗?
+Keeps the LiveArea out of sight:\n- Turning the Vita on: VitaXMB opens by itself, no LiveArea.\n- Starting a game: the screen stays black while it loads.\n- Closing a game: VitaXMB opens again.\nPressing the PS button in a game still shows the LiveArea.	让 LiveArea 不再出现:\n- 开启 Vita 时:VitaXMB 自动打开,不显示 LiveArea。\n- 启动游戏时:加载期间屏幕保持黑色。\n- 退出游戏时:VitaXMB 会再次打开。\n在游戏中按 PS 按钮仍会显示 LiveArea。
+VitaXMB was updated and replaced the NoLiveArea plugin.\nNew: if VitaXMB is ever uninstalled while the plugin\nstays, it no longer tries to open it on every app\nyou close. It works again once VitaXMB is back.\nThe old version stays loaded until the Vita restarts.\nRestart now to load the new version.	VitaXMB 已更新并替换了 NoLiveArea 插件。\n新增:若 VitaXMB 被卸载而插件仍保留,\n插件不会再在每次关闭应用时尝试打开它。\nVitaXMB 回来后便会再次运行。\n旧版本会保持加载,直到 Vita 重新启动。\n请立即重新启动以加载新版本。
+NoLiveArea installed.	已安装 NoLiveArea。
+NoLiveArea removed.	已移除 NoLiveArea。
+Could not install the plugin (code %s)	无法安装插件(代码 %s)
+Could not remove the plugin (%s)	无法移除插件(%s)
+The plugin file is missing from this install%s	此安装缺少插件文件%s
+no config.txt	没有 config.txt
+config not writable	无法写入 config
+copy failed	复制失败
+Decrypt game artwork?	要解密游戏图像吗?
+Loads VitaShell's kernel modules. Experimental.	加载 VitaShell 的内核模块。实验性功能。
+Checking GitHub...	正在检查 GitHub...
+VitaXMB %s is up to date.	VitaXMB %s 已是最新版本。
+Check again	再次检查
+Version %s is available (you have %s).	有新版本 %s 可用(当前为 %s)。
+Install	安装
+Downloading %s...	正在下载 %s...
+%.1f of %.1f MB	%.1f / %.1f MB
+Installing... please wait	正在安装... 请稍候
+Do not close the application.	请勿关闭应用。
+%s is installed.	已安装 %s。
+The app restarts to finish the update.	应用将重新启动以完成更新。
+The update is downloaded.	更新已下载。
+It could not be installed from here.	无法从这里安装。
+Install ux0:data/VitaXMB/update.vpk with VitaShell to finish the update.	请用 VitaShell 安装 ux0:data/VitaXMB/update.vpk 以完成更新。
+The update did not work.	更新失败。
+Try again	再试一次
+Looks for a newer VitaXMB on GitHub.	在 GitHub 上查找较新的 VitaXMB。
+Check now	立即检查
+Up / Down: scroll	上 / 下:滚动
+Update available: %s	有可用更新:%s
+Update available: %s   (Settings > Network Update)	有可用更新:%s(设置 > 网络更新)
+VitaXMB was updated to %s	VitaXMB 已更新至 %s
+the new version	新版本
+The update did not install (%s)	更新未安装(%s)
+Loading...	正在读取。
+Audio Options	声音选项
+Subtitle Options	字幕选项
+Go To	进入
+Screen Mode	屏幕模式
+Display	显示
+Help	帮助
+Previous	前一个
+Next	后一个
+Fast Reverse	快退
+Fast Forward	快进
+Slow Motion	慢放
+Frame Advance	播放下一帧
+Play	播放
+Playback Speed (+)	播放速度(+)
+Playback Speed (-)	播放速度(-)
+Pause	暂停
+Stop	停止
+A-B Repeat	A-B重复播放
+Repeat	重复播放
+Shuffle	随机播放
+Clear	清除
+Repeat Off	取消重复播放
+Title Repeat	重复标题
+Folder Repeat	重复文件夹
+Shuffle On	随机播放 开
+Shuffle Off	随机播放 关
+Normal	标准
+Zoom	缩放
+Full Screen	全屏
+Original	原始
+Chapter %d	章节 %d
+Normal speed	正常速度
+A set	已设置 A
+B set: repeating	已设置 B:重复播放中
+A-B Repeat off	A-B 重复已关闭
+Repeat, A-B Repeat and Shuffle cleared	已清除重复、A-B 重复与随机播放
+Output: Left and right	输出:左右声道
+Output: Left only	输出:仅左声道
+Output: Right only	输出:仅右声道
+Resumed at %s	从 %s 继续
+Play / pause	播放 / 暂停
+Stop and go back	停止并返回
+Show the control panel	显示控制面板
+Change the screen mode	更改画面模式
+Previous / next	上一个 / 下一个
+Tap: 10 seconds; hold: search	轻按:10 秒;按住:搜索
+This help	此帮助
+Show the information	显示信息
+Video player (BETA)	视频播放器(测试版)
+In the control panel: the d-pad chooses, ✕ uses, ○ closes	控制面板中:方向键选择,✕ 使用,○ 关闭
+Container: %s   %d kbit/s	容器:%s   %d kbit/s
+Decoder: %s	解码器:%s
+hardware (system player)	硬件(系统播放器)
+software (FFmpeg)	软件(FFmpeg)
+Audio: %s %s (%d tracks)	音频:%s %s(%d 个音轨)
+Subtitles: %d track	字幕:%d 个轨
+Subtitles: %d tracks	字幕:%d 个轨
+ (none loaded yet)	(尚未加载)
+This video can't be played	无法播放此视频
+Press ○ to go back	按 ○ 返回
+This video is bigger than 720p	此视频大于 720p
+This video is large for software decoding	此视频对软件解码而言过大
+The Vita can't play pictures this size smoothly.	Vita 无法流畅播放此大小的画面。
+Expect stuttering, dropped frames or a failure to start.	可能会卡顿、掉帧或无法开始播放。
+The Vita's hardware can't play this file, so it is decoded in	Vita 的硬件无法播放此文件,因此
+software, which is slow. Expect stuttering.	改用软件解码,速度较慢,可能会卡顿。
+✕  Play anyway          ○  Back	✕  仍要播放          ○  返回
+%d song	%d 首歌曲
+%d songs	%d 首歌曲

@@ -715,6 +715,8 @@ typedef struct {
 	const uint8_t *fd;
 	size_t fdsize;
 	int cap;                                   /* height of a capital H in the font's own pixels */
+	int nrange;                                /* revision 3 (kr0.pgf): the charmap only holds these runs of characters, one after the other */
+	struct { int start, len, cum; } rng[8];
 } PtFont;
 static PtFont *pt_font;
 
@@ -778,6 +780,15 @@ static PtFont *pt_font_parse(uint8_t *data, size_t size)
 		f->yadj[k] = pt_tab(p + (nd + nx) * 8, ny, k);
 		f->adv[k] = pt_tab(p + (nd + nx + ny) * 8, na, k);
 	}
+	if (rev == 3) {                                      /* (first character, count) pairs: the charmap holds them back to back */
+		const uint8_t *rp = p + tabs + sh_sz;
+		int cum = 0;
+		for (int i = 0; i < c1 && i < 8; i++) {
+			f->rng[i].start = pt_rd16(rp + i * 4); f->rng[i].len = pt_rd16(rp + i * 4 + 2); f->rng[i].cum = cum;
+			cum += f->rng[i].len;
+		}
+		f->nrange = c1 < 8 ? c1 : 8;
+	}
 	p += tabs + sh_sz + (size_t)(c1 + c2) * 4;
 	f->charmap = malloc(sizeof(uint32_t) * (cml ? cml : 1));
 	f->charptr = malloc(sizeof(uint32_t) * (cpl ? cpl : 1));
@@ -798,7 +809,14 @@ static int pt_glyph(const PtFont *f, uint32_t cp, PtGlyph *g)
 {
 	if ((int)cp < f->first) return 0;
 	uint32_t c = cp - f->first;
-	if (c < (uint32_t)f->cml) c = f->charmap[c];
+	if (f->nrange) {
+		int k = 0;
+		while (k < f->nrange && !((int)cp >= f->rng[k].start && (int)cp < f->rng[k].start + f->rng[k].len)) k++;
+		if (k == f->nrange) return 0;
+		c = (uint32_t)(f->rng[k].cum + (int)cp - f->rng[k].start);
+		if (c >= (uint32_t)f->cml) return 0;
+		c = f->charmap[c];
+	} else if (c < (uint32_t)f->cml) c = f->charmap[c];
 	if (c >= (uint32_t)f->cpl) return 0;
 	size_t bp = (size_t)f->charptr[c] * 32;
 	if (bp + 1024 > f->fdsize * 8) return 0;
@@ -864,6 +882,154 @@ static float pt_font_adv(uint32_t cp, unsigned int size)
 	PtGlyph g;
 	if (!pt_font || !pt_glyph(pt_font, cp, &g)) return -1.0f;
 	return (g.adv / 64.0f) * pt_font_scale(size);
+}
+
+/* ---- fallback fonts for the scripts the Latin font lacks: the firmware's own jpn0.pgf (kana, kanji) and kr0.pgf (Hangul), and for
+ * what those two do not have (the simplified Chinese characters, a few traditional ones) the Vita's system fonts (ScePvf, the same
+ * Sony font family; sa0:data/font/pvf). The PSP draws these scripts with the same fonts. A glyph id of 0x100000 | font << 16 | character
+ * names one (font 0: the UI's own PGF). ---- */
+
+enum { PF_UI, PF_JPN, PF_KR, PF_SYS };
+static PtFont *pt_fb[3];                       /* [PF_JPN], [PF_KR] */
+static int pt_fb_tried[3];
+
+static uint8_t *boot_read_file(const char *path, size_t *n);
+
+static PtFont *pt_fb_font(int fi)
+{
+	if (fi == PF_UI) return pt_font;
+	if (fi != PF_JPN && fi != PF_KR) return NULL;
+	if (!pt_fb_tried[fi]) {
+		pt_fb_tried[fi] = 1;
+		size_t n = 0;
+		uint8_t *b = boot_read_file(fi == PF_JPN ? "app0:assets/psp/jpn0.pgf" : "app0:assets/psp/kr0.pgf", &n);
+		if (b) { pt_fb[fi] = pt_font_parse(b, n); if (!pt_fb[fi]) free(b); }
+	}
+	return pt_fb[fi];
+}
+
+/* the system fonts: Chinese, Korean and a CJK one, opened on first use, sized like the PSP's CJK glyphs (18 px at the UI's size 20) */
+static ScePvfLibId pvf_lib;
+static ScePvfFontId pvf_font[3];
+static int pvf_tried;
+static void *pvf_alloc(void *u, unsigned int n) { (void)u; return memalign(4, (n + 3) & ~3u); }
+static void *pvf_realloc(void *u, void *p, unsigned int n) { (void)u; return realloc(p, (n + 3) & ~3u); }
+static void pvf_free(void *u, void *p) { (void)u; free(p); }
+
+static void pvf_init(void)
+{
+	if (pvf_tried) return;
+	pvf_tried = 1;
+	ScePvfError err = 0;
+	ScePvfInitRec ir = { NULL, 4, NULL, NULL, pvf_alloc, pvf_realloc, pvf_free };
+	pvf_lib = scePvfNewLib(&ir, &err);
+	if (err != 0 || !pvf_lib) { xlog("pvf: scePvfNewLib failed %08x\n", (unsigned)err); pvf_lib = NULL; return; }
+	scePvfSetEM(pvf_lib, 72.0f / (10.125f * 128.0f));
+	scePvfSetResolution(pvf_lib, 128.0f, 128.0f);
+	static const int langs[3] = { SCE_PVF_LANGUAGE_C, SCE_PVF_LANGUAGE_K, SCE_PVF_LANGUAGE_CJK };
+	for (int k = 0; k < 3; k++) {
+		ScePvfFontStyleInfo st;
+		memset(&st, 0, sizeof(st));
+		st.languageCode = (ScePvfU16)langs[k];
+		err = 0;
+		ScePvfFontIndex idx = scePvfFindOptimumFont(pvf_lib, &st, &err);
+		if (err != 0) { xlog("pvf: no font for language %d (%08x)\n", langs[k], (unsigned)err); continue; }
+		pvf_font[k] = scePvfOpen(pvf_lib, idx, 0, &err);
+		if (err != 0) { xlog("pvf: open %d failed %08x\n", (int)idx, (unsigned)err); pvf_font[k] = NULL; continue; }
+		scePvfSetCharSize(pvf_font[k], 10.125f, 10.125f);
+		xlog("pvf: language %d -> font %d\n", langs[k], (int)idx);
+	}
+}
+
+/* one character of the system fonts, as a PGF-style glyph (pixels in the font's own size, advance in 1/64) */
+static int pt_sys_glyph(uint32_t cp, PtGlyph *g, uint8_t **bitmap)
+{
+	pvf_init();
+	if (!pvf_lib) return 0;
+	int hangul = (cp >= 0x1100 && cp < 0x1200) || (cp >= 0x3130 && cp < 0x3190) || (cp >= 0xAC00 && cp < 0xD7B0);
+	int order[3] = { 2, 0, 1 };                                    /* CJK, Chinese, Korean */
+	if (hangul) { order[0] = 1; order[1] = 2; order[2] = 0; }
+	else if (lang_is_zhs()) { order[0] = 0; order[1] = 2; order[2] = 1; }
+	for (int o = 0; o < 3; o++) {
+		ScePvfFontId f = pvf_font[order[o]];
+		if (!f || !scePvfIsElement(f, (ScePvfCharCode)cp)) continue;
+		ScePvfCharInfo ci;
+		ScePvfIrect rc;
+		if (scePvfGetCharInfo(f, (ScePvfCharCode)cp, &ci) < 0 || scePvfGetCharImageRect(f, (ScePvfCharCode)cp, &rc) < 0) continue;
+		g->w = (int)rc.width; g->h = (int)rc.height;                    /* the size of the picture the font draws (vita2d sizes its atlas entries the same way), not CharInfo's bitmap size */
+		g->left = ci.glyphMetrics.horizontalBearingX64 >> 6; g->top = ci.glyphMetrics.horizontalBearingY64 >> 6;
+		g->adv = ci.glyphMetrics.horizontalAdvance64; g->flags = 0; g->ptr = 0;
+		if (bitmap) {
+			*bitmap = NULL;
+			if (g->w > 0 && g->h > 0 && g->w < 128 && g->h < 128) {
+				const int pad = 2, bw = g->w + 2 * pad, bh = g->h + 2 * pad;
+				uint8_t *buf = calloc((size_t)bw * bh, 1), *out = malloc((size_t)g->w * g->h);
+				if (buf && out) {
+					ScePvfUserImageBufferRec im;
+					memset(&im, 0, sizeof(im));
+					im.pixelFormat = SCE_PVF_USERIMAGE_DIRECT8;
+					im.xPos64 = (pad << 6) - ci.glyphMetrics.horizontalBearingX64;
+					im.yPos64 = (pad << 6) + ci.glyphMetrics.horizontalBearingY64;
+					im.rect.width = (ScePvfU16)bw; im.rect.height = (ScePvfU16)bh;
+					im.bytesPerLine = (ScePvfU16)bw;
+					im.buffer = buf;
+					int r = scePvfGetCharGlyphImage(f, (ScePvfCharCode)cp, &im);
+					static int logged;
+					if (logged < 6) { logged++; xlog("pvf: U+%04X font %d %dx%d bearing %d,%d adv %d -> %08x\n", (unsigned)cp, order[o], g->w, g->h, g->left, g->top, (int)g->adv, (unsigned)r); }
+					if (r == 0) {
+						for (int y = 0; y < g->h; y++) memcpy(out + y * g->w, buf + (y + pad) * bw + pad, (size_t)g->w);
+						*bitmap = out; out = NULL;
+					}
+				}
+				free(buf); free(out);
+			}
+		}
+		return 1;
+	}
+	return 0;
+}
+
+static int lang_is_zhs(void);                  /* core/lang.h */
+
+/* A character the UI font lacks: which fallback font draws it, and its advance at the font's own size (the PGF fonts' 1/64 pixels, in pixels here). 0: none. */
+/* which font draws a character and how wide it is is asked once per character, not once per frame (the system font calls are slow) */
+static uint8_t *pt_fb_cache;                    /* 0 not asked yet, 1 no fallback font, 2 jpn0, 3 system font */
+static uint16_t *pt_fb_adv16;                   /* the advance in 1/16 pixel */
+static void pt_fb_cache_clear(void) { if (pt_fb_cache) memset(pt_fb_cache, 0, 65536); }
+
+static int pt_fb_find(uint32_t cp, float *adv)
+{
+	int hangul = (cp >= 0x1100 && cp < 0x1200) || (cp >= 0x3130 && cp < 0x3190) || (cp >= 0xAC00 && cp < 0xD7B0);
+	int han = (cp >= 0x3400 && cp < 0xA000) || (cp >= 0xF900 && cp < 0xFB00);
+	PtGlyph g;
+	if (hangul || (han && lang_is_zhs())) {                                       /* Hangul has no usable PGF picture; simplified Chinese looks right only in the Chinese font */
+		if (pt_sys_glyph(cp, &g, NULL)) { *adv = g.adv / 64.0f; return PF_SYS; }
+		return 0;
+	}
+	PtFont *f = pt_fb_font(PF_JPN);
+	if (f && pt_glyph(f, cp, &g)) { *adv = g.adv / 64.0f; return PF_JPN; }
+	if (pt_sys_glyph(cp, &g, NULL)) { *adv = g.adv / 64.0f; return PF_SYS; }
+	return 0;
+}
+
+/* A character the UI font lacks: which fallback font draws it, and its advance at the font's own size. 0: none (the UI font handles it). */
+static int pt_fb_pick(uint32_t cp, float *adv)
+{
+	if (cp < 0x1100 || cp > 0xFFFF || (cp >= 0x2000 && cp < 0x2E80)) return 0;       /* Latin, Cyrillic and symbols stay with the UI's fonts */
+	if (!pt_fb_cache) {
+		pt_fb_cache = calloc(65536, 1);
+		pt_fb_adv16 = calloc(65536, 2);
+	}
+	if (pt_fb_cache && pt_fb_cache[cp]) {
+		int st = pt_fb_cache[cp];
+		*adv = pt_fb_adv16[cp] / 16.0f;
+		return st == 2 ? PF_JPN : (st == 3 ? PF_SYS : 0);
+	}
+	float a = 0;
+	int fi = pt_fb_find(cp, &a);
+	if (pt_fb_cache) { pt_fb_cache[cp] = fi == PF_JPN ? 2 : (fi == PF_SYS ? 3 : 1); pt_fb_adv16[cp] = (uint16_t)(a * 16.0f + 0.5f); }
+	*adv = a;
+	return fi;
 }
 
 static void text_cache_flush(void);                  /* main.c */
@@ -1149,7 +1315,7 @@ static void pt_cycle(int dir)
 
 static void pt_text(char *out, size_t n)
 {
-	if (pt_random && pt_active >= 0 && pt_active < pt_n) snprintf(out, n, "Random: %.32s", pt_list[pt_active].name);
+	if (pt_random && pt_active >= 0 && pt_active < pt_n) snprintf(out, n, T("Random: %.32s"), pt_list[pt_active].name);
 	else if (pt_active >= 0 && pt_active < pt_n) snprintf(out, n, "%.40s", pt_list[pt_active].name);
-	else snprintf(out, n, pt_n ? "Off" : "Off (none found)");
+	else snprintf(out, n, "%s", pt_n ? T("Off") : T("Off (none found)"));
 }

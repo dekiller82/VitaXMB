@@ -1,0 +1,237 @@
+Settings	Impostazioni
+Photo	Foto
+Music	Musica
+Game	Gioco
+Network	Rete
+System Settings	Impostazioni del sistema
+Theme Settings	Impostazioni del tema
+Network Settings	Impostazioni di rete
+System Information	Informazioni sul sistema
+System Language	Lingua del sistema
+System Update	Aggiornamento del sistema
+Color	Colore
+Custom Theme (beta)	Tema personalizzato (beta)
+Wi-Fi Settings	Impostazioni WLAN
+Internet Browser	Browser per Internet
+Saved Data Utility	Utilità dei dati salvati
+PlayStation Store	PlayStation®Store
+Automatic	Automatico
+Automatic (by month)	Mensile
+12-hour	12 ore
+24-hour	24 ore
+Off (none found)	No (nessuno trovato)
+On (none)	Sì (nessuna)
+On (%d cards)	Sì (%d schede)
+Hidden	Nascosta
+Shown	Visibile
+Unavailable	Non disponibile
+Information	Informazioni
+Start	Avvia
+Options	Opzioni
+Yes	Sì
+Cancel	Annulla
+Select	Seleziona
+Back	Indietro
+Done	Fatto
+All / None	Tutti / Nessuno
+Refresh List	Aggiorna elenco
+New Folder	Nuova cartella
+Select Games	Scegli i giochi
+Rename Folder	Rinomina cartella
+Delete Folder	Elimina cartella
+Remove from Folder	Rimuovi dalla cartella
+New folder	Nuova cartella
+Rename folder	Rinomina cartella
+Network Update	Aggiornamento di rete
+Exit to LiveArea	Esci su LiveArea
+VitaXMB Settings	Impostazioni VitaXMB
+Vita System Settings	Impostazioni di sistema della Vita
+Vita Themes	Temi della Vita
+Sign In to PlayStation Network	Accedi a PlayStation Network
+Messages	Messaggi
+Near	near
+Clock Format	Formato orologio
+Battery Percentage	Percentuale batteria
+Sound Effects	Effetti sonori
+Startup Animation	Animazione di avvio
+Game Boot Logo	Logo di avvio del gioco
+No LiveArea Plugin (beta)	Plugin senza LiveArea (beta)
+Confirmation Dialogs	Finestre di conferma
+Game Launch Method	Metodo di avvio dei giochi
+Photo Category	Categoria Foto
+Music Category	Categoria Musica
+Video Category	Categoria Video
+Network Category	Categoria Rete
+Extra Storage (beta)	Archiviazione aggiuntiva (beta)
+Check for Updates at Start	Cerca aggiornamenti all'avvio
+Decrypt Artwork (beta)	Decifra le immagini (beta)
+B: open flag	B: flag open
+C: launch flag	C: flag launch
+D: stay open	D: resta aperto
+January	Gennaio
+February	Febbraio
+March	Marzo
+April	Aprile
+May	Maggio
+June	Giugno
+July	Luglio
+August	Agosto
+September	Settembre
+October	Ottobre
+November	Novembre
+December	Dicembre
+No preview	Nessuna anteprima
+Random	Casuale
+Random: %.32s	Casuale: %.32s
+System Software	Software di sistema
+Nickname	Pseudonimo
+MAC Address	Indirizzo MAC
+Battery	Batteria
+Title	Titolo
+Details	Dettagli
+Version	Versione
+Location	Posizione
+Unknown	Sconosciuto
+Model	Modello
+Processor	Processore
+Disc ID	ID disco
+Title ID	ID titolo
+Category	Categoria
+Game (application)	Gioco (applicazione)
+Storage (%s)	Archiviazione (%s)
+%.1f GB free of %.1f GB	%.1f GB liberi su %.1f GB
+mounted	montato
+ (charging)	 (in carica)
+Free Space  %u GB	Spazio libero  %u GB
+Free Space  %u MB	Spazio libero  %u MB
+Last Played	Ultimo gioco
+Open in Photos	Apri in Foto
+Empty folder	Cartella vuota
+Options > Select Games	Opzioni > Scegli i giochi
+Empty	Vuota
+%d game	%d gioco
+%d games	%d giochi
+No games found	Nessun gioco trovato
+Nothing in ux0:app	Niente in ux0:app
+No saved data	Nessun dato salvato
+Nothing in ux0:user/00/savedata	Niente in ux0:user/00/savedata
+No videos	Nessun video
+Put videos in ux0:video	Metti i video in ux0:video
+No songs	Nessun brano
+Put MP3, FLAC, OGG, WAV or AIFF files in ux0:music	Metti file MP3, FLAC, OGG, WAV o AIFF in ux0:music
+Folder %d	Cartella %d
+Games in "%s"	Giochi in «%s»
+%d selected	%d selezionati
+No games installed	Nessun gioco installato
+Restart now	Riavvia ora
+Restart required	Riavvio necessario
+Restart the Vita now?	Riavviare la Vita ora?
+The plugin change applies after a restart.	La modifica del plugin verrà applicata dopo il riavvio.
+Exit VitaXMB and return to the LiveArea?	Uscire da VitaXMB e tornare alla LiveArea?
+Delete the folder "%.40s"?	Eliminare la cartella «%.40s»?
+The games stay installed.	I giochi restano installati.
+Install the NoLiveArea plugin?	Installare il plugin NoLiveArea?
+Keeps the LiveArea out of sight:\n- Turning the Vita on: VitaXMB opens by itself, no LiveArea.\n- Starting a game: the screen stays black while it loads.\n- Closing a game: VitaXMB opens again.\nPressing the PS button in a game still shows the LiveArea.	Tiene la LiveArea fuori vista:\n- All'accensione della Vita: VitaXMB si apre da solo, senza LiveArea.\n- Avviando un gioco: lo schermo resta nero durante il caricamento.\n- Chiudendo un gioco: VitaXMB si riapre.\nIl tasto PS in un gioco mostra comunque la LiveArea.
+VitaXMB was updated and replaced the NoLiveArea plugin.\nNew: if VitaXMB is ever uninstalled while the plugin\nstays, it no longer tries to open it on every app\nyou close. It works again once VitaXMB is back.\nThe old version stays loaded until the Vita restarts.\nRestart now to load the new version.	VitaXMB è stato aggiornato e ha sostituito il plugin NoLiveArea.\nNovità: se VitaXMB viene disinstallato e il plugin resta,\nnon cerca più di aprirlo a ogni app chiusa.\nTorna a funzionare quando VitaXMB è di nuovo presente.\nLa vecchia versione resta caricata fino al riavvio della Vita.\nRiavvia ora per caricare la nuova versione.
+NoLiveArea installed.	NoLiveArea installato.
+NoLiveArea removed.	NoLiveArea rimosso.
+Could not install the plugin (code %s)	Impossibile installare il plugin (codice %s)
+Could not remove the plugin (%s)	Impossibile rimuovere il plugin (%s)
+The plugin file is missing from this install%s	Il file del plugin manca da questa installazione%s
+no config.txt	manca config.txt
+config not writable	config non scrivibile
+copy failed	copia non riuscita
+Decrypt game artwork?	Decifrare le immagini dei giochi?
+Loads VitaShell's kernel modules. Experimental.	Carica i moduli del kernel di VitaShell. Sperimentale.
+Checking GitHub...	Controllo su GitHub...
+VitaXMB %s is up to date.	VitaXMB %s è aggiornato.
+Check again	Controlla di nuovo
+Version %s is available (you have %s).	È disponibile la versione %s (hai la %s).
+Install	Installa
+Downloading %s...	Download di %s...
+%.1f of %.1f MB	%.1f di %.1f MB
+Installing... please wait	Installazione... attendere
+Do not close the application.	Non chiudere l'applicazione.
+%s is installed.	%s è installato.
+The app restarts to finish the update.	L'applicazione si riavvia per completare l'aggiornamento.
+The update is downloaded.	L'aggiornamento è stato scaricato.
+It could not be installed from here.	Non è stato possibile installarlo da qui.
+Install ux0:data/VitaXMB/update.vpk with VitaShell to finish the update.	Installa ux0:data/VitaXMB/update.vpk con VitaShell per completare l'aggiornamento.
+The update did not work.	L'aggiornamento non è riuscito.
+Try again	Riprova
+Looks for a newer VitaXMB on GitHub.	Cerca una versione più recente di VitaXMB su GitHub.
+Check now	Controlla ora
+Up / Down: scroll	Su / Giù: scorri
+Update available: %s	Aggiornamento disponibile: %s
+Update available: %s   (Settings > Network Update)	Aggiornamento disponibile: %s  (Impostazioni > Aggiornamento di rete)
+VitaXMB was updated to %s	VitaXMB è stato aggiornato a %s
+the new version	la nuova versione
+The update did not install (%s)	L'aggiornamento non è stato installato (%s)
+Loading...	Caricamento in corso...
+Audio Options	Opzioni audio
+Subtitle Options	Opzioni sui sottotitoli
+Go To	Vai a
+Screen Mode	Modalità dello schermo
+Display	Visualizza
+Help	Guida
+Previous	Precedente
+Next	Seguente
+Fast Reverse	Indietro veloce
+Fast Forward	Avanti veloce
+Slow Motion	Rallentatore
+Frame Advance	Avanzamento per fotogrammi
+Play	Riproduci
+Playback Speed (+)	Velocità riproduzione (+)
+Playback Speed (-)	Velocità riproduzione (-)
+Pause	Pausa
+Stop	Ferma
+A-B Repeat	Ripetizione A-B
+Repeat	Ripeti
+Shuffle	Casuale
+Clear	Ripristina
+Repeat Off	Ripetizione off
+Title Repeat	Ripetizione del titolo
+Folder Repeat	Ripetizione della cartella
+Shuffle On	Casuale On
+Shuffle Off	Casuale Off
+Normal	Normale
+Full Screen	Schermo intero
+Original	Originale
+Chapter %d	Capitolo %d
+Normal speed	Velocità normale
+A set	A impostato
+B set: repeating	B impostato: ripetizione
+A-B Repeat off	Ripetizione A-B disattivata
+Repeat, A-B Repeat and Shuffle cleared	Ripetizione, ripetizione A-B e riproduzione casuale cancellate
+Output: Left and right	Uscita: sinistra e destra
+Output: Left only	Uscita: solo sinistra
+Output: Right only	Uscita: solo destra
+Resumed at %s	Ripreso da %s
+Play / pause	Riproduci / pausa
+Stop and go back	Ferma e torna indietro
+Show the control panel	Mostra il pannello di controllo
+Change the screen mode	Cambia la modalità schermo
+Previous / next	Precedente / successivo
+Tap: 10 seconds; hold: search	Tocco: 10 secondi; tieni premuto: ricerca
+This help	Questa guida
+Show the information	Mostra le informazioni
+Video player (BETA)	Lettore video (BETA)
+In the control panel: the d-pad chooses, ✕ uses, ○ closes	Nel pannello: la croce sceglie, ✕ usa, ○ chiude
+Container: %s   %d kbit/s	Contenitore: %s   %d kbit/s
+Decoder: %s	Decodificatore: %s
+hardware (system player)	hardware (lettore di sistema)
+Audio: %s %s (%d tracks)	Audio: %s %s (%d tracce)
+Subtitles: %d track	Sottotitoli: %d traccia
+Subtitles: %d tracks	Sottotitoli: %d tracce
+ (none loaded yet)	 (nessuno caricato)
+This video can't be played	Impossibile riprodurre questo video
+Press ○ to go back	Premi ○ per tornare indietro
+This video is bigger than 720p	Questo video è più grande di 720p
+This video is large for software decoding	Questo video è grande per la decodifica software
+The Vita can't play pictures this size smoothly.	La Vita non riesce a riprodurre immagini di queste dimensioni in modo fluido.
+Expect stuttering, dropped frames or a failure to start.	Aspettati scatti, fotogrammi persi o un mancato avvio.
+The Vita's hardware can't play this file, so it is decoded in	L'hardware della Vita non può riprodurre questo file, quindi viene decodificato
+software, which is slow. Expect stuttering.	via software, che è lento. Aspettati scatti.
+✕  Play anyway          ○  Back	✕  Riproduci comunque          ○  Indietro
+%d song	%d brano
+%d songs	%d brani

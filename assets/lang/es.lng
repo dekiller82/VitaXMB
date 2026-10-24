@@ -1,0 +1,240 @@
+Settings	Ajustes
+Photo	Foto
+Music	Música
+Video	Vídeo
+Game	Juego
+Network	Red
+System Settings	Ajustes del sistema
+Theme Settings	Ajustes de tema
+Network Settings	Ajustes de red
+System Information	Información del sistema
+System Language	Idioma del sistema
+System Update	Actualización del sistema
+Custom Theme (beta)	Tema personalizado (beta)
+Wi-Fi Settings	Ajustes WLAN
+Internet Browser	Navegador de Internet
+Saved Data Utility	Herramienta de datos guardados
+PlayStation Store	PlayStation®Store
+Automatic	Automático
+Automatic (by month)	Por mes
+12-hour	Reloj de 12 horas
+24-hour	Reloj de 24 horas
+Off	No
+On	Sí
+Off (none found)	No (no se encontró ninguno)
+On (none)	Sí (ninguna)
+On (%s)	Sí (%s)
+On (%d cards)	Sí (%d tarjetas)
+Hidden	Oculta
+Shown	Visible
+Unavailable	No disponible
+Information	Información
+Start	Iniciar
+Options	Opciones
+Yes	Sí
+Cancel	Cancelar
+Select	Seleccionar
+Back	Atrás
+Done	Hecho
+All / None	Todo / Nada
+Refresh List	Actualizar lista
+New Folder	Nueva carpeta
+Select Games	Elegir juegos
+Rename Folder	Cambiar nombre de carpeta
+Delete Folder	Eliminar carpeta
+Remove from Folder	Quitar de la carpeta
+New folder	Nueva carpeta
+Rename folder	Cambiar nombre de carpeta
+Network Update	Actualización de red
+Exit to LiveArea	Salir a LiveArea
+VitaXMB Settings	Ajustes de VitaXMB
+Vita System Settings	Ajustes del sistema de la Vita
+Vita Themes	Temas de la Vita
+Sign In to PlayStation Network	Iniciar sesión en PlayStation Network
+Messages	Mensajes
+Near	near
+Clock Format	Formato del reloj
+Battery Percentage	Porcentaje de batería
+Sound Effects	Efectos de sonido
+Startup Animation	Animación de inicio
+Game Boot Logo	Logotipo de inicio del juego
+No LiveArea Plugin (beta)	Plugin sin LiveArea (beta)
+Confirmation Dialogs	Diálogos de confirmación
+Game Launch Method	Método de inicio de juegos
+Photo Category	Categoría Foto
+Music Category	Categoría Música
+Video Category	Categoría Vídeo
+Network Category	Categoría Red
+Extra Storage (beta)	Almacenamiento adicional (beta)
+Check for Updates at Start	Buscar actualizaciones al iniciar
+Decrypt Artwork (beta)	Descifrar ilustraciones (beta)
+A: standard	A: estándar
+B: open flag	B: indicador open
+C: launch flag	C: indicador launch
+D: stay open	D: mantener abierto
+January	Enero
+February	Febrero
+March	Marzo
+April	Abril
+May	Mayo
+June	Junio
+July	Julio
+August	Agosto
+September	Septiembre
+October	Octubre
+November	Noviembre
+December	Diciembre
+No preview	Sin vista previa
+Random	Aleatorio
+Random: %.32s	Aleatorio: %.32s
+System Software	Software del sistema
+Nickname	Apodo
+MAC Address	Dirección MAC
+Battery	Batería
+Title	Título
+Details	Detalles
+Version	Versión
+Location	Ubicación
+Unknown	Desconocido
+Model	Modelo
+Processor	Procesador
+Disc ID	ID del disco
+Title ID	ID del título
+Category	Categoría
+Game (application)	Juego (aplicación)
+Storage (%s)	Almacenamiento (%s)
+%.1f GB free of %.1f GB	%.1f GB libres de %.1f GB
+mounted	montado
+ (charging)	 (cargando)
+Free Space  %u GB	Espacio libre  %u GB
+Free Space  %u MB	Espacio libre  %u MB
+Last Played	Último juego
+Open in Photos	Abrir en Fotos
+Empty folder	Carpeta vacía
+Options > Select Games	Opciones > Elegir juegos
+Empty	Vacía
+%d game	%d juego
+%d games	%d juegos
+No games found	No se encontraron juegos
+Nothing in ux0:app	Nada en ux0:app
+No saved data	No hay datos guardados
+Nothing in ux0:user/00/savedata	Nada en ux0:user/00/savedata
+No videos	No hay vídeos
+Put videos in ux0:video	Pon vídeos en ux0:video
+No songs	No hay canciones
+Put MP3, FLAC, OGG, WAV or AIFF files in ux0:music	Pon archivos MP3, FLAC, OGG, WAV o AIFF en ux0:music
+Folder %d	Carpeta %d
+Games in "%s"	Juegos en «%s»
+%d selected	%d seleccionados
+In: %s	En: %s
+No games installed	No hay juegos instalados
+Restart now	Reiniciar ahora
+Restart required	Se necesita reiniciar
+Restart the Vita now?	¿Reiniciar la Vita ahora?
+The plugin change applies after a restart.	El cambio del plugin se aplica tras reiniciar.
+Exit VitaXMB and return to the LiveArea?	¿Salir de VitaXMB y volver a LiveArea?
+Delete the folder "%.40s"?	¿Eliminar la carpeta «%.40s»?
+The games stay installed.	Los juegos siguen instalados.
+Install the NoLiveArea plugin?	¿Instalar el plugin NoLiveArea?
+Keeps the LiveArea out of sight:\n- Turning the Vita on: VitaXMB opens by itself, no LiveArea.\n- Starting a game: the screen stays black while it loads.\n- Closing a game: VitaXMB opens again.\nPressing the PS button in a game still shows the LiveArea.	Mantiene la LiveArea fuera de la vista:\n- Al encender la Vita: VitaXMB se abre solo, sin LiveArea.\n- Al iniciar un juego: la pantalla queda en negro mientras carga.\n- Al cerrar un juego: VitaXMB se abre de nuevo.\nEl botón PS dentro de un juego sigue mostrando la LiveArea.
+VitaXMB was updated and replaced the NoLiveArea plugin.\nNew: if VitaXMB is ever uninstalled while the plugin\nstays, it no longer tries to open it on every app\nyou close. It works again once VitaXMB is back.\nThe old version stays loaded until the Vita restarts.\nRestart now to load the new version.	VitaXMB se actualizó y reemplazó el plugin NoLiveArea.\nNovedad: si VitaXMB se desinstala y el plugin se queda,\nya no intenta abrirlo cada vez que cierras una app.\nVuelve a funcionar cuando VitaXMB regresa.\nLa versión anterior sigue cargada hasta reiniciar la Vita.\nReinicia ahora para cargar la nueva versión.
+NoLiveArea installed.	NoLiveArea instalado.
+NoLiveArea removed.	NoLiveArea eliminado.
+Could not install the plugin (code %s)	No se pudo instalar el plugin (código %s)
+Could not remove the plugin (%s)	No se pudo eliminar el plugin (%s)
+The plugin file is missing from this install%s	Falta el archivo del plugin en esta instalación%s
+no config.txt	falta config.txt
+config not writable	config no escribible
+copy failed	falló la copia
+Decrypt game artwork?	¿Descifrar las ilustraciones de los juegos?
+Loads VitaShell's kernel modules. Experimental.	Carga los módulos del kernel de VitaShell. Experimental.
+Checking GitHub...	Comprobando GitHub...
+VitaXMB %s is up to date.	VitaXMB %s está actualizado.
+Check again	Comprobar de nuevo
+Version %s is available (you have %s).	La versión %s está disponible (tienes la %s).
+Install	Instalar
+Downloading %s...	Descargando %s...
+%.1f of %.1f MB	%.1f de %.1f MB
+Installing... please wait	Instalando... espera un momento
+Do not close the application.	No cierres la aplicación.
+%s is installed.	%s está instalado.
+The app restarts to finish the update.	La aplicación se reinicia para terminar la actualización.
+The update is downloaded.	La actualización se ha descargado.
+It could not be installed from here.	No se pudo instalar desde aquí.
+Install ux0:data/VitaXMB/update.vpk with VitaShell to finish the update.	Instala ux0:data/VitaXMB/update.vpk con VitaShell para terminar la actualización.
+The update did not work.	La actualización no funcionó.
+Try again	Reintentar
+Looks for a newer VitaXMB on GitHub.	Busca una versión más reciente de VitaXMB en GitHub.
+Check now	Comprobar ahora
+Up / Down: scroll	Arriba / Abajo: desplazar
+Update available: %s	Actualización disponible: %s
+Update available: %s   (Settings > Network Update)	Actualización disponible: %s  (Ajustes > Actualización de red)
+VitaXMB was updated to %s	VitaXMB se actualizó a %s
+the new version	la nueva versión
+The update did not install (%s)	La actualización no se instaló (%s)
+Loading...	Cargando...
+Audio Options	Opciones de audio
+Subtitle Options	Opciones de subtítulos
+Go To	Ir a
+Screen Mode	Modo de pantalla
+Display	Visualizar
+Help	Ayuda
+Previous	Anterior
+Next	Siguiente
+Fast Reverse	Retroceso rápido
+Fast Forward	Avance rápido
+Slow Motion	Cámara lenta
+Frame Advance	Avanzar fotograma
+Play	Reproducir
+Playback Speed (+)	Velocidad de reproducción (+)
+Playback Speed (-)	Velocidad de reproducción (-)
+Pause	Pausa
+Stop	Detener
+A-B Repeat	Repetición A-B
+Repeat	Repetición
+Shuffle	Aleatorio
+Clear	Limpiar
+Repeat Off	Repetición desactivada
+Title Repeat	Repetición de título
+Folder Repeat	Repetición de carpeta
+Shuffle On	Aleatorio encendido
+Shuffle Off	Aleatorio apagado
+Full Screen	Pantalla completa
+Chapter %d	Capítulo %d
+Normal speed	Velocidad normal
+A set	A fijado
+B set: repeating	B fijado: repitiendo
+A-B Repeat off	Repetición A-B desactivada
+Repeat, A-B Repeat and Shuffle cleared	Repetición, repetición A-B y aleatorio borrados
+Output: Left and right	Salida: izquierda y derecha
+Output: Left only	Salida: solo izquierda
+Output: Right only	Salida: solo derecha
+Resumed at %s	Reanudado en %s
+Play / pause	Reproducir / pausa
+Stop and go back	Detener y volver
+Show the control panel	Mostrar el panel de control
+Change the screen mode	Cambiar el modo de pantalla
+Previous / next	Anterior / siguiente
+Tap: 10 seconds; hold: search	Pulsar: 10 segundos; mantener: buscar
+This help	Esta ayuda
+Show the information	Mostrar la información
+Video player (BETA)	Reproductor de vídeo (BETA)
+In the control panel: the d-pad chooses, ✕ uses, ○ closes	En el panel: la cruceta elige, ✕ usa, ○ cierra
+Container: %s   %d kbit/s	Contenedor: %s   %d kbit/s
+Decoder: %s	Decodificador: %s
+hardware (system player)	hardware (reproductor del sistema)
+Audio: %s %s (%d tracks)	Audio: %s %s (%d pistas)
+Subtitles: %d track	Subtítulos: %d pista
+Subtitles: %d tracks	Subtítulos: %d pistas
+ (none loaded yet)	 (aún no se ha cargado ninguno)
+This video can't be played	Este vídeo no se puede reproducir
+Press ○ to go back	Pulsa ○ para volver
+This video is bigger than 720p	Este vídeo es mayor que 720p
+This video is large for software decoding	Este vídeo es grande para la decodificación por software
+The Vita can't play pictures this size smoothly.	La Vita no puede reproducir imágenes de este tamaño con fluidez.
+Expect stuttering, dropped frames or a failure to start.	Espera tirones, fotogramas perdidos o que no arranque.
+The Vita's hardware can't play this file, so it is decoded in	El hardware de la Vita no puede reproducir este archivo, así que se decodifica
+software, which is slow. Expect stuttering.	por software, que es lento. Espera tirones.
+✕  Play anyway          ○  Back	✕  Reproducir igualmente          ○  Volver
+%d song	%d canción
+%d songs	%d canciones

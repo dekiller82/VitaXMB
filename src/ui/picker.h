@@ -38,15 +38,15 @@ static void draw_picker(float t)
 	if (a <= 3) return;
 	vita2d_draw_rectangle(0, 0, SCREEN_W, SCREEN_H, RGBA8(0, 0, 0, (int)(225 * t)));
 	char head[96];
-	snprintf(head, sizeof(head), "Games in \"%s\"", pk_folder >= 0 ? folder_name[pk_folder] : "");
+	snprintf(head, sizeof(head), T("Games in \"%s\""), pk_folder >= 0 ? folder_name[pk_folder] : "");
 	ptext_vc_fit(60, 46, WHITE(a), 28, head, 600);
 	char cnt[32];
-	snprintf(cnt, sizeof(cnt), "%d selected", pk_count());
+	snprintf(cnt, sizeof(cnt), T("%d selected"), pk_count());
 	ptext_vc(900 - ptext_width(22, cnt), 46, WHITE(a * 7 / 10), 22, cnt);
 	vita2d_draw_rectangle(50, 76, 860, 2, WHITE(a * 30 / 100));
 
 	if (n_all == 0) {
-		ptext_vc(480 - ptext_width(24, "No games installed") / 2.0f, 270, WHITE(a * 7 / 10), 24, "No games installed");
+		ptext_vc(480 - ptext_width(24, T("No games installed")) / 2.0f, 270, WHITE(a * 7 / 10), 24, T("No games installed"));
 	}
 	const float row_h = 38.0f, y0 = 112.0f;
 	for (int i = 0; i < n_all; i++) {
@@ -78,16 +78,16 @@ static void draw_picker(float t)
 		int of = app_folder(it->id);
 		if (of >= 0 && of != pk_folder) {
 			char tag[64];
-			snprintf(tag, sizeof(tag), "In: %s", folder_name[of]);
+			snprintf(tag, sizeof(tag), T("In: %s"), folder_name[of]);
 			ptext_vc(890 - ptext_width(18, tag), y, WHITE(ra * 5 / 10), 18, tag);
 		}
 	}
 	glyph_cross(200, 508, 8, a);
-	ptext_vc(219, 508, BTN_LABEL(a), 24, "Select");
+	ptext_vc(219, 508, BTN_LABEL(a), 24, T("Select"));
 	glyph_triangle(380, 508, 9, a);
-	ptext_vc(399, 508, BTN_LABEL(a), 24, "All / None");
+	ptext_vc(399, 508, BTN_LABEL(a), 24, T("All / None"));
 	glyph_ring(600, 508, 9, a);
-	ptext_vc(619, 508, BTN_LABEL(a), 24, "Done");
+	ptext_vc(619, 508, BTN_LABEL(a), 24, T("Done"));
 }
 
 /* The "Options" pill at the bottom right: a single rounded shape (row by row, so the translucent
@@ -103,5 +103,5 @@ static void draw_options_pill(int a)
 		vita2d_draw_rectangle(x + inset, y + row, w - 2 * inset, 1.0f, bg);
 	}
 	glyph_triangle(x + 22, y + h / 2, 8, a);
-	ptext_vc(x + 42, y + h / 2, WHITE(a), 24, "Options");
+	ptext_vc(x + 42, y + h / 2, WHITE(a), 24, T("Options"));
 }

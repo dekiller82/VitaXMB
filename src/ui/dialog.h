@@ -11,7 +11,7 @@ static void draw_dialog(float t, const char *l1, const char *l2, int sel)
 	if (l2 && l2[0]) nl++;
 	float cy = nl > 1 ? 200.0f - 22.0f * (nl - 1) : 200.0f;
 	float pitch = nl > 1 ? 32.0f : 40.0f;
-	ptext_vc(480 - ptext_width(28, l1) / 2.0f, cy, WHITE(a), 28, l1);
+	ptext_vc(480 - ptext_width(28, l1) / 2.0f, cy, WHITE(a), 28, l1);              /* l1 and l2 come translated */
 	if (nl) {
 		char ln[128];
 		const char *c = l2;
@@ -25,8 +25,8 @@ static void draw_dialog(float t, const char *l1, const char *l2, int sel)
 		}
 	}
 	int force = sel == 2;                                        /* sel 2: a single "Restart now" button, no way to cancel */
-	static const char *opts[2] = { "Yes", "No" };
-	if (force) { opts[0] = "Restart now"; sel = 0; }
+	const char *opts[2] = { T("Yes"), T("No") };
+	if (force) { opts[0] = T("Restart now"); sel = 0; }
 	for (int i = 0; i < (force ? 1 : 2); i++) {
 		float y = 330.0f + i * 56.0f;
 		int oa = i == sel ? a : a * 5 / 10;
@@ -38,8 +38,8 @@ static void draw_dialog(float t, const char *l1, const char *l2, int sel)
 		ptext_vc(480 - w / 2.0f, y, WHITE(oa), 28, opts[i]);
 	}
 	glyph_cross(405, 508, 8, a);
-	ptext_vc(424, 508, BTN_LABEL(a), 24, "OK");
+	ptext_vc(424, 508, BTN_LABEL(a), 24, T("OK"));
 	if (force) return;
 	glyph_ring(515, 508, 9, a);
-	ptext_vc(534, 508, BTN_LABEL(a), 24, "Cancel");
+	ptext_vc(534, 508, BTN_LABEL(a), 24, T("Cancel"));
 }

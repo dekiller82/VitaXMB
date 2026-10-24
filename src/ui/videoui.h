@@ -275,27 +275,27 @@ static void vui_slot(int it, float *x, float *y)
 static const char *vui_item_label(int it)
 {
 	switch (it) {
-	case VI_AUDIO: return "Audio Options";
-	case VI_SUB: return "Subtitle Options";
-	case VI_GOTO: return "Go To";
-	case VI_SCREEN: return "Screen Mode";
-	case VI_DISPLAY: return "Display";
-	case VI_HELP: return "Help";
-	case VI_PREV: return "Previous";
-	case VI_NEXT: return "Next";
-	case VI_REV: return "Fast Reverse";
-	case VI_FWD: return "Fast Forward";
-	case VI_SLOW: return "Slow Motion";
-	case VI_STEP: return "Frame Advance";
-	case VI_PLAY: return "Play";
-	case VI_PLUS: return "Playback Speed (+)";
-	case VI_MINUS: return "Playback Speed (-)";
-	case VI_PAUSE: return "Pause";
-	case VI_STOP: return "Stop";
-	case VI_AB: return "A-B Repeat";
-	case VI_REPEAT: return "Repeat";
-	case VI_SHUF: return "Shuffle";
-	case VI_CLEAR: return "Clear";
+	case VI_AUDIO: return T("Audio Options");
+	case VI_SUB: return T("Subtitle Options");
+	case VI_GOTO: return T("Go To");
+	case VI_SCREEN: return T("Screen Mode");
+	case VI_DISPLAY: return T("Display");
+	case VI_HELP: return T("Help");
+	case VI_PREV: return T("Previous");
+	case VI_NEXT: return T("Next");
+	case VI_REV: return T("Fast Reverse");
+	case VI_FWD: return T("Fast Forward");
+	case VI_SLOW: return T("Slow Motion");
+	case VI_STEP: return T("Frame Advance");
+	case VI_PLAY: return T("Play");
+	case VI_PLUS: return T("Playback Speed (+)");
+	case VI_MINUS: return T("Playback Speed (-)");
+	case VI_PAUSE: return T("Pause");
+	case VI_STOP: return T("Stop");
+	case VI_AB: return T("A-B Repeat");
+	case VI_REPEAT: return T("Repeat");
+	case VI_SHUF: return T("Shuffle");
+	case VI_CLEAR: return T("Clear");
 	}
 	return "";
 }
@@ -373,7 +373,7 @@ static void vui_activate(int it)
 	case VI_STOP: break;                                           /* handled by the caller: leaves the player */
 	case VI_SLOW:
 		vid_set_speed(vid_speed != 1.0 ? 1.0 : 0.5);
-		vui_say(vid_speed != 1.0 ? "Slow Motion" : "Normal speed");
+		vui_say(vid_speed != 1.0 ? T("Slow Motion") : T("Normal speed"));
 		break;
 	case VI_STEP: vid_step_frame(); vui_t_osd = now; break;
 	case VI_PLUS: vui_speed_step(1); vui_t_osd = now; break;
@@ -384,20 +384,20 @@ static void vui_activate(int it)
 		vui_ui = VU_JUMP; break; }
 	case VI_REPEAT: {
 		static const char *r[3] = { "Repeat Off", "Title Repeat", "Folder Repeat" };
-		vui_repeat = (vui_repeat + 1) % 3; vui_say(r[vui_repeat]); break; }
-	case VI_SHUF: vui_shuffle = !vui_shuffle; vui_say(vui_shuffle ? "Shuffle On" : "Shuffle Off"); break;
+		vui_repeat = (vui_repeat + 1) % 3; vui_say(T(r[vui_repeat])); break; }
+	case VI_SHUF: vui_shuffle = !vui_shuffle; vui_say(vui_shuffle ? T("Shuffle On") : T("Shuffle Off")); break;
 	case VI_AB:
-		if (vui_ab_a < 0) { vui_ab_a = vid_position(); vui_say("A set"); }
-		else if (vui_ab_b < 0) { double p = vid_position(); if (p > vui_ab_a + 0.5) { vui_ab_b = p; vui_say("B set: repeating"); } }
-		else { vui_ab_a = vui_ab_b = -1; vui_say("A-B Repeat off"); }
+		if (vui_ab_a < 0) { vui_ab_a = vid_position(); vui_say(T("A set")); }
+		else if (vui_ab_b < 0) { double p = vid_position(); if (p > vui_ab_a + 0.5) { vui_ab_b = p; vui_say(T("B set: repeating")); } }
+		else { vui_ab_a = vui_ab_b = -1; vui_say(T("A-B Repeat off")); }
 		break;
 	case VI_CLEAR:
 		vui_ab_a = vui_ab_b = -1; vui_repeat = VR_OFF; vui_shuffle = 0;
-		vui_say("Repeat, A-B Repeat and Shuffle cleared");
+		vui_say(T("Repeat, A-B Repeat and Shuffle cleared"));
 		break;
 	case VI_AUDIO: vui_open_list(VI_AUDIO); break;
 	case VI_SUB: vui_open_list(VI_SUB); break;
-	case VI_SCREEN: vui_mode = (vui_mode + 1) % VM_COUNT; vui_say(vui_mode_name[vui_mode]); break;
+	case VI_SCREEN: vui_mode = (vui_mode + 1) % VM_COUNT; vui_say(T(vui_mode_name[vui_mode])); break;
 	case VI_DISPLAY: vui_status = !vui_status; break;
 	case VI_HELP: vui_ui = VU_HELP; break;
 	}
@@ -482,7 +482,7 @@ static int video_input(unsigned pressed, unsigned held)
 
 	if (pressed & SCE_CTRL_RTRIGGER) vui_next();
 	if (pressed & SCE_CTRL_LTRIGGER) vui_prev();
-	if (pressed & SCE_CTRL_SQUARE) { vui_mode = (vui_mode + 1) % VM_COUNT; vui_say(vui_mode_name[vui_mode]); }
+	if (pressed & SCE_CTRL_SQUARE) { vui_mode = (vui_mode + 1) % VM_COUNT; vui_say(T(vui_mode_name[vui_mode])); }
 	if (pressed & SCE_CTRL_START) vui_ui = VU_HELP;
 	if (pressed & SCE_CTRL_SELECT) vui_info = !vui_info;
 
@@ -594,7 +594,7 @@ static void vui_draw_bottom(int a)
 
 	/* the chapter box and the time box (y 456 .. 491) */
 	if (vid_n_chapters > 0) {
-		snprintf(tm, sizeof(tm), "Chapter %d", vui_chapter_at(pos) + 1);
+		snprintf(tm, sizeof(tm), T("Chapter %d"), vui_chapter_at(pos) + 1);
 		vui_tbox(435, 456, 177, 35, a);
 		vui_text_shadowed(435 + 177 / 2.0f, 473, VUI_TXT, tm, a);
 	}
@@ -642,10 +642,10 @@ static void vui_draw_list(int a)
 				const VTrack *k = &vid_atracks[i];
 				snprintf(t, sizeof(t), "%d  %s  %s  %dch%s", i + 1, k->lang[0] ? k->lang : "und", k->name, k->channels, i == vid_a_sel ? "  *" : "");
 			} else {
-				static const char *o[3] = { "Output: Left and right", "Output: Left only", "Output: Right only" };
+				const char *o[3] = { T("Output: Left and right"), T("Output: Left only"), T("Output: Right only") };
 				snprintf(t, sizeof(t), "%s%s", o[i - vid_n_a], i - vid_n_a == vid_chan ? "  *" : "");
 			}
-		} else if (i == 0) snprintf(t, sizeof(t), "Off%s", vid_s_sel < 0 ? "  *" : "");
+		} else if (i == 0) snprintf(t, sizeof(t), "%s%s", T("Off"), vid_s_sel < 0 ? "  *" : "");
 		else {
 			const VTrack *k = &vid_stracks[i - 1];
 			snprintf(t, sizeof(t), "%d  %s  %s%s", i, k->lang[0] ? k->lang : "und", k->name, i - 1 == vid_s_sel ? "  *" : "");
@@ -669,13 +669,13 @@ static void vui_draw_help(int a)
 		{ "START", "This help" },
 		{ "SELECT", "Show the information" },
 	};
-	vui_text_shadowed(480, 70, 34, "Video player (BETA)", a);
+	vui_text_shadowed(480, 70, 34, T("Video player (BETA)"), a);
 	for (int i = 0; i < 8; i++) {
 		float y = 140 + i * 44;
 		ptext_vc(210, y, WHITE(a), 28, rows[i][0]);
-		ptext_vc(380, y, WHITE(a * 90 / 100), VUI_TXT_SMALL, rows[i][1]);
+		ptext_vc(380, y, WHITE(a * 90 / 100), VUI_TXT_SMALL, T(rows[i][1]));
 	}
-	vui_text_shadowed(480, 510, 22, "In the control panel: the d-pad chooses, \xE2\x9C\x95 uses, \xE2\x97\x8B closes", a * 80 / 100);
+	vui_text_shadowed(480, 510, 22, T("In the control panel: the d-pad chooses, \xE2\x9C\x95 uses, \xE2\x97\x8B closes"), a * 80 / 100);
 }
 
 static void vui_draw_info(int a)
@@ -688,15 +688,15 @@ static void vui_draw_info(int a)
 	ptext_right_vc(x + 520, y, RGBA8(255, 255, 255, a * 70 / 100), 20, "BETA");
 	snprintf(l, sizeof(l), "%d x %d   %s   %.2f fps", vid_w, vid_h, vid_vcodec, vid_fps);
 	ptext_vc(x, y + 34, WHITE(a * 85 / 100), 22, l);
-	snprintf(l, sizeof(l), "Container: %s   %d kbit/s", vid_container, vid_bitrate);
+	snprintf(l, sizeof(l), T("Container: %s   %d kbit/s"), vid_container, vid_bitrate);
 	ptext_vc(x, y + 64, WHITE(a * 85 / 100), 22, l);
-	snprintf(l, sizeof(l), "Decoder: %s", vid_backend == VB_AVP ? "hardware (system player)" : "software (FFmpeg)");
+	snprintf(l, sizeof(l), T("Decoder: %s"), vid_backend == VB_AVP ? T("hardware (system player)") : T("software (FFmpeg)"));
 	ptext_vc(x, y + 94, WHITE(a * 85 / 100), 22, l);
 	if (vid_n_a) {
-		snprintf(l, sizeof(l), "Audio: %s %s (%d tracks)", vid_atracks[vid_a_sel].name, vid_atracks[vid_a_sel].lang, vid_n_a);
+		snprintf(l, sizeof(l), T("Audio: %s %s (%d tracks)"), vid_atracks[vid_a_sel].name, vid_atracks[vid_a_sel].lang, vid_n_a);
 		ptext_vc(x, y + 124, WHITE(a * 85 / 100), 22, l);
 	}
-	snprintf(l, sizeof(l), "Subtitles: %d track%s%s", vid_n_s, vid_n_s == 1 ? "" : "s", vid_n_cues ? "" : " (none loaded yet)");
+	{ char w[80]; snprintf(w, sizeof(w), T(vid_n_s == 1 ? "Subtitles: %d track" : "Subtitles: %d tracks"), vid_n_s); snprintf(l, sizeof(l), "%s%s", w, vid_n_cues ? "" : T(" (none loaded yet)")); }
 	ptext_vc(x, y + 154, WHITE(a * 85 / 100), 22, l);
 }
 
@@ -709,15 +709,15 @@ static void draw_video(float alpha, int closing)
 	uint64_t now = sceKernelGetProcessTimeWide();
 
 	if (vid_status == VS_ERROR) {
-		vui_text_shadowed(480, 250, 30, "This video can't be played", a);
-		vui_text_shadowed(480, 290, 22, "Press \xE2\x97\x8B to go back", a);
+		vui_text_shadowed(480, 250, 30, T("This video can't be played"), a);
+		vui_text_shadowed(480, 290, 22, T("Press \xE2\x97\x8B to go back"), a);
 		return;
 	}
 	vid_busy = 1;                                                   /* from here the control thread keeps its hands off the frames */
 	__sync_synchronize();
 	if (vid_status != VS_PLAYING && vid_status != VS_ENDED) {
 		vid_busy = 0;
-		vui_text_shadowed(480, 272, 26, "Loading...", a);
+		vui_text_shadowed(480, 272, 26, T("Loading..."), a);
 		vui_text_shadowed(480, 310, 20, vid_stage, a * 70 / 100);
 		ptext_right_vc(936, 30, RGBA8(255, 255, 255, a * 70 / 100), 20, "BETA");
 		return;
@@ -736,7 +736,7 @@ static void draw_video(float alpha, int closing)
 		vid_seek_abs(vui_resume_to);
 		char r[40], t[16];
 		fmt_hms(vui_resume_to, t, sizeof(t));
-		snprintf(r, sizeof(r), "Resumed at %s", t);
+		snprintf(r, sizeof(r), T("Resumed at %s"), t);
 		vui_say(r);
 		vui_resume_to = -1;
 	} else if (vui_resume_to > 0 && vid_tex_cur() && vid_position() > 3.0) vui_resume_to = -1;
@@ -793,16 +793,16 @@ static void draw_video(float alpha, int closing)
 		vui_box(150, 150, 660, 250, a);
 		char l[80];
 		snprintf(l, sizeof(l), "%d x %d", vid_w, vid_h);
-		vui_text_shadowed(480, 190, 30, vid_warn == 1 ? "This video is bigger than 720p" : "This video is large for software decoding", a);
+		vui_text_shadowed(480, 190, 30, vid_warn == 1 ? T("This video is bigger than 720p") : T("This video is large for software decoding"), a);
 		vui_text_shadowed(480, 232, 26, l, a * 85 / 100);
 		if (vid_warn == 1) {
-			vui_text_shadowed(480, 280, 22, "The Vita can't play pictures this size smoothly.", a * 90 / 100);
-			vui_text_shadowed(480, 310, 22, "Expect stuttering, dropped frames or a failure to start.", a * 90 / 100);
+			vui_text_shadowed(480, 280, 22, T("The Vita can't play pictures this size smoothly."), a * 90 / 100);
+			vui_text_shadowed(480, 310, 22, T("Expect stuttering, dropped frames or a failure to start."), a * 90 / 100);
 		} else {
-			vui_text_shadowed(480, 280, 22, "The Vita's hardware can't play this file, so it is decoded in", a * 90 / 100);
-			vui_text_shadowed(480, 310, 22, "software, which is slow. Expect stuttering.", a * 90 / 100);
+			vui_text_shadowed(480, 280, 22, T("The Vita's hardware can't play this file, so it is decoded in"), a * 90 / 100);
+			vui_text_shadowed(480, 310, 22, T("software, which is slow. Expect stuttering."), a * 90 / 100);
 		}
-		vui_text_shadowed(480, 366, 24, "\xE2\x9C\x95  Play anyway          \xE2\x97\x8B  Back", a);
+		vui_text_shadowed(480, 366, 24, T("\xE2\x9C\x95  Play anyway          \xE2\x97\x8B  Back"), a);
 	}
 }
 

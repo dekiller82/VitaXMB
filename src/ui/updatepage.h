@@ -93,7 +93,7 @@ static void draw_update_page(float alpha)
 	int a = (int)(255 * alpha);
 	if (a <= 3) return;
 	char buf[200];
-	const char *head = "Network Update", *cross = NULL;
+	const char *head = T("Network Update"), *cross = NULL;
 	snprintf(buf, sizeof(buf), "VitaXMB %s", APP_VERSION);
 	ptext_vc(60, 60, WHITE(a), 34, head);
 	ptext_right_vc(900, 60, WHITE(a * 6 / 10), 24, buf);
@@ -102,15 +102,15 @@ static void draw_update_page(float alpha)
 	float y = 150;
 	switch (st) {
 	case UPD_CHECKING:
-		ptext_vc(60, y, WHITE(a), 28, "Checking GitHub...");
+		ptext_vc(60, y, WHITE(a), 28, T("Checking GitHub..."));
 		break;
 	case UPD_UPTODATE:
-		snprintf(buf, sizeof(buf), "VitaXMB %s is up to date.", APP_VERSION);
+		snprintf(buf, sizeof(buf), T("VitaXMB %s is up to date."), APP_VERSION);
 		ptext_vc(60, y, WHITE(a), 28, buf);
-		cross = "Check again";
+		cross = T("Check again");
 		break;
 	case UPD_AVAILABLE:
-		snprintf(buf, sizeof(buf), "Version %s is available (you have %s).", upd_tag, APP_VERSION);
+		snprintf(buf, sizeof(buf), T("Version %s is available (you have %s)."), upd_tag, APP_VERSION);
 		ptext_vc(60, y, WHITE(a), 28, buf);
 		upd_layout_notes();
 		{
@@ -125,47 +125,47 @@ static void draw_update_page(float alpha)
 				vita2d_draw_rectangle(900, y + 36 + (track - th) * upd_scroll / (float)maxs, 3, th, WHITE(a * 70 / 100));
 			}
 		}
-		cross = "Install";
+		cross = T("Install");
 		break;
 	case UPD_DOWNLOADING: {
 		uint32_t got = upd_got, total = upd_total;
-		snprintf(buf, sizeof(buf), "Downloading %s...", upd_tag);
+		snprintf(buf, sizeof(buf), T("Downloading %s..."), upd_tag);
 		ptext_vc(60, y, WHITE(a), 28, buf);
 		float frac = total ? (float)got / total : 0.0f;
 		vita2d_draw_rectangle(60, y + 40, 760, 10, WHITE(a * 25 / 100));
 		vita2d_draw_rectangle(60, y + 40, 760 * (frac > 1.0f ? 1.0f : frac), 10, WHITE(a));
 		snprintf(buf, sizeof(buf), "%.1f MB%s", got / 1048576.0f, total ? "" : "");
-		if (total) snprintf(buf, sizeof(buf), "%.1f of %.1f MB", got / 1048576.0f, total / 1048576.0f);
+		if (total) snprintf(buf, sizeof(buf), T("%.1f of %.1f MB"), got / 1048576.0f, total / 1048576.0f);
 		ptext_vc(60, y + 80, WHITE(a * 7 / 10), 22, buf);
 		break;
 	}
 	case UPD_INSTALLING:
-		ptext_vc(60, y, WHITE(a), 28, "Installing... please wait");
-		ptext_vc(60, y + 40, WHITE(a * 7 / 10), 22, "Do not close the application.");
+		ptext_vc(60, y, WHITE(a), 28, T("Installing... please wait"));
+		ptext_vc(60, y + 40, WHITE(a * 7 / 10), 22, T("Do not close the application."));
 		break;
 	case UPD_DONE:
-		snprintf(buf, sizeof(buf), "%s is installed.", upd_tag);
+		snprintf(buf, sizeof(buf), T("%s is installed."), upd_tag);
 		ptext_vc(60, y, WHITE(a), 28, buf);
-		ptext_vc(60, y + 40, WHITE(a * 7 / 10), 22, "The app restarts to finish the update.");
-		cross = "Restart now";
+		ptext_vc(60, y + 40, WHITE(a * 7 / 10), 22, T("The app restarts to finish the update."));
+		cross = T("Restart now");
 		break;
 	case UPD_SAVED:
-		ptext_vc(60, y, WHITE(a), 28, "The update is downloaded.");
-		upd_wrap(upd_err[0] ? upd_err : "It could not be installed from here.", 60, y + 50, 820, 22, a, 3, 28);
-		upd_wrap("Install ux0:data/VitaXMB/update.vpk with VitaShell to finish the update.", 60, y + 130, 820, 22, a, 3, 28);
+		ptext_vc(60, y, WHITE(a), 28, T("The update is downloaded."));
+		upd_wrap(upd_err[0] ? upd_err : T("It could not be installed from here."), 60, y + 50, 820, 22, a, 3, 28);
+		upd_wrap(T("Install ux0:data/VitaXMB/update.vpk with VitaShell to finish the update."), 60, y + 130, 820, 22, a, 3, 28);
 		break;
 	case UPD_FAILED:
-		ptext_vc(60, y, WHITE(a), 28, "The update did not work.");
+		ptext_vc(60, y, WHITE(a), 28, T("The update did not work."));
 		upd_wrap(upd_err, 60, y + 44, 820, 22, a, 3, 28);
-		cross = "Try again";
+		cross = T("Try again");
 		break;
 	default:
-		ptext_vc(60, y, WHITE(a), 28, "Looks for a newer VitaXMB on GitHub.");
-		cross = "Check now";
+		ptext_vc(60, y, WHITE(a), 28, T("Looks for a newer VitaXMB on GitHub."));
+		cross = T("Check now");
 		break;
 	}
 	float bx = 60;
-	if (st == UPD_AVAILABLE && upd_nlines > UPD_WIN_LINES) ptext_right_vc(900, 506, WHITE(a * 6 / 10), 20, "Up / Down: scroll");
+	if (st == UPD_AVAILABLE && upd_nlines > UPD_WIN_LINES) ptext_right_vc(900, 506, WHITE(a * 6 / 10), 20, T("Up / Down: scroll"));
 	if (cross) {
 		glyph_cross(bx + 10, 506, 8, a);
 		ptext_vc(bx + 30, 506, WHITE(a), 24, cross);
@@ -173,7 +173,7 @@ static void draw_update_page(float alpha)
 	}
 	if (st != UPD_INSTALLING) {
 		glyph_ring(bx + 10, 506, 8, a);
-		ptext_vc(bx + 30, 506, WHITE(a), 24, st == UPD_DOWNLOADING ? "Cancel" : "Back");
+		ptext_vc(bx + 30, 506, WHITE(a), 24, st == UPD_DOWNLOADING ? T("Cancel") : T("Back"));
 	}
 }
 
@@ -197,7 +197,7 @@ static void draw_update_notice(float t_now, float *shown_for)
 	float fade = *shown_for < 0.5f ? *shown_for / 0.5f : (*shown_for > 8.0f ? (9.0f - *shown_for) : 1.0f);
 	if (fade <= 0.0f) return;
 	char buf[160];
-	snprintf(buf, sizeof(buf), "Update available: %s   (Settings > Network Update)", upd_tag);
+	snprintf(buf, sizeof(buf), T("Update available: %s   (Settings > Network Update)"), upd_tag);
 	int a = (int)(235 * (fade > 1.0f ? 1.0f : fade));
 	float w = ptext_width(22, buf);
 	vita2d_draw_rectangle(480 - w / 2 - 16, 6, w + 32, 34, RGBA8(0, 0, 0, a * 45 / 100));

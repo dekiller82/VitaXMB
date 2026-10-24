@@ -1,0 +1,246 @@
+Settings	Настройки
+Photo	Фото
+Music	Музыка
+Video	Видео
+Game	Игра
+Network	Сеть
+System Settings	Настройки системы
+Theme Settings	Настройки темы
+Network Settings	Настройки сети
+System Information	Сведения о системе
+System Language	Язык системы
+System Update	Обновление системы
+Color	Цвет
+Custom Theme (beta)	Специальная тема (beta)
+Wi-Fi Settings	Настройки WLAN
+Internet Browser	Веб-браузер
+Saved Data Utility	Управление сохр. данными
+PlayStation Store	PlayStation®Store
+Automatic	Автоматически
+Automatic (by month)	Ежемесячно
+12-hour	12-часовой формат
+24-hour	24-часовой формат
+Off	Выкл.
+On	Вкл.
+Off (none found)	Выкл. (ничего не найдено)
+On (none)	Вкл. (нет)
+On (%s)	Вкл. (%s)
+On (%d cards)	Вкл. (карт: %d)
+Hidden	Скрыта
+Shown	Показана
+Unavailable	Недоступно
+Information	Сведения
+Start	Запуск
+Options	Параметры
+Yes	Да
+No	Нет
+Cancel	Отмена
+Select	Выбрать
+Back	Назад
+Done	Готово
+All / None	Все / Нет
+Refresh List	Обновить список
+New Folder	Новая папка
+Select Games	Выбрать игры
+Rename Folder	Переименовать папку
+Delete Folder	Удалить папку
+Remove from Folder	Убрать из папки
+New folder	Новая папка
+Rename folder	Переименовать папку
+Network Update	Сетевое обновление
+Exit to LiveArea	Выйти в LiveArea
+VitaXMB Settings	Настройки VitaXMB
+Vita System Settings	Системные настройки Vita
+Vita Themes	Темы Vita
+Sign In to PlayStation Network	Войти в PlayStation Network
+Messages	Сообщения
+Near	near
+Clock Format	Формат часов
+Battery Percentage	Заряд батареи в процентах
+Sound Effects	Звуковые эффекты
+Startup Animation	Анимация при запуске
+Game Boot Logo	Логотип при запуске игры
+No LiveArea Plugin (beta)	Плагин без LiveArea (бета)
+Confirmation Dialogs	Диалоги подтверждения
+Game Launch Method	Способ запуска игр
+Photo Category	Категория «Фото»
+Music Category	Категория «Музыка»
+Video Category	Категория «Видео»
+Network Category	Категория «Сеть»
+Extra Storage (beta)	Доп. хранилище (бета)
+Check for Updates at Start	Проверять обновления при запуске
+Decrypt Artwork (beta)	Расшифровка обложек (бета)
+A: standard	A: стандартный
+B: open flag	B: флаг open
+C: launch flag	C: флаг launch
+D: stay open	D: оставаться открытым
+January	Январь
+February	Февраль
+March	Март
+April	Апрель
+May	Май
+June	Июнь
+July	Июль
+August	Август
+September	Сентябрь
+October	Октябрь
+November	Ноябрь
+December	Декабрь
+No preview	Нет предпросмотра
+Random	Случайно
+Random: %.32s	Случайно: %.32s
+System Software	Системное ПО
+Nickname	Псевдоним
+MAC Address	MAC-адрес
+Battery	Батарея
+Title	Название
+Details	Сведения
+Version	Версия
+Location	Местонахождение
+Unknown	Неизвестный формат
+Model	Модель
+Processor	Процессор
+Disc ID	ID диска
+Title ID	ID игры
+Category	Категория
+Game (application)	Игра (приложение)
+Storage (%s)	Хранилище (%s)
+%.1f GB free of %.1f GB	свободно %.1f ГБ из %.1f ГБ
+mounted	подключено
+ (charging)	 (заряжается)
+Free Space  %u GB	Свободное место на диске  %u GB
+Free Space  %u MB	Свободное место на диске  %u MB
+Last Played	Последняя игра
+Open in Photos	Открыть в «Фото»
+Empty folder	Папка пуста
+Options > Select Games	Опции > Выбрать игры
+Empty	Пусто
+%d game	%d игра
+%d games	%d игр
+No games found	Игры не найдены
+Nothing in ux0:app	В ux0:app ничего нет
+No saved data	Нет сохранённых данных
+Nothing in ux0:user/00/savedata	В ux0:user/00/savedata ничего нет
+No videos	Нет видео
+Put videos in ux0:video	Положите видео в ux0:video
+No songs	Нет композиций
+Put MP3, FLAC, OGG, WAV or AIFF files in ux0:music	Положите файлы MP3, FLAC, OGG, WAV или AIFF в ux0:music
+Folder %d	Папка %d
+Games in "%s"	Игры в папке «%s»
+%d selected	Выбрано: %d
+In: %s	В: %s
+No games installed	Нет установленных игр
+Restart now	Перезагрузить сейчас
+Restart required	Требуется перезагрузка
+Restart the Vita now?	Перезагрузить Vita сейчас?
+The plugin change applies after a restart.	Изменение плагина вступит в силу после перезагрузки.
+Exit VitaXMB and return to the LiveArea?	Выйти из VitaXMB и вернуться в LiveArea?
+Delete the folder "%.40s"?	Удалить папку «%.40s»?
+The games stay installed.	Игры останутся установленными.
+Install the NoLiveArea plugin?	Установить плагин NoLiveArea?
+Keeps the LiveArea out of sight:\n- Turning the Vita on: VitaXMB opens by itself, no LiveArea.\n- Starting a game: the screen stays black while it loads.\n- Closing a game: VitaXMB opens again.\nPressing the PS button in a game still shows the LiveArea.	Скрывает LiveArea:\n- При включении Vita: VitaXMB открывается сам, без LiveArea.\n- При запуске игры: экран остаётся чёрным во время загрузки.\n- При закрытии игры: VitaXMB открывается снова.\nКнопка PS в игре по-прежнему показывает LiveArea.
+VitaXMB was updated and replaced the NoLiveArea plugin.\nNew: if VitaXMB is ever uninstalled while the plugin\nstays, it no longer tries to open it on every app\nyou close. It works again once VitaXMB is back.\nThe old version stays loaded until the Vita restarts.\nRestart now to load the new version.	VitaXMB обновлён и заменил плагин NoLiveArea.\nНовое: если VitaXMB удалить, а плагин оставить, он больше\nне пытается открывать его при закрытии каждого приложения.\nОн снова работает, когда VitaXMB возвращается.\nСтарая версия остаётся загруженной до перезагрузки Vita.\nПерезагрузите сейчас, чтобы загрузить новую версию.
+NoLiveArea installed.	NoLiveArea установлен.
+NoLiveArea removed.	NoLiveArea удалён.
+Could not install the plugin (code %s)	Не удалось установить плагин (код %s)
+Could not remove the plugin (%s)	Не удалось удалить плагин (%s)
+The plugin file is missing from this install%s	В этой установке нет файла плагина%s
+no config.txt	нет config.txt
+config not writable	config недоступен для записи
+copy failed	не удалось скопировать
+Decrypt game artwork?	Расшифровать обложки игр?
+Loads VitaShell's kernel modules. Experimental.	Загружает модули ядра VitaShell. Экспериментально.
+Checking GitHub...	Проверка GitHub...
+VitaXMB %s is up to date.	VitaXMB %s — актуальная версия.
+Check again	Проверить снова
+Version %s is available (you have %s).	Доступна версия %s (у вас %s).
+Install	Установить
+Downloading %s...	Загрузка %s...
+%.1f of %.1f MB	%.1f из %.1f МБ
+Installing... please wait	Установка... подождите
+Do not close the application.	Не закрывайте приложение.
+%s is installed.	%s установлен.
+The app restarts to finish the update.	Приложение перезапустится для завершения обновления.
+The update is downloaded.	Обновление загружено.
+It could not be installed from here.	Отсюда установить не удалось.
+Install ux0:data/VitaXMB/update.vpk with VitaShell to finish the update.	Установите ux0:data/VitaXMB/update.vpk с помощью VitaShell, чтобы завершить обновление.
+The update did not work.	Обновление не удалось.
+Try again	Повторить
+Looks for a newer VitaXMB on GitHub.	Ищет более новую версию VitaXMB на GitHub.
+Check now	Проверить сейчас
+Up / Down: scroll	Вверх / вниз: прокрутка
+Update available: %s	Доступно обновление: %s
+Update available: %s   (Settings > Network Update)	Доступно обновление: %s  (Настройки > Сетевое обновление)
+VitaXMB was updated to %s	VitaXMB обновлён до %s
+the new version	новая версия
+The update did not install (%s)	Обновление не установлено (%s)
+Loading...	Загрузка...
+Audio Options	Звуковые параметры
+Subtitle Options	Параметры субтитров
+Go To	Переход
+Screen Mode	Режим экрана
+Display	Отобразить
+Help	Справка
+Previous	Назад
+Next	Далее
+Fast Reverse	Перемотка назад
+Fast Forward	Перемотка вперед
+Slow Motion	Замедленно
+Frame Advance	По кадрам
+Play	Воспроизведение
+Playback Speed (+)	Скорость воспроизведения (+)
+Playback Speed (-)	Скорость воспроизведения (-)
+Pause	Пауза
+Stop	Стоп
+A-B Repeat	Повтор A-B
+Repeat	Повторить
+Shuffle	Случайный
+Clear	Сброс
+Repeat Off	Повтор отключен.
+Title Repeat	Повтор названия
+Folder Repeat	Повтор папки
+Shuffle On	Случайный Вкл.
+Shuffle Off	Случайный Выкл.
+Normal	Обычный
+Zoom	Масштаб
+Full Screen	Во весь экран
+Original	Исходный
+Chapter %d	Раздел %d
+Normal speed	Обычная скорость
+A set	A задана
+B set: repeating	B задана: повтор
+A-B Repeat off	Повтор A-B выключен
+Repeat, A-B Repeat and Shuffle cleared	Повтор, повтор A-B и перемешивание сброшены
+Output: Left and right	Вывод: левый и правый
+Output: Left only	Вывод: только левый
+Output: Right only	Вывод: только правый
+Resumed at %s	Продолжено с %s
+Play / pause	Воспроизвести / пауза
+Stop and go back	Остановить и вернуться
+Show the control panel	Показать панель управления
+Change the screen mode	Сменить режим экрана
+Previous / next	Назад / вперёд
+Tap: 10 seconds; hold: search	Нажатие: 10 секунд; удержание: перемотка
+This help	Эта справка
+Show the information	Показать сведения
+Video player (BETA)	Видеоплеер (БЕТА)
+In the control panel: the d-pad chooses, ✕ uses, ○ closes	В панели: крестовина выбирает, ✕ применяет, ○ закрывает
+Container: %s   %d kbit/s	Контейнер: %s   %d кбит/с
+Decoder: %s	Декодер: %s
+hardware (system player)	аппаратный (системный плеер)
+software (FFmpeg)	программный (FFmpeg)
+Audio: %s %s (%d tracks)	Звук: %s %s (дорожек: %d)
+Subtitles: %d track	Субтитры: %d дорожка
+Subtitles: %d tracks	Субтитры: дорожек: %d
+ (none loaded yet)	 (пока не загружены)
+This video can't be played	Это видео не удаётся воспроизвести
+Press ○ to go back	Нажмите ○, чтобы вернуться
+This video is bigger than 720p	Это видео больше 720p
+This video is large for software decoding	Это видео велико для программного декодирования
+The Vita can't play pictures this size smoothly.	Vita не может плавно воспроизводить изображение такого размера.
+Expect stuttering, dropped frames or a failure to start.	Возможны рывки, пропуски кадров или отказ запуска.
+The Vita's hardware can't play this file, so it is decoded in	Оборудование Vita не может воспроизвести этот файл, поэтому он декодируется
+software, which is slow. Expect stuttering.	программно, а это медленно. Возможны рывки.
+✕  Play anyway          ○  Back	✕  Всё равно воспроизвести          ○  Назад
+%d song	Композиций: %d
+%d songs	Композиций: %d

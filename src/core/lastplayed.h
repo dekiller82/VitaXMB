@@ -39,7 +39,15 @@ static void lastplayed_refresh(void)
 	}
 	int had = mn->count > LP_FIRST_EXTRA;
 	int was_sel = had && mn->sel == LP_FIRST_EXTRA;
-	if (had) mn->count = LP_FIRST_EXTRA;                         /* the entry is rebuilt below (the icon thread never touches it: it has no icon path) */
+	if (had) {                                                   /* the entry is rebuilt below */
+		loader_pause = 1;                                        /* the icon loader may be reading it */
+		while (loader_busy) sceKernelDelayThread(1000);
+		Item *old = &mn->items[LP_FIRST_EXTRA];
+		if (old->icon) defer_free(old->icon);
+		free(old->pending_pix); old->pending_pix = NULL;
+		mn->count = LP_FIRST_EXTRA;
+		loader_pause = 0;
+	}
 	if (mn->sel >= mn->count) mn->sel = mn->count - 1;
 	if (!lp_id[0] || !all_apps || mn->count >= mn->cap) return;
 	for (int i = 0; i < n_all; i++) {
@@ -49,9 +57,9 @@ static void lastplayed_refresh(void)
 		d->icon = NULL; d->icon_tried = 0; d->load_state = 0; d->pending_pix = NULL;
 		d->icon_rect = 0; d->meta_resolved = 0; d->dec_queued = 0; d->glow = 0.0f;
 		d->gate_path[0] = d->bg_path[0] = 0;
-		d->icon_path[0] = d->icon_path2[0] = 0;                  /* the UMD icon stands in for the game's own */
-		d->stock = tex_umd ? tex_umd : tex_game_s;
+		d->stock = tex_umd ? tex_umd : tex_game_s;               /* the disc is what shows until the cursor is on it; then the game's own picture (icon_path) takes over */
 		snprintf(d->sub, sizeof(d->sub), "Last Played");
+		d->tr = 2 | 4;                                           /* 2: the subtitle is a UI text; 4: this is the disc */
 		resolve_meta(d);                                         /* the game's background still shows when the disc is selected */
 		__sync_synchronize();
 		mn->count++;

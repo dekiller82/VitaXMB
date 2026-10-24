@@ -74,7 +74,7 @@ static void folders_load(void)
 static void folder_default_name(char *out, int n)
 {
 	for (int k = 1; k < 100; k++) {
-		snprintf(out, n, "Folder %d", k);
+		snprintf(out, n, T("Folder %d"), k);
 		int used = 0;
 		for (int i = 0; i < n_folders; i++) if (!strcmp(folder_name[i], out)) used = 1;
 		if (!used) return;
@@ -146,7 +146,7 @@ static void fill_folder_menu(int f)
 		for (int i = 0; i < n_all; i++)
 			if (app_fold[i] == f) menu_add_app(M_FOLDER, &all_apps[i]);
 	if (menus[M_FOLDER].count == 0)
-		add_item(M_FOLDER, KIND_INFO, "Empty folder", "Options > Select Games", NULL, tex_folder);
+		{ int keep = items_tr; items_tr = 3; add_item(M_FOLDER, KIND_INFO, "Empty folder", "Options > Select Games", NULL, tex_folder); items_tr = keep; }
 	Menu *mn = &menus[M_FOLDER];
 	if (mn->sel >= mn->count) mn->sel = mn->count - 1;
 	if (mn->sel < 0) mn->sel = 0;
@@ -174,15 +174,15 @@ static void rebuild_game_lists(void)
 	for (int i = 0; i < n_folders; i++) {
 		int f = order[i], c = folder_count(f);
 		char sub[32];
-		if (c == 0) snprintf(sub, sizeof(sub), "Empty");
-		else snprintf(sub, sizeof(sub), "%d game%s", c, c == 1 ? "" : "s");
+		if (c == 0) snprintf(sub, sizeof(sub), "%s", T("Empty"));
+		else snprintf(sub, sizeof(sub), T(c == 1 ? "%d game" : "%d games"), c);
 		Item *it = add_item(M_MEMCARD, KIND_FOLDER, folder_name[f], sub, NULL, tex_folder);
 		if (it) { it->submenu = M_FOLDER; it->value_id = f; }
 	}
 	for (int i = 0; i < n_all; i++)
 		if (app_fold[i] < 0) menu_add_app(M_MEMCARD, &all_apps[i]);
 	if (mn->count == 0)
-		add_item(M_MEMCARD, KIND_INFO, "No games found", "Nothing in ux0:app", NULL, tex_game_s);
+		{ int keep = items_tr; items_tr = 3; add_item(M_MEMCARD, KIND_INFO, "No games found", "Nothing in ux0:app", NULL, tex_game_s); items_tr = keep; }
 	if (mn->sel >= mn->count) mn->sel = mn->count - 1;
 	if (mn->sel < 0) mn->sel = 0;
 	mn->pos = (float)mn->sel;

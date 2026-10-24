@@ -16,9 +16,9 @@ static unsigned char ch_prev_tried[PT_MAX + 1];
 
 static void ch_name(int i, char *out, size_t n)
 {
-	if (ch_kind == 1) snprintf(out, n, "%s", theme_names[i]);
-	else if (i == 0) snprintf(out, n, "%s", "Off");
-	else if (i == pt_n + 1) snprintf(out, n, "%s", "Random");        /* a theme picked at every start (CXMB's random.ctf) */
+	if (ch_kind == 1) snprintf(out, n, "%s", T(theme_names[i]));
+	else if (i == 0) snprintf(out, n, "%s", T("Off"));
+	else if (i == pt_n + 1) snprintf(out, n, "%s", T("Random"));        /* a theme picked at every start (CXMB's random.ctf) */
 	else snprintf(out, n, "%.40s", pt_list[i - 1].name);
 }
 
@@ -80,12 +80,12 @@ static void draw_chooser(float t, const Palette *pal)
 		if (ch_kind == 1) vita2d_draw_rectangle(pxl, pyt, pw, ph, bga(WHITE((int)(a * SKY_VEIL))));
 	} else {
 		vita2d_draw_rectangle(pxl, pyt, pw, ph, RGBA8(0, 0, 0, a * 35 / 100));
-		ptext_vc(pxl + pw / 2 - ptext_width(26, "No preview") / 2.0f, pyt + ph / 2, WHITE(a * 7 / 10), 26, "No preview");
+		ptext_vc(pxl + pw / 2 - ptext_width(26, T("No preview")) / 2.0f, pyt + ph / 2, WHITE(a * 7 / 10), 26, T("No preview"));
 	}
 	/* the list on the right */
 	float px = 660.0f + (1.0f - e) * 300.0f;
 	draw_side_panel(px, a, pal);
-	ptext_vc_fit(px + 14, 36, WHITE(a), 30, ch_kind == 1 ? "Color" : "Custom Theme (beta)", SCREEN_W - px - 28);
+	ptext_vc_fit(px + 14, 36, WHITE(a), 30, ch_kind == 1 ? T("Color") : T("Custom Theme (beta)"), SCREEN_W - px - 28);
 	vita2d_draw_rectangle(px + 10, 64, SCREEN_W - px - 20, 2, WHITE(a * 35 / 100));
 	const float row = 40.0f, y0 = 100.0f;
 	int visible = 9;
@@ -104,7 +104,7 @@ static void draw_chooser(float t, const Palette *pal)
 	if (ch_top > 0.5f) ptext_vc(px + 14, y0 - 30, WHITE(a * 6 / 10), 20, "...");
 	if (ch_top + visible < ch_n) ptext_vc(px + 14, y0 + visible * row - 14, WHITE(a * 6 / 10), 20, "...");
 	glyph_cross(px + 24, 506, 8, a);
-	ptext_vc(px + 40, 506, BTN_LABEL(a), 22, "Select");
+	ptext_vc(px + 40, 506, BTN_LABEL(a), 22, T("Select"));
 	glyph_ring(px + 150, 506, 8, a);
-	ptext_vc(px + 166, 506, BTN_LABEL(a), 22, "Back");
+	ptext_vc(px + 166, 506, BTN_LABEL(a), 22, T("Back"));
 }

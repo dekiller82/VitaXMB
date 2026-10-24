@@ -52,3 +52,15 @@
 
 # the FFmpeg libraries are built locally with tools/build_ffmpeg.sh (about 10 MB)
 /third_party/ffmpeg-vita/
+
+# the PSP-side game launcher (built with pspdev, output is assets/psp/vxmbboot.pbp) and the language file generator
+!/psp/
+/psp/*
+!/psp/launcher/
+/psp/launcher/*
+!/psp/launcher/main.c
+!/psp/launcher/Makefile
+!/psp/launcher/build.sh
+!/tools/lang/
+/tools/lang/__pycache__/
+!/psp/launcher/env.sh

@@ -49,16 +49,22 @@ static void scan_videos(void)
 		sceIoDclose(dfd);
 	}
 	qsort(menus[M_VIDEOS].items, menus[M_VIDEOS].count, sizeof(Item), item_cmp);
-	if (menus[M_VIDEOS].count == 0) add_item(M_VIDEOS, KIND_INFO, "No videos", "Put videos in ux0:video", NULL, tex_video_s);
+	if (menus[M_VIDEOS].count == 0) { int keep = items_tr; items_tr = 3; add_item(M_VIDEOS, KIND_INFO, "No videos", "Put videos in ux0:video", NULL, tex_video_s); items_tr = keep; }
 	if (menus[M_VIDEOS].sel >= menus[M_VIDEOS].count) menus[M_VIDEOS].sel = 0;
 }
 
 static void scan_music(void);
-static void scan_music_wrapper(void)
+/* "N songs" under Memory Stick in the Music category */
+static void update_music_count(void)
 {
-	scan_music();
 	Menu *mr = &menus[CAT_MUSIC];
 	int n = menus[M_TRACKS].count && menus[M_TRACKS].items[0].kind == KIND_TRACK ? menus[M_TRACKS].count : 0;
 	for (int i = 0; i < mr->count; i++)
-		if (mr->items[i].submenu == M_TRACKS) snprintf(mr->items[i].sub, sizeof(mr->items[i].sub), "%d song%s", n, n == 1 ? "" : "s");
+		if (mr->items[i].submenu == M_TRACKS) snprintf(mr->items[i].sub, sizeof(mr->items[i].sub), T(n == 1 ? "%d song" : "%d songs"), n);
+}
+
+static void scan_music_wrapper(void)
+{
+	scan_music();
+	update_music_count();
 }

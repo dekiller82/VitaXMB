@@ -66,16 +66,16 @@ static void draw_text_rows(int m, float xoff, float amul)
 		float fade = d < 0 ? clampf(1.0f + d * 0.22f, 0.0f, 1.0f) : clampf(1.0f - d * 0.08f, 0.0f, 1.0f);
 		int a = (int)(255 * fade * amul * lerpf(0.85f, 1.0f, emph));
 		if (a <= 4) continue;
-		int value = it->kind == KIND_VALUE && it->sub[0];
-		float tw = ptext_width(26, it->title), vw = value ? ptext_width(PT_SUB(22), it->sub) : 0.0f;
+		int value = it->kind == KIND_VALUE && item_sub(it)[0];
+		float tw = ptext_width(26, item_title(it)), vw = value ? ptext_width(PT_SUB(22), item_sub(it)) : 0.0f;
 		float total = tw + (value ? 28.0f + vw : 0.0f), x0 = cx - total / 2.0f;
 		if (pt_focus && emph > 0.02f) {
 			float fw = total + 96.0f, fh = vita2d_texture_get_height(pt_focus) * 1.9f;          /* the bar reaches past the text, arrows at its ends */
 			if (fw < 200.0f) fw = 200.0f;
 			vita2d_draw_texture_tint_scale(pt_focus, cx - fw / 2.0f, y - fh / 2.0f, fw / vita2d_texture_get_width(pt_focus), 1.9f, WHITE((int)(a * emph)));
 		}
-		ptext_vc(x0, y + 2, WHITE(a), 26, it->title);
-		if (value) ptext_vc(x0 + tw + 28.0f, y + 2, WHITE(a * 9 / 10), PT_SUB(22), it->sub);
+		ptext_vc(x0, y + 2, WHITE(a), 26, item_title(it));
+		if (value) ptext_vc(x0 + tw + 28.0f, y + 2, WHITE(a * 9 / 10), PT_SUB(22), item_sub(it));
 	}
 }
 
@@ -102,16 +102,16 @@ static void draw_sub_list(int m, float xoff, float amul)
 		if (tex && it->glow > 0.02f) draw_glow(tex, ix, y, isz, it->glow * 0.95f * (a / 255.0f));
 		draw_icon(tex, ix, y, isz, a);
 
-		int two_line = it->sub[0] && it->kind != KIND_VALUE;
+		int two_line = item_sub(it)[0] && it->kind != KIND_VALUE;
 		float maxw = (it->kind == KIND_VALUE ? 745.0f : 940.0f) - 303.0f - 14.0f;
 		if (two_line) {
-			ptext_vc_row(tx - text_bearing(28, it->title), y - 20, WHITE(a), 28, it->title, maxw, sel > 0.5f);
-			ptext_vc_row(tx - text_bearing(PT_SUB(22), it->sub), y + 22, WHITE(a), PT_SUB(22), it->sub, maxw, sel > 0.5f);
+			ptext_vc_row(tx - text_bearing(28, item_title(it)), y - 20, WHITE(a), 28, item_title(it), maxw, sel > 0.5f);
+			ptext_vc_row(tx - text_bearing(PT_SUB(22), item_sub(it)), y + 22, WHITE(a), PT_SUB(22), item_sub(it), maxw, sel > 0.5f);
 			if (sel > 0.3f) draw_rule(tx - 1, 948, y, (int)(a * clampf(sel * 1.4f - 0.2f, 0.0f, 1.0f)));
 		} else {
-			ptext_vc_row(tx - text_bearing(28, it->title), y + 3, WHITE(a), 28, it->title, maxw, sel > 0.5f);
+			ptext_vc_row(tx - text_bearing(28, item_title(it)), y + 3, WHITE(a), 28, item_title(it), maxw, sel > 0.5f);
 			if (it->kind == KIND_VALUE)
-				ptext_vc_row(760.0f + xoff, y + 7, WHITE(a * 9 / 10), 24, it->sub, 180.0f, sel > 0.5f);
+				ptext_vc_row(760.0f + xoff, y + 7, WHITE(a * 9 / 10), 24, item_sub(it), 180.0f, sel > 0.5f);
 			if (sel > 0.3f) draw_rule(tx - 1, 948, y + 22, (int)(a * clampf(sel * 1.4f - 0.2f, 0.0f, 1.0f)));
 		}
 	}

@@ -684,8 +684,8 @@ static void upd_read_result(void)
 	snprintf(t, sizeof(t), "%.*s", n < 63 ? n : 63, (const char *)r);
 	free(r);
 	sceIoRemove(CONFIG_DIR "/update_result.txt");
-	if (strncmp(t, "ok", 2) == 0) snprintf(upd_result_msg, sizeof(upd_result_msg), "VitaXMB was updated to %s", upd_tag[0] ? upd_tag : "the new version");
-	else snprintf(upd_result_msg, sizeof(upd_result_msg), "The update did not install (%s)", t);
+	if (strncmp(t, "ok", 2) == 0) snprintf(upd_result_msg, sizeof(upd_result_msg), T("VitaXMB was updated to %s"), upd_tag[0] ? upd_tag : T("the new version"));
+	else snprintf(upd_result_msg, sizeof(upd_result_msg), T("The update did not install (%s)"), t);
 	trace("update: updater said: %s\n", t);
 }
 

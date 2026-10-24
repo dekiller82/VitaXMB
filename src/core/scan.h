@@ -44,6 +44,7 @@ static void scan_apps(void)
 		}
 		sceIoDclose(dfd);
 	}
+	scan_psp_games();                                 /* the games of Adrenaline's folders, with or without a bubble */
 	qsort(mn->items, mn->count, sizeof(Item), item_cmp);
 	n_all = mn->count;
 	if (all_apps) memcpy(all_apps, mn->items, n_all * sizeof(Item));
@@ -84,7 +85,7 @@ static void scan_saves(void)
 	}
 	qsort(mn->items, mn->count, sizeof(Item), item_cmp);
 	if (mn->count == 0)
-		add_item(M_SAVES, KIND_INFO, "No saved data", "Nothing in ux0:user/00/savedata", NULL, tex_savedata_s);
+		{ int keep = items_tr; items_tr = 3; add_item(M_SAVES, KIND_INFO, "No saved data", "Nothing in ux0:user/00/savedata", NULL, tex_savedata_s); items_tr = keep; }
 	if (mn->sel >= mn->count) mn->sel = 0;
 }
 

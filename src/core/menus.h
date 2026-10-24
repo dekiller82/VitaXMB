@@ -2,6 +2,7 @@
 
 static void build_menus(void)
 {
+	items_tr = 3;                                                   /* the UI's own words: shown through T() */
 	/* Settings: the PSP's own groups, wired to what exists on a Vita */
 	Item *nu = add_item(CAT_SETTINGS, KIND_PAGE, "Network Update", "", NULL, tex_launch);      /* first in Settings, as on the PSP */
 	if (nu) nu->value_id = PAGE_UPDATE;
@@ -13,6 +14,7 @@ static void build_menus(void)
 
 	Item *pg = add_item(M_SYSSET, KIND_PAGE, "System Information", "", NULL, tex_psp);
 	if (pg) pg->value_id = PAGE_SYSINFO;
+	add_value(M_SYSSET, "System Language", SET_LANG, tex_psp);
 	add_uri(M_SYSSET, "Vita System Settings", "settings_dlg:", tex_psp);
 	add_uri(M_SYSSET, "System Update", "settings_dlg:updater", tex_psp);
 
@@ -46,9 +48,9 @@ static void build_menus(void)
 		if (ph) snprintf(ph->sub, sizeof(ph->sub), "Open in Photos");
 	}
 	add_folder(CAT_MUSIC, "Memory Stick™", "", M_TRACKS, tex_ms_s);
-	scan_music_wrapper();
+	items_tr = 0; scan_music_wrapper(); items_tr = 3;
 	add_folder(CAT_VIDEO, "Memory Stick™", "", M_VIDEOS, tex_ms_s);
-	scan_videos();
+	items_tr = 0; scan_videos(); items_tr = 3;
 
 	/* Network: the Vita's online apps */
 	/* System apps are opened with their own URI schemes: starting them by title ID
@@ -65,6 +67,7 @@ static void build_menus(void)
 	it = add_item(CAT_GAME, KIND_FOLDER, "Memory Stick™", "", NULL, tex_ms_s);
 	if (it) it->submenu = M_MEMCARD;
 	menus[CAT_GAME].sel = 1;
+	items_tr = 0;
 
 	folders_load();
 	scan_apps();
