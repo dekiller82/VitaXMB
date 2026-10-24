@@ -213,7 +213,20 @@ VitaXMB lists the PSP and PS1 games Adrenaline can run, even those that have no 
 
 ## Languages
 
-*Settings > System Settings > System Language* chooses *Automatic* (the Vita's language, English when the PSP does not have it) or one of the PSP's 12 languages. The change is immediate and is saved.
+*Settings > System Settings > System Language* chooses *Automatic* (the Vita's language, English when it is not in the list below) or one of the 12 languages the PSP has. The change is immediate and is saved.
+
+| Language | Language |
+|---|---|
+| Japanese (日本語) | Dutch (Nederlands) |
+| English | Portuguese (Português) |
+| French (Français) | Russian (Русский) |
+| Spanish (Español) | Korean (한국어) |
+| German (Deutsch) | Traditional Chinese (繁體中文) |
+| Italian (Italiano) | Simplified Chinese (简体中文) |
+
+These are exactly the PSP's languages. The Vita's other languages (Finnish, Swedish, Danish, Norwegian, Polish, Turkish, Brazilian Portuguese and so on) are not offered; with *Automatic* they show English.
+
+**Feedback on the translations is very welcome.** The words the PSP firmware has come from the firmware itself, but the texts VitaXMB adds (its own settings, the updater, the Memory Stick counts and a few dialogs) were translated by hand and may sound wrong or unnatural in places, and some entries may still show in English. If you speak one of these languages and see a mistake, please [open an issue](https://github.com/dekiller82/VitaXMB/issues) with the language, the text as shown and what it should say. The files are plain text (`assets/lang/<code>.lng`, one `English<TAB>translation` per line), so a corrected file is just as welcome.
 
 - The words of the XMB (categories, the Settings pages, dialogs, the Options panel, the Memory Stick lists and their counts) come from the PSP 6.60 firmware's own language tables, so they read as they do on a PSP. Texts the PSP never had (VitaXMB's own settings, the updater, the NoLiveArea page) are translated by hand.
 - Japanese uses the firmware's `jpn0.pgf` font; Korean and Simplified Chinese use the Vita's own system fonts (the PSP's Korean font stores its letters in a form VitaXMB cannot read).
@@ -391,7 +404,7 @@ Every release has its own notes and VPK on the [Releases page](https://github.co
 
 **New**
 
-- **Languages.** *Settings > System Settings > System Language*: Automatic (the Vita's language) or any of the PSP's 12 languages (Japanese, English, French, Spanish, German, Italian, Dutch, Portuguese, Russian, Korean, Traditional and Simplified Chinese). The texts come from the PSP firmware's own language tables; VitaXMB's own settings are translated by hand. Names of games, saves, songs and videos are not translated. Japanese uses the firmware's font, Korean and Simplified Chinese the Vita's system fonts.
+- **Languages.** *Settings > System Settings > System Language*: Automatic (the Vita's language) or any of the PSP's 12 languages: Japanese, English, French, Spanish, German, Italian, Dutch, Portuguese, Russian, Korean, Traditional Chinese and Simplified Chinese. Other Vita languages are not included (Automatic shows English for them). The texts come from the PSP firmware's own language tables; VitaXMB's own settings are translated by hand, so **please report wrong or unnatural translations** (see [Languages](#languages)). Names of games, saves, songs and videos are not translated. Japanese uses the firmware's font, Korean and Simplified Chinese the Vita's system fonts.
 - **PSP and PS1 games without a bubble.** Every ISO / CSO in `ux0:pspemu/ISO` and every `EBOOT.PBP` in `ux0:pspemu/PSP/GAME` is listed in *Game* with its real name, ICON0 and PIC1. They start through Adrenaline's Autorun with a small PSP launcher that ships inside VitaXMB; Adrenaline's start option is put back the next time VitaXMB starts.
 - **PSP game video and sound.** On a PSP game, ICON1.PMF plays in place of the icon and SND0.AT3 plays as music, like the PSP's XMB (FFmpeg now includes the ATRAC3 / ATRAC3+ decoders).
 - **The Last Played disc** shows the UMD until the cursor is on it, then changes into the game's landscape picture (and its video and sound), with the title beside it, in the size of the game list's tile.
