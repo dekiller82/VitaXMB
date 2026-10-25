@@ -46,6 +46,7 @@
 **The XMB, faithfully**
 
 - Six categories on a horizontal bar (Settings, Photo, Music, Video, Game, Network) with the PSP's icon sizes, spacing, glow, drop shadows, rules under selected titles and its monthly color themes with the animated waves.
+- **Sharp icons.** Every XMB icon is drawn at twice the PSP's size (128 px), keeping the PSP's glassy shading, so none of them look blurry on the Vita's screen.
 - The two-level layout the PSP uses for Settings: the open category slides left, the parent list collapses into an icon column, and the child list shows wrench-badge rows with values on the right.
 - A wide-icon **game list**: the selected title grows into a landscape tile while neighbours stack above and below. Rest on a game and its full-screen background art fades in behind the list.
 - The PSP's real **wave background** (the firmware's own wave model, animated the way the PSP animates it) and its **boot intro** (logo, ribbon and glow with the month's tint) before the XMB appears.
@@ -240,7 +241,7 @@ These are exactly the PSP's languages. The Vita's other languages (Finnish, Swed
 
 Rows show the landscape *gate* image of the app's LiveArea and, on rest, its background. They are found in this order: the app's own `sce_sys/livearea` (homebrew), LiveArea's copy in `ur0:appmeta/<id>/livearea`, and the plain `pic0.png` copy in `ur0:appmeta/<id>`.
 
-Retail games' own files are encrypted, and the Vita only keeps `appmeta` copies for roughly 500 bubbles. For games without one, run **[CopyIcons](https://github.com/cy33hc/copyicons)** once: it copies each game's `pic0.png`/`icon0.png` into `ur0:appmeta`, and VitaXMB picks them up. Games with no artwork at all show their square icon on a landscape plate.
+Retail games' own files are encrypted, and the Vita only keeps `appmeta` copies for roughly 500 bubbles. For games without one, run **[CopyIcons](https://github.com/cy33hc/copyicons)** once: it copies each game's `pic0.png`/`icon0.png` into `ur0:appmeta`, and VitaXMB picks them up. Any app whose only picture is square (or portrait) gets a landscape tile made from it, in every list and column: its own colors blurred and dimmed as the fill, the icon centred on top with the Vita's rounded corners.
 
 An experimental *Decrypt Artwork (beta)* setting (off by default, asks for confirmation) can mount a game's encrypted files through VitaShell's own kernel modules, as CopyIcons does, and cache the plain copies. It loads kernel modules and has frozen a test device, so treat it as an experiment.
 
@@ -421,7 +422,7 @@ src/media/                sound mixer, media scan, music player, video engines (
 src/render/               textures, drawing, text engine, backgrounds, waves
 src/theme/                PSP theme loader, RCO runtime, boot intro, theme sounds, the PSP engine's list styles and easing (paf.h)
 src/ui/                   layouts, lists, pages, dialogs, pickers, Move to... (mover.h), Arrange Columns (arrange.h), the trophy page, the video player screen (videoui.h)
-tools/                    build_ffmpeg.sh (+ the stack-size patch), the scripts that made the music / video pictures, make_column_icons.py (the Emulators, Utilities and trophy icons)
+tools/                    build_ffmpeg.sh (+ the stack-size patch), the scripts that made the music / video pictures, make_column_icons.py (the Emulators, Utilities and trophy icons), make_hires_icons.py (the 128 px XMB icons, made from the 64 px originals in tools/icons64)
 updater/main.c            the small installer app (VitaXMB Updater)
 psp/launcher/             the small PSP program that starts a game for Adrenaline (built with pspdev into assets/psp/vxmbboot.pbp)
 assets/lang/              the language files (one per PSP language), made by tools/lang
@@ -429,7 +430,7 @@ assets/psp/               the PSP boot intro resource, the game boot movie (game
 plugin/nolivearea/        the NoLiveArea taiHEN plugin (the built file is assets/plugin/NoLiveArea.suprx)
 sce_sys/                  bubble icon and LiveArea files of the VitaXMB app itself
 assets/font.otf           baseline-normalised UI font
-assets/icons/             PSP-style XMB icons (PNG)
+assets/icons/             PSP-style XMB icons (PNG, 128 px; the Settings wrench badge is 56 px)
 assets/sounds/            XMB sound effects (48 kHz stereo PCM)
 third_party/minimp3/      MP3 decoder (CC0)
 third_party/dr_libs/      dr_flac (FLAC) and stb_vorbis (Ogg) decoders (public domain)
@@ -443,6 +444,15 @@ Everything in the tree is needed to build (apart from the FFmpeg libraries you b
 ## Changelog
 
 Every release has its own notes and VPK on the [Releases page](https://github.com/dekiller82/VitaXMB/releases). Each version includes everything from the ones before it.
+
+### [1.9.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.9.1) (2026-10-25)
+
+**Changed**
+
+- **Sharper icons.** Every XMB icon (the categories, the columns, the Settings rows and their wrench badge) is redrawn at twice the PSP's size, with the PSP's glassy shading and clean edges, so they no longer look blurry on the Vita's screen.
+- **Opening and leaving a list or folder** follows the PSP firmware: the bar slides and the other categories fade in one 200 ms step (the firmware's own easing), and the apps under the category move with the bar at the same speed.
+- **Apps with square art** (the VitaXMB Updater, YAMT, Simple Account Switcher and every other app whose only picture is its square icon) now get a landscape tile in every list and column, like the Game list's other entries: a blurred fill made from the icon itself with the icon centred on top, instead of a square in a dark frame.
+- This release is built without any debug hooks (`VITAXMB_DEBUG` is off).
 
 ### [1.9.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.9.0) (2026-10-24)
 

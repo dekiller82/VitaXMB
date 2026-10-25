@@ -261,7 +261,8 @@ static vita2d_texture *glow_for(vita2d_texture *src)
 	if (glow_n >= 120) return NULL;
 	glows[glow_n].src = src;
 	glows[glow_n].glow = NULL;
-	int sw = vita2d_texture_get_width(src), sh = vita2d_texture_get_height(src);
+	int k = icon_k(src);                                       /* a 2x icon: blur on the PSP-sized grid, the glow texture comes out 2x too */
+	int sw = vita2d_texture_get_width(src) / k, sh = vita2d_texture_get_height(src) / k;
 	int w = sw + 2 * GLOW_PAD, h = sh + 2 * GLOW_PAD;
 	uint8_t *a = calloc((size_t)w * h, 1), *tmp = calloc((size_t)w * h, 1);
 	vita2d_texture *g = NULL;
@@ -269,15 +270,26 @@ static vita2d_texture *glow_for(vita2d_texture *src)
 		const uint8_t *d = vita2d_texture_get_datap(src);
 		int stride = vita2d_texture_get_stride(src);
 		for (int y = 0; y < sh; y++)
-			for (int x = 0; x < sw; x++) a[(y + GLOW_PAD) * w + x + GLOW_PAD] = d[y * stride + x * 4 + 3];
+			for (int x = 0; x < sw; x++) {
+				int sum = 0;
+				for (int j = 0; j < k; j++) for (int i = 0; i < k; i++) sum += d[(y * k + j) * stride + (x * k + i) * 4 + 3];
+				a[(y + GLOW_PAD) * w + x + GLOW_PAD] = (uint8_t)(sum / (k * k));
+			}
 		for (int pass = 0; pass < 12; pass++) box_blur(a, tmp, w, h);
-		g = vita2d_create_empty_texture(w, h);
+		g = vita2d_create_empty_texture(w * k, h * k);
 		if (g) {
 			uint8_t *o = vita2d_texture_get_datap(g);
 			int ostride = vita2d_texture_get_stride(g);
-			for (int y = 0; y < h; y++)
-				for (int x = 0; x < w; x++) {
-					int v = a[y * w + x] * 3;               /* boost the faint blur into a visible halo */
+			for (int y = 0; y < h * k; y++)
+				for (int x = 0; x < w * k; x++) {
+					float fx = ((float)x + 0.5f) / k - 0.5f, fy = ((float)y + 0.5f) / k - 0.5f;
+					int x0 = (int)floorf(fx), y0 = (int)floorf(fy);
+					float tx = fx - x0, ty = fy - y0;
+					int x1 = x0 + 1 > w - 1 ? w - 1 : x0 + 1, y1 = y0 + 1 > h - 1 ? h - 1 : y0 + 1;
+					if (x0 < 0) x0 = 0;
+					if (y0 < 0) y0 = 0;
+					float av = (a[y0 * w + x0] * (1 - tx) + a[y0 * w + x1] * tx) * (1 - ty) + (a[y1 * w + x0] * (1 - tx) + a[y1 * w + x1] * tx) * ty;
+					int v = (int)(av * 3);                      /* boost the faint blur into a visible halo */
 					uint8_t *px = o + y * ostride + x * 4;
 					px[0] = px[1] = px[2] = 255;
 					px[3] = (uint8_t)(v > 255 ? 255 : v);

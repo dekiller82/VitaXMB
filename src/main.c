@@ -928,9 +928,11 @@ int main(void)
 		t += dt_s;
 		startup_t = clampf(startup_t + dt_s / 2.2f, 0.0f, 1.0f);
 		{ static unsigned frame; if ((++frame % 300) == 0) trace("frame %u menu=%d sel=%d\n", frame, cur, menus[cur].sel); }
-		folder_t = lerpf(folder_t, lay == LAY_GAME ? 1.0f : 0.0f, 0.2f);
+		/* the bar's slide and the other categories' fade: vshmain's bar-state function (0x1d7a4) moves and fades in 200 ms, mode 4 (paf.h) */
+		float bar_k = 1.0f - powf(1.0f - ease4_step(200.0f), dt_s * 60.0f);
+		folder_t = lerpf(folder_t, lay == LAY_GAME ? 1.0f : 0.0f, bar_k);
 		if (fabsf(folder_t - (lay == LAY_GAME)) < 0.002f) folder_t = (float)(lay == LAY_GAME);
-		sub_t = lerpf(sub_t, lay == LAY_SUB ? 1.0f : 0.0f, 0.2f);
+		sub_t = lerpf(sub_t, lay == LAY_SUB ? 1.0f : 0.0f, bar_k);
 		if (fabsf(sub_t - (lay == LAY_SUB)) < 0.002f) sub_t = (float)(lay == LAY_SUB);
 		page_t = lerpf(page_t, page_open != PAGE_NONE ? 1.0f : 0.0f, page_open != PAGE_NONE ? 0.25f : 0.45f);
 		if (page_t < 0.01f) page_t = 0.0f; else if (page_t > 0.99f) page_t = 1.0f;
@@ -999,7 +1001,7 @@ int main(void)
 		float su_bar = ease_out(clampf((startup_t - 0.10f) / 0.55f, 0.0f, 1.0f));
 
 		/* Category row: the open category slides left for sub lists / game folders, the rest fade */
-		float fe = ease_out(folder_t), se = ease_out(sub_t);
+		float fe = folder_t, se = sub_t;                      /* already a mode-4 step: no second easing on top */
 		float hide = fmaxf(fe, se);
 		/* A game's Options: the PSP (game_plugin OnPushOptionListCascade) sends the XMB to bar state 4 and moves the game list
 		 * to x -94 (0x11828, 0x117e4; 188 Vita px); closing them returns to state 2. A folder's own Options stay in state 2. */

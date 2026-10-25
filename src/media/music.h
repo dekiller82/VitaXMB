@@ -874,7 +874,7 @@ static void draw_column(int m, float xoff, float amul, float grow, float sub_p)
 		}
 		return;
 	}
-	float sp = ease_out(sub_p);
+	float sp = sub_p;                                           /* sub_t is already the bar's 200 ms mode-4 step (the column is a child of the category item and moves with it) */
 	/* the Game list (Saved Data / Memory Stick) uses a slightly tighter text column than Settings */
 	const float base_icon_x = m == CAT_SETTINGS ? 207.0f : 218.0f;      /* Settings icons carry a wrench badge that hangs left */
 	const float text_x = m == CAT_SETTINGS ? 300.0f : 283.0f;

@@ -47,6 +47,8 @@
 !/tools/make_native_video.py
 !/tools/make_app_art.py
 !/tools/make_flat_rco.py
+!/tools/make_hires_icons.py
+!/tools/icons64/
 !/tools/rlz.py
 /tools/SourceSans3.ttf
 
