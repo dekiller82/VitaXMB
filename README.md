@@ -15,6 +15,10 @@
   <img alt="License" src="https://img.shields.io/badge/license-GPL--3.0-green">
 </p>
 
+<p align="center">
+  <b>Questions, bug reports, feature requests or setup help? Join the <a href="https://discord.gg/X28rtMVxrD">VitaXMB Discord</a>.</b> No GitHub account needed.
+</p>
+
 ---
 
 ## Contents
