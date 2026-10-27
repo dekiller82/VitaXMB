@@ -36,6 +36,7 @@ static void build_menus(void)
 	add_value(M_VITAXMB, "Sort Apps into Columns", SET_SORT, tex_folder);
 	add_value(M_VITAXMB, "Confirmation Dialogs", SET_CONFIRM, tex_usb);
 	add_value(M_VITAXMB, "Game Launch Method", SET_LAUNCH, tex_launch);
+	add_value(M_VITAXMB, "Retro Games Launcher", SET_RETRO, tex_launch);
 	add_value(M_VITAXMB, "Photo Category", SET_SHOW + CAT_PHOTO, tex_photo_s);
 	add_value(M_VITAXMB, "Music Category", SET_SHOW + CAT_MUSIC, tex_music_s);
 	add_value(M_VITAXMB, "Video Category", SET_SHOW + CAT_VIDEO, tex_video_s);

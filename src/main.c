@@ -40,10 +40,14 @@
 #include "core/trophy.h"
 #include "core/pspimg.h"
 #include "core/pspgames.h"
+#include "core/psm.h"
+#include "core/retro.h"
+#include "core/sortwiz.h"
 #include "core/scan.h"
 #include "core/nolivearea.h"
 #include "core/settings.h"
 #include "core/updater.h"
+#include "core/uninstall.h"
 #include "media/media_scan.h"
 #include "core/menus.h"
 #include "core/icons.h"
@@ -60,9 +64,11 @@
 #include "ui/options.h"
 #include "ui/chooser.h"
 #include "ui/picker.h"
+#include "ui/sortui.h"
 #include "ui/trophypage.h"
 #include "ui/mover.h"
 #include "ui/arrange.h"
+#include "ui/iconpick.h"
 #include "ui/touch.h"
 #include "media/music.h"
 #include "media/video.h"
@@ -144,6 +150,7 @@ int main(void)
 	const Item *dlg_item = NULL;
 	int opt_open = 0; float opt_t = 0.0f;                 /* Options panel */
 	int opt_ids[OPT_MAX], opt_n = 0, opt_sel = 0;
+	char un_id[16] = "";                                  /* the app the Uninstall dialog asks about */
 	int opt_folder = -1;                                  /* the folder the options act on */
 	int opt_col = CAT_GAME;                               /* the column a new folder goes in */
 	const Item *opt_item = NULL;
@@ -198,12 +205,12 @@ int main(void)
 		snprintf(dlg_l2, sizeof(dlg_l2), "%s", T(NLA_NEWS));
 		dlg_action = ACT_REBOOT_DO; dlg_item = NULL; dlg_sel = 0; dlg_open = 1; dlg_force = 1;
 	}
-	if (!sort_asked && !dlg_open && autosort_apps(1) > 0) {      /* the first start with columns: offer to sort what is installed, once */
+	if (!sort_asked && !dlg_open && sw_scan() > 0) {      /* the first start with columns: offer to sort what is installed, once */
 		sort_asked = 1;
 		config_save();
 		snprintf(dlg_l1, sizeof(dlg_l1), "%s", T("Sort your apps into columns?"));
 		snprintf(dlg_l2, sizeof(dlg_l2), "%s", T(SORT_ASK_TEXT));
-		dlg_action = ACT_SORT_DO; dlg_item = NULL; dlg_sel = 0; dlg_open = 1;
+		dlg_action = ACT_SORT_OPEN; dlg_item = NULL; dlg_sel = 0; dlg_open = 1;
 	}
 	for (;;) {
 		uint64_t prof_t0 = sceKernelGetProcessTimeWide();
@@ -242,7 +249,9 @@ int main(void)
 			if (launching || startup_t < 0.45f || ime_active) tc.mode = TM_NONE;
 			else if (dlg_open) { tc.mode = TM_DLG; tc.dlg_sel = dlg_sel; }
 			else if (ch_open) tc.mode = TM_CHOOSER;
+			else if (ip_open) { tc.mode = TM_ICONS; tc.ip_sel = ip_sel; tc.ip_top = ip_top; }
 			else if (ac_open) { tc.mode = TM_ARRANGE; tc.ac_sel = ac_sel; tc.ac_top = ac_top; }
+			else if (sw_open) { tc.mode = TM_SORT; tc.sw_sel = sw_sel; tc.sw_top = sw_top; }
 			else if (mv_open) { tc.mode = TM_MOVER; tc.mv_sel = mv_sel; tc.mv_top = mv_top; }
 			else if (pk_open) { tc.mode = TM_PICKER; tc.pk_sel = pk_sel; tc.pk_top = pk_top; tc.pk_org = pk_mode == PK_ORGANIZE; }
 			else if (page_open == PAGE_PLAYER) tc.mode = TM_PLAYER;
@@ -338,6 +347,15 @@ int main(void)
 				sound_play(SND_CANCEL);
 				ch_open = 0;
 			}
+		} else if (ip_open) {
+			/* ---- Choose Icon ---- */
+			int n = ip_count();
+			if ((pressed & SCE_CTRL_LEFT) && ip_sel > 0)          { ip_sel--; sound_play(SND_CURSOR); }
+			if ((pressed & SCE_CTRL_RIGHT) && ip_sel < n - 1)     { ip_sel++; sound_play(SND_CURSOR); }
+			if ((pressed & SCE_CTRL_UP) && ip_sel >= IP_COLS)     { ip_sel -= IP_COLS; sound_play(SND_CURSOR); }
+			if ((pressed & SCE_CTRL_DOWN) && ip_sel < n - 1)      { ip_sel = ip_sel + IP_COLS > n - 1 ? n - 1 : ip_sel + IP_COLS; sound_play(SND_CURSOR); }
+			if (pressed & SCE_CTRL_CROSS) { sound_play(SND_CONFIRM); ip_apply(); }
+			else if (pressed & SCE_CTRL_CIRCLE) { sound_play(SND_CANCEL); ip_open = 0; }
 		} else if (ac_open) {
 			/* ---- Arrange Columns ---- */
 			int req = ac_input(pressed);
@@ -356,11 +374,25 @@ int main(void)
 				ime_begin(T("New column"), nm, IME_COLNEW, -1);
 			} else if (req == AC_RENAME && tc2 >= 0) {
 				ime_begin(T("Rename column"), col_name(tc2), IME_COLRENAME, tc2);
+			} else if (req == AC_ICON && tc2 >= 0) {
+				ip_start(IP_COLUMN, tc2);
 			} else if (req == AC_DELETE && tc2 >= CAT_C1) {
 				snprintf(dlg_l1, sizeof(dlg_l1), T("Delete the column \"%.40s\"?"), col_name(tc2));
 				snprintf(dlg_l2, sizeof(dlg_l2), "%s", T("Its apps move to Game."));
 				dlg_action = ACT_COLDEL_DO; dlg_item = NULL; dlg_sel = 1; dlg_open = 1;
 			}
+		} else if (sw_open) {
+			/* ---- Sort Apps into Columns ---- */
+			if ((pressed & SCE_CTRL_UP)   && sw_sel > 0)             { sw_sel--; sound_play(SND_CURSOR); }
+			if ((pressed & SCE_CTRL_DOWN) && sw_sel < sw_nrows - 1)  { sw_sel++; sound_play(SND_CURSOR); }
+			if (pressed & SCE_CTRL_LTRIGGER) { sw_sel = sw_sel - 5 < 0 ? 0 : sw_sel - 5; sound_play(SND_CURSOR); }
+			if (pressed & SCE_CTRL_RTRIGGER) { sw_sel = sw_sel + 5 > sw_nrows - 1 ? sw_nrows - 1 : sw_sel + 5; sound_play(SND_CURSOR); }
+			if (pressed & SCE_CTRL_CROSS) { sw_toggle(1); sound_play(SND_CURSOR); }
+			if ((pressed & SCE_CTRL_LEFT) && sw_row[sw_sel].type == SR_LAYOUT) { sw_toggle(-1); sound_play(SND_CURSOR); }
+			if ((pressed & SCE_CTRL_RIGHT) && sw_row[sw_sel].type == SR_LAYOUT) { sw_toggle(1); sound_play(SND_CURSOR); }
+			if (pressed & SCE_CTRL_SQUARE) { sw_all_none(); sound_play(SND_CURSOR); }
+			if (pressed & SCE_CTRL_TRIANGLE) { sound_play(SND_CONFIRM); sw_open = 0; act = ACT_SORT_DO; act_item = NULL; }
+			else if (pressed & SCE_CTRL_CIRCLE) { sound_play(SND_CANCEL); sw_open = 0; }
 		} else if (mv_open) {
 			/* ---- Move to... ---- */
 			if ((pressed & SCE_CTRL_UP)   && mv_sel > 0)        { mv_sel--; sound_play(SND_CURSOR); }
@@ -472,6 +504,8 @@ int main(void)
 				case OPT_ORGANIZE:  act = ACT_ORGANIZE; break;
 				case OPT_TROPHIES:  act = ACT_TROPHIES; break;
 				case OPT_COLUMNS:   act = ACT_COLUMNS; break;
+				case OPT_ICON:      act = ACT_ICON; break;
+				case OPT_UNINSTALL: act = ACT_UNINSTALL_ASK; break;
 				default:            act = ACT_REFRESH; break;
 				}
 				act_item = opt_item;
@@ -536,6 +570,12 @@ int main(void)
 						if (it->submenu == M_TROPHY) {          /* Trophy Collection: read the database */
 							menus[M_TROPHY].sel = 0;
 							trophy_fill_menu();
+						}
+						if (it->submenu == M_VCOL) {            /* an extra column shown as a folder (theme without its panels) */
+							open_vcol = it->value_id;
+							open_col = open_vcol;
+							menus[M_VCOL].sel = 0;
+							fill_vcol_menu(open_vcol);
 						}
 						if (it->submenu == M_FOLDER) {          /* a user folder: fill its list first */
 							open_folder = it->value_id;
@@ -659,14 +699,17 @@ int main(void)
 				dlg_action = ACT_DELFOLDER_DO; dlg_item = NULL; dlg_sel = 1; dlg_open = 1;
 			}
 			act = ACT_NONE;
-		} else if (act == ACT_SORT_ASK) {
-			if (autosort_apps(1) == 0) {
-				note_show("%s", T("Nothing to sort: every app is already in its place."));
-			} else {
-				snprintf(dlg_l1, sizeof(dlg_l1), "%s", T("Sort apps into columns?"));
-				snprintf(dlg_l2, sizeof(dlg_l2), "%s", T(SORT_ASK_TEXT));
-				dlg_action = ACT_SORT_DO; dlg_item = NULL; dlg_sel = 0; dlg_open = 1;
+		} else if (act == ACT_UNINSTALL_ASK) {
+			if (act_item && app_can_uninstall(act_item)) {
+				snprintf(un_id, sizeof(un_id), "%s", act_item->id);
+				snprintf(dlg_l1, sizeof(dlg_l1), T("Uninstall \"%.40s\"?"), item_title(act_item));
+				snprintf(dlg_l2, sizeof(dlg_l2), "%s", T("The app is removed. Its saved data stays."));
+				dlg_action = ACT_UNINSTALL_DO; dlg_item = NULL; dlg_sel = 1; dlg_open = 1;
 			}
+			act = ACT_NONE;
+		} else if (act == ACT_SORT_ASK) {
+			if (sw_scan() == 0) note_show("%s", T("Nothing to sort: every app is already in its place."));
+			else sw_start();
 			act = ACT_NONE;
 		} else if (act == ACT_NLA_ASK) {
 			snprintf(dlg_l1, sizeof(dlg_l1), "%s", T("Install the NoLiveArea plugin?"));
@@ -761,6 +804,22 @@ int main(void)
 		case ACT_ORGANIZE:
 			pk_start_organize();
 			break;
+		case ACT_UNINSTALL_DO:
+			if (un_id[0]) {
+				int r = app_uninstall(un_id);
+				un_id[0] = 0;
+				if (r == 0) {
+					scan_apps();
+					update_game_counts();
+					note_show("%s", T("Uninstalled."));
+				} else {
+					note_show("%s", T("The app could not be uninstalled."));
+				}
+			}
+			break;
+		case ACT_ICON:
+			if (opt_folder >= 0 && opt_folder < n_folders) ip_start(IP_FOLDER, opt_folder);
+			break;
 		case ACT_COLUMNS:
 			ac_start();
 			break;
@@ -780,12 +839,16 @@ int main(void)
 				if (trophy_commid_for_app(act_item->id, cid, sizeof(cid))) { trophy_page_open(cid); page_open = PAGE_TROPHY; }
 			}
 			break;
+		case ACT_SORT_OPEN:
+			sw_start();
+			break;
 		case ACT_SORT_DO: {
-			int moved = autosort_apps(0);
-			char msg[96];
-			folders_save();
+			int no_col = 0, moved = sw_apply(&no_col);
+			char msg[128];
+			config_save();
 			rebuild_game_lists();
 			snprintf(msg, sizeof(msg), T(moved == 1 ? "%d app sorted" : "%d apps sorted"), moved);
+			if (no_col) { size_t l = strlen(msg); snprintf(msg + l, sizeof(msg) - l, T(" (no free column or folder for %d of the kinds)"), no_col); }
 			note_show("%s", msg);
 			break; }
 		case ACT_REFRESH:
@@ -867,7 +930,7 @@ int main(void)
 			if (pic_alpha < 0.002f) pic_alpha = 0.0f;
 		}
 
-		pm_tick(dwell_item, dwell_t, !launching && !opt_open && page_open == PAGE_NONE && !dlg_open && (cur == M_MEMCARD || cur == M_FOLDER || cur == CAT_GAME || (cur < CAT_COUNT && cur != CAT_SETTINGS)));      /* a PSP game bubble: its film and its sound */
+		pm_tick(dwell_item, dwell_t, !launching && !opt_open && page_open == PAGE_NONE && !dlg_open && (cur == M_MEMCARD || cur == M_FOLDER || cur == M_VCOL || cur == CAT_GAME || (cur < CAT_COUNT && cur != CAT_SETTINGS)));      /* a PSP game bubble: its film and its sound */
 
 		/* ---------------- music upkeep ---------------- */
 		if (music_index >= 0 && mus_ready && mus_eof && mus_w == mus_r) {      /* track finished: next one */
@@ -945,6 +1008,8 @@ int main(void)
 		mv_t = lerpf(mv_t, mv_open ? 1.0f : 0.0f, 0.3f);
 		if (mv_t < 0.01f) mv_t = 0.0f; else if (mv_t > 0.99f) mv_t = 1.0f;
 		pk_t = lerpf(pk_t, pk_open ? 1.0f : 0.0f, 0.3f);
+		sw_t = lerpf(sw_t, sw_open ? 1.0f : 0.0f, 0.3f);
+		ip_t = lerpf(ip_t, ip_open ? 1.0f : 0.0f, 0.3f);
 		if (pk_t < 0.01f) pk_t = 0.0f; else if (pk_t > 0.99f) pk_t = 1.0f;
 		{
 			float want = pk_sel - 4.0f;
@@ -1107,7 +1172,7 @@ int main(void)
 		/* "Options" pill, only where the triangle does something */
 		{
 			const Item *sit = menus[cur].count ? &menus[cur].items[menus[cur].sel] : NULL;
-			if (sit && item_has_options(cur, sit) && !dlg_open && !pk_open && !mv_open && !ac_open && !ch_open && !ime_active && page_open == PAGE_NONE && !launching)
+			if (sit && item_has_options(cur, sit) && !dlg_open && !pk_open && !sw_open && !ip_open && !mv_open && !ac_open && !ch_open && !ime_active && page_open == PAGE_NONE && !launching)
 				draw_options_pill((int)(255 * (1.0f - opt_t) * su_bar));
 		}
 
@@ -1132,8 +1197,10 @@ int main(void)
 				draw_options_panel(opt_t, opt_ids, opt_n, opt_sel, &pal, octx);
 			}
 		if (pk_t > 0.0f) draw_picker(pk_t);
+		if (sw_t > 0.0f) draw_sortwiz(sw_t);
 		if (mv_t > 0.0f) draw_mover(mv_t);
 		if (ac_t > 0.0f) draw_arrange(ac_t);
+		if (ip_t > 0.0f) draw_iconpick(ip_t);
 		if (ch_t > 0.0f) draw_chooser(ch_t, &pal);
 		if (dlg_t > 0.0f) draw_dialog(dlg_t, dlg_l1, dlg_l2, dlg_force ? 2 : dlg_sel);
 

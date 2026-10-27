@@ -14,7 +14,7 @@
  *   press and hold    Options of the row under the finger
  * Panels, dialogs and pages get their own taps (a row of the Options panel, Yes / No, a tap to close). */
 
-enum { TM_NONE, TM_XMB, TM_OPT, TM_DLG, TM_PAGE, TM_PAGE_UPDATE, TM_PLAYER, TM_PICKER, TM_CHOOSER, TM_VIDEO, TM_MOVER, TM_TROPHY, TM_ARRANGE };
+enum { TM_NONE, TM_XMB, TM_OPT, TM_DLG, TM_PAGE, TM_PAGE_UPDATE, TM_PLAYER, TM_PICKER, TM_CHOOSER, TM_VIDEO, TM_MOVER, TM_TROPHY, TM_ARRANGE, TM_SORT, TM_ICONS };
 
 typedef struct {
 	int mode;                       /* what is on top of the screen: one of TM_* */
@@ -29,6 +29,8 @@ typedef struct {
 	int pk_org;                     /* the picker is Organize Apps */
 	int mv_sel; float mv_top;       /* TM_MOVER */
 	int ac_sel; float ac_top;       /* TM_ARRANGE */
+	int sw_sel; float sw_top;       /* TM_SORT */
+	int ip_sel; float ip_top;       /* TM_ICONS */
 } TouchCtx;
 
 #define TQ_MAX 48
@@ -150,7 +152,7 @@ static void touch_tap(const TouchCtx *c, float tx, float ty)
 			if (z == 0) tq_push(SCE_CTRL_CROSS);
 			else if (z == 1) tq_push(SCE_CTRL_SQUARE);
 			else if (z == 2) tq_push(SCE_CTRL_TRIANGLE);
-			else if (z == 3) tq_push(tx < 20.0f + 3 * 158.0f + 62.0f ? SCE_CTRL_LTRIGGER : SCE_CTRL_RTRIGGER);
+			else if (z == 3) tq_push(SCE_CTRL_SELECT);                                  /* the icon list */
 			else if (z == 4) tq_push(SCE_CTRL_START);
 			else tq_push(SCE_CTRL_CIRCLE);
 			break;
@@ -158,6 +160,27 @@ static void touch_tap(const TouchCtx *c, float tx, float ty)
 		{
 			int i = (int)floorf(c->ac_top + (ty - 120.0f) / 44.0f + 0.5f);
 			if (i >= 0 && i < ac_n) { if (i == c->ac_sel) tq_push(SCE_CTRL_CROSS); else tq_steps(i - c->ac_sel); }
+		}
+		break;
+	case TM_SORT:
+		if (ty < 80.0f) { tq_push(SCE_CTRL_CIRCLE); break; }
+		if (ty > 480.0f) { if (tx > 440.0f && tx < 700.0f) tq_push(SCE_CTRL_TRIANGLE); else if (tx >= 700.0f) tq_push(SCE_CTRL_CIRCLE); else if (tx > 250.0f) tq_push(SCE_CTRL_SQUARE); break; }
+		{
+			int i = (int)floorf(c->sw_top + (ty - SW_ROW_Y0) / SW_ROW_H + 0.5f);
+			if (i >= 0 && i < sw_nrows) { tq_steps(i - c->sw_sel); tq_push(SCE_CTRL_CROSS); }
+		}
+		break;
+	case TM_ICONS:
+		if (ty < 80.0f) { tq_push(SCE_CTRL_CIRCLE); break; }
+		if (ty > 480.0f) { tq_push(tx < 480.0f ? SCE_CTRL_CROSS : SCE_CTRL_CIRCLE); break; }
+		{
+			int col = (int)floorf((tx - IP_X0) / IP_CELL_W), row = (int)floorf(c->ip_top + (ty - IP_Y0) / IP_CELL_H);
+			int i = row * IP_COLS + col;
+			if (col < 0 || col >= IP_COLS || row < 0 || i >= ip_count()) break;
+			if (i == c->ip_sel) { tq_push(SCE_CTRL_CROSS); break; }
+			int dr = row - c->ip_sel / IP_COLS, dc = col - c->ip_sel % IP_COLS;
+			for (int k = 0; k < abs(dr) && k < 12; k++) tq_push(dr < 0 ? SCE_CTRL_UP : SCE_CTRL_DOWN);
+			for (int k = 0; k < abs(dc) && k < 8; k++) tq_push(dc < 0 ? SCE_CTRL_LEFT : SCE_CTRL_RIGHT);
 		}
 		break;
 	case TM_TROPHY: if (ty > 480.0f) tq_push(SCE_CTRL_CIRCLE); break;
@@ -199,6 +222,8 @@ static unsigned touch_poll(const TouchCtx *c)
 				float pitch = 40.0f;                                   /* one row of finger travel per row */
 				if (c->mode == TM_XMB) pitch = c->lay == LAY_COLUMN ? 100.0f : 80.0f;
 				else if (c->mode == TM_PICKER) pitch = 38.0f;
+					else if (c->mode == TM_SORT) pitch = SW_ROW_H;
+					else if (c->mode == TM_ICONS) pitch = IP_CELL_H;
 				else if (c->mode == TM_MOVER) pitch = 40.0f;
 				else if (c->mode == TM_ARRANGE) pitch = 44.0f;
 				else if (c->mode == TM_TROPHY) pitch = 60.0f;

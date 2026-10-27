@@ -49,7 +49,7 @@ static void config_load(void)
 {
 	SceUID fd = sceIoOpen(CONFIG_PATH, SCE_O_RDONLY, 0);
 	if (fd < 0) return;
-	int v[15] = { 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0 };
+	int v[16] = { 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0 };
 	int n = sceIoRead(fd, v, sizeof(v));
 	sceIoClose(fd);
 	if (n >= 4 && v[0] >= 0 && v[0] <= 12) theme = v[0];
@@ -68,6 +68,7 @@ static void config_load(void)
 	if (n >= 52 && (v[12] == 0 || v[12] == 1)) boot_logo = v[12];
 	if (n >= 56 && v[13] >= 0 && v[13] <= LANG_COUNT) lang_setting = v[13];
 	if (n >= 60 && (v[14] == 0 || v[14] == 1)) sort_asked = v[14];
+	if (n >= 64 && (v[15] == 0 || v[15] == 1)) retro_emu = v[15];
 	cat_refresh_hidden(-1);
 }
 
@@ -84,7 +85,7 @@ static void config_save(void)
 	if (fd < 0) return;
 	int mask = 0;
 	for (int c = 0; c < CAT_COUNT; c++) if (cat_pref[c]) mask |= 1 << c;
-	int v[15] = { theme, launch_mode, art_decrypt, clock24, sound_on, startup_anim, confirm_dialogs, extra_storage, mask, auto_update, batt_pct, nla_asked, boot_logo, lang_setting, sort_asked };
+	int v[16] = { theme, launch_mode, art_decrypt, clock24, sound_on, startup_anim, confirm_dialogs, extra_storage, mask, auto_update, batt_pct, nla_asked, boot_logo, lang_setting, sort_asked, retro_emu };
 	sceIoWrite(fd, v, sizeof(v));
 	sceIoClose(fd);
 }

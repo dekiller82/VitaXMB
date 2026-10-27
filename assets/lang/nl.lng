@@ -256,7 +256,6 @@ Move	Verplaatsen
 Nothing to sort: every app is already in its place.	Niets te sorteren: elke app staat al op zijn plek.
 Sort apps into columns?	Apps in kolommen sorteren?
 Sort your apps into columns?	Je apps in kolommen sorteren?
-Emulators, utilities, music, video and network apps\nmove to their own columns; games stay in Game.\nApps you placed yourself stay where they are.	Emulators, hulpprogramma’s en muziek-, video- en\nnetwerk-apps gaan naar hun eigen kolommen; games blijven in Game.\nApps die je zelf hebt geplaatst blijven waar ze zijn.
 No trophies	Geen trofeeën
 Play a game with trophies first	Speel eerst een game met trofeeën
 No trophy data for this game yet	Nog geen trofeegegevens voor deze game
@@ -277,8 +276,47 @@ Icon	Pictogram
 Delete	Verwijderen
 Drop	Neerzetten
 Up / Down: move   Cross: drop	Omhoog / omlaag: verplaatsen   ✕: neerzetten
-Cross: pick up and move	✕: oppakken en verplaatsen
 Delete the column "%.40s"?	Kolom „%.40s” verwijderen?
 Its apps move to Game.	De apps gaan naar Game.
 Column %d	Kolom %d
 Column	Kolom
+ (no free column or folder for %d of the kinds)	 (geen vrije kolom of map voor %d soorten)
+%d games are over the limit and are not listed.	%d spellen overschrijden de limiet en staan niet in de lijst.
+%d to sort	%d te sorteren
+Change	Wijzigen
+Choose which kinds of app get their own column:\nemulators, utilities, PSP and PS1 games, homebrew...\nApps you placed yourself stay where they are.	Kies welke soorten apps een eigen kolom krijgen:\nemulators, hulpprogramma’s, PSP- en PS1-games, homebrew…\nApps die je zelf hebt geplaatst blijven waar ze zijn.
+Retro Games Launcher	Starter voor retrogames
+Retro games go to	Retrogames gaan naar
+RetroArch and Emu4Vita+ are not installed: these games cannot start yet.	RetroArch en Emu4Vita+ zijn niet geïnstalleerd: deze games kunnen nog niet starten.
+Sort	Sorteren
+System	Systeem
+Tick what VitaXMB should sort. Apps you placed yourself stay where they are.	Vink aan wat VitaXMB moet sorteren. Apps die je zelf hebt geplaatst blijven waar ze zijn.
+none	geen
+PSP games	PSP-games
+PS1 games	PS1-games
+PSM games	PSM-games
+Homebrew	Homebrew
+RetroArch, PPSSPP, Adrenaline and other emulators	RetroArch, PPSSPP, Adrenaline en andere emulators
+VitaShell, Checkpoint and other tools	VitaShell, Checkpoint en andere hulpmiddelen
+Music players	Muziekspelers
+Video players and streaming apps	Videospelers en streamingapps
+Remote play, browsers and downloaders	Remote play, browsers en downloaders
+ISO / CSO images and PSP downloads, with or without a bubble	ISO-/CSO-images en PSP-downloads, met of zonder bubble
+PS1 classics, with or without a bubble	PS1-klassiekers, met of zonder bubble
+PlayStation Mobile games (ux0:psm)	PlayStation Mobile-games (ux0:psm)
+Every other app that is not a retail game	Elke andere app die geen commerciële game is
+Folders in Emulators	Mappen in Emulators
+A column per system	Een kolom per systeem
+One Retro column	Eén Retro-kolom
+A folder for each system inside the Emulators column	Een map per systeem in de kolom Emulators
+A column of its own for each system (up to the free columns, then folders)	Een eigen kolom per systeem (zolang er vrije zijn, daarna mappen)
+One column called Retro with a folder for each system	Eén kolom genaamd Retro met een map per systeem
+Choose Icon	Pictogram kiezen
+Change Icon	Pictogram wijzigen
+Default	Standaard
+Cross: pick up and move   Select: icon list	✕: oppakken en verplaatsen   SELECT: pictogramlijst
+Uninstall	Verwijderen
+Uninstall "%.40s"?	“%.40s” verwijderen?
+The app is removed. Its saved data stays.	De app wordt verwijderd. De opgeslagen gegevens blijven staan.
+Uninstalled.	Verwijderd.
+The app could not be uninstalled.	De app kon niet worden verwijderd.

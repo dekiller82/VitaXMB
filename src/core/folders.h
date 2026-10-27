@@ -8,12 +8,12 @@
  * An app with no line stays where it is found: Game > Memory Stick, unless the automatic sort moves it. The list shown in a column is
  * its own rows, then its folders, then the apps that are in none. */
 
-#define MAX_FOLDERS 64
+#define MAX_FOLDERS 160
 #define MAX_ASSIGN  GAME_MAX
 #define FOLDERS_PATH CONFIG_DIR "/folders.txt"
 
 /* the columns that can hold apps and folders: every column but Settings, and the user's own once made */
-static const char *col_key[CAT_COUNT] = { "settings", "photo", "music", "video", "game", "network", "emu", "util", "c1", "c2", "c3", "c4" };
+static const char *col_key[CAT_COUNT] = { "settings", "photo", "music", "video", "game", "network", "emu", "util", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10", "c11", "c12", "c13", "c14", "c15", "c16", "c17", "c18", "c19", "c20", "c21", "c22" };
 
 static int col_exists(int c) { return c != CAT_SETTINGS && (c < CAT_C1 || col_custom[c]); }
 
@@ -33,6 +33,10 @@ static int col_from_key(const char *k)
 
 static char folder_name[MAX_FOLDERS][40];
 static int folder_col[MAX_FOLDERS];
+static short folder_icon[MAX_FOLDERS];  /* the picture chosen for a folder: an index in col_icons[] plus one; 0 is the folder picture */
+static vita2d_texture *col_icons[64];   /* the pictures a column or a folder can have (the stock ones, then the systems') */
+static const char *col_icon_name[64];
+static int n_col_icons;
 static int n_folders;
 static struct { char id[16]; int folder; int col; } assign[MAX_ASSIGN];
 static int n_assign;
@@ -42,16 +46,52 @@ static Item *all_apps;                  /* every installed app (GAME_MAX, alloca
 static int n_all;
 static short app_fold[GAME_MAX];        /* folder of all_apps[i], refreshed by refresh_app_folders() */
 static unsigned char app_colv[GAME_MAX];/* column of all_apps[i] */
+static unsigned char app_realcol[GAME_MAX];/* the column the user gave it, also when the theme has no panel for it (then app_colv is Game) */
 static int open_folder = -1;            /* folder shown in M_FOLDER */
+static int open_vcol = -1;             /* the column shown as a folder in M_VCOL (a theme without the extra columns) */
 static int open_col = CAT_GAME;         /* the column it is in (kept apart: a folder that was just deleted still sits in its column while the screen leaves it) */
 
 /* The extra columns are drawn from a theme's own pictures, which a theme with full-height panels or strips has none for: its apps stay in Game then. */
 static int cols_limited(void) { return pt_blade_mode || pt_strip_mode; }
 
+/* a lookup by title id through a hash of the assignment list (a few thousand placed retro games would make a plain walk slow);
+ * the entries are only ever appended, so a new one is added to the hash as it is made, and a reload rebuilds it */
+#define ASSIGN_HASH 16384
+static short assign_hash[ASSIGN_HASH];            /* index + 1 of the first entry with that hash, linear probing; 0 empty */
+static int assign_hashed = -1;                    /* entries in the hash, -1: it must be rebuilt */
+
+static unsigned assign_h(const char *s)
+{
+	unsigned h = 2166136261u;
+	for (; *s; s++) h = (h ^ (unsigned char)*s) * 16777619u;
+	return h & (ASSIGN_HASH - 1);
+}
+
+static void assign_hash_add(int i)
+{
+	unsigned h = assign_h(assign[i].id);
+	while (assign_hash[h]) {
+		if (!strcmp(assign[assign_hash[h] - 1].id, assign[i].id)) return;     /* the first one of a duplicate stays */
+		h = (h + 1) & (ASSIGN_HASH - 1);
+	}
+	assign_hash[h] = (short)(i + 1);
+}
+
+static void assign_reindex(void)
+{
+	memset(assign_hash, 0, sizeof(assign_hash));
+	for (int i = 0; i < n_assign; i++) assign_hash_add(i);
+	assign_hashed = n_assign;
+}
+
 static int app_entry(const char *id)
 {
-	for (int i = 0; i < n_assign; i++)
-		if (!strcmp(assign[i].id, id)) return i;
+	if (assign_hashed != n_assign) assign_reindex();
+	unsigned h = assign_h(id);
+	while (assign_hash[h]) {
+		if (!strcmp(assign[assign_hash[h] - 1].id, id)) return assign_hash[h] - 1;
+		h = (h + 1) & (ASSIGN_HASH - 1);
+	}
 	return -1;
 }
 
@@ -70,6 +110,7 @@ static void app_place(const char *id, int col, int f)
 		if (n_assign >= MAX_ASSIGN) return;
 		i = n_assign++;
 		snprintf(assign[i].id, sizeof(assign[0].id), "%s", id);
+		if (assign_hashed == n_assign - 1) { assign_hash_add(i); assign_hashed = n_assign; }
 	}
 	assign[i].folder = f;
 	assign[i].col = col;
@@ -82,6 +123,7 @@ static void folders_save(void)
 	for (int i = 0; i < n_folders; i++) {
 		fprintf(f, "F\t%s\n", folder_name[i]);
 		if (folder_col[i] != CAT_GAME) fprintf(f, "C\t%s\n", col_key[folder_col[i]]);
+		if (folder_icon[i] > 0) fprintf(f, "I\t%d\n", folder_icon[i] - 1);
 		for (int k = 0; k < n_assign; k++)
 			if (assign[k].folder == i) fprintf(f, "A\t%s\n", assign[k].id);
 	}
@@ -93,6 +135,7 @@ static void folders_save(void)
 static void folders_load(void)
 {
 	n_folders = n_assign = 0;
+	assign_hashed = -1;
 	FILE *f = fopen(FOLDERS_PATH, "rb");
 	if (!f) return;
 	char line[128];
@@ -103,8 +146,12 @@ static void folders_load(void)
 			cur = n_folders++;
 			snprintf(folder_name[cur], sizeof(folder_name[0]), "%s", line + 2);
 			folder_col[cur] = CAT_GAME;
+			folder_icon[cur] = 0;
 		} else if (line[0] == 'C' && line[1] == '\t' && cur >= 0) {
 			folder_col[cur] = col_from_key(line + 2);
+		} else if (line[0] == 'I' && line[1] == '\t' && cur >= 0) {
+			int v = atoi(line + 2);
+			folder_icon[cur] = v >= 0 && v < 63 ? (short)(v + 1) : 0;
 		} else if (line[0] == 'A' && line[1] == '\t' && cur >= 0 && n_assign < MAX_ASSIGN) {
 			snprintf(assign[n_assign].id, sizeof(assign[0].id), "%s", line + 2);
 			assign[n_assign].folder = cur;
@@ -149,6 +196,7 @@ static int folder_new(const char *name, int col)
 	folder_clean_name(folder_name[f], sizeof(folder_name[0]), name);
 	if (!folder_name[f][0]) folder_default_name(folder_name[f], sizeof(folder_name[0]));
 	folder_col[f] = col >= 0 && col < CAT_COUNT && col != CAT_SETTINGS ? col : CAT_GAME;
+	folder_icon[f] = 0;
 	return f;
 }
 
@@ -159,7 +207,7 @@ static void folder_delete(int f)
 		if (assign[i].folder == f) { assign[i].folder = -1; assign[i].col = folder_col[f]; }
 		else if (assign[i].folder > f) assign[i].folder--;
 	}
-	for (int i = f; i < n_folders - 1; i++) { memcpy(folder_name[i], folder_name[i + 1], sizeof(folder_name[0])); folder_col[i] = folder_col[i + 1]; }
+	for (int i = f; i < n_folders - 1; i++) { memcpy(folder_name[i], folder_name[i + 1], sizeof(folder_name[0])); folder_col[i] = folder_col[i + 1]; folder_icon[i] = folder_icon[i + 1]; }
 	n_folders--;
 }
 
@@ -180,7 +228,9 @@ static void refresh_app_folders(void)
 		int e = app_entry(all_apps[i].id), c = CAT_GAME;
 		app_fold[i] = e < 0 ? -1 : (short)assign[e].folder;
 		if (e >= 0) c = assign[e].folder >= 0 ? folder_col[assign[e].folder] : assign[e].col;
-		if (c != CAT_GAME && (!col_exists(c) || (cols_limited() && c >= CAT_EMU))) c = CAT_GAME;
+		if (c != CAT_GAME && !col_exists(c)) c = CAT_GAME;
+		app_realcol[i] = (unsigned char)c;
+		if (c != CAT_GAME && cols_limited() && c >= CAT_EMU) c = CAT_GAME;
 		app_colv[i] = (unsigned char)c;
 		if (c != CAT_GAME) col_used[c]++;
 	}
@@ -218,13 +268,9 @@ static const struct { int col; const char *kw; } sort_rules[] = {
 	{ CAT_UTIL, "benchmark" }, { CAT_UTIL, "monitor" }, { CAT_UTIL, "reboot" },
 };
 
-/* The column an app most likely belongs in: Game for anything that is not clearly something else. Retail games (PCS...) and the games
- * of Adrenaline's folders are always games. */
-static int app_guess_col(const Item *it)
+/* The column the name and the title id point to (Game when no keyword fits). */
+static int app_keyword_col(const Item *it)
 {
-	if (it->path[0]) return CAT_GAME;
-	if (!strncmp(it->id, "PCS", 3)) return CAT_GAME;
-	if (!strncmp(it->id, "PSPEMU", 6) && strcmp(it->id, "PSPEMUCFW")) return CAT_GAME;
 	char hay[140];
 	snprintf(hay, sizeof(hay), "%s %s", it->title, it->id);
 	for (char *c = hay; *c; c++) if (*c >= 'A' && *c <= 'Z') *c += 32;
@@ -233,22 +279,9 @@ static int app_guess_col(const Item *it)
 	return CAT_GAME;
 }
 
-/* Moves the apps that have no place yet to the column they most likely belong in. With dry set only counts them. */
-static int autosort_apps(int dry)
-{
-	int n = 0;
-	for (int i = 0; i < n_all; i++) {
-		if (app_entry(all_apps[i].id) >= 0) continue;              /* the user (or an earlier sort) already placed it */
-		int c = app_guess_col(&all_apps[i]);
-		if (c == CAT_GAME) continue;
-		if (!dry) app_place(all_apps[i].id, c, -1);
-		n++;
-	}
-	return n;
-}
-
-#define SORT_ASK_TEXT "Emulators, utilities, music, video and network apps\n" \
-	"move to their own columns; games stay in Game.\n" \
+/* the first start's question; the sort itself is the wizard in core/sortwiz.h */
+#define SORT_ASK_TEXT "Choose which kinds of app get their own column:\n" \
+	"emulators, utilities, PSP and PS1 games, homebrew...\n" \
 	"Apps you placed yourself stay where they are."
 
 /* Copies an app from the master list into a menu with a clean (not yet loaded) state. */
@@ -282,6 +315,39 @@ static void fill_folder_menu(int f)
 	loader_pause = 0;
 }
 
+/* A theme with its own panels has no picture for the extra columns (Emulators, Utilities, the user's own), so each one is a folder under Memory Stick,
+ * and the folders of that column are folders inside it. */
+static void add_folder_rows(int m, int col);
+
+static int vcol_apps(int c)
+{
+	int n = 0;
+	for (int i = 0; i < n_all; i++) if (app_realcol[i] == c) n++;
+	return n;
+}
+
+static void fill_vcol_menu(int c)
+{
+	clear_menu(M_VCOL);
+	loader_pause = 1;
+	while (loader_busy) sceKernelDelayThread(1000);
+	if (c >= CAT_EMU && c < CAT_COUNT) {
+		int keep = items_tr;
+		items_tr = 0;
+		add_folder_rows(M_VCOL, c);
+		items_tr = keep;
+		for (int i = 0; i < n_all; i++)
+			if (app_realcol[i] == c && app_fold[i] < 0) menu_add_app(M_VCOL, &all_apps[i]);
+	}
+	if (menus[M_VCOL].count == 0)
+		{ int keep = items_tr; items_tr = 3; add_item(M_VCOL, KIND_INFO, "Empty folder", "Options > New Folder", NULL, tex_folder); items_tr = keep; }
+	Menu *mn = &menus[M_VCOL];
+	if (mn->sel >= mn->count) mn->sel = mn->count - 1;
+	if (mn->sel < 0) mn->sel = 0;
+	mn->pos = (float)mn->sel;
+	loader_pause = 0;
+}
+
 static void lastplayed_refresh(void);
 
 /* The folder rows of a column (the folders in it, by name), added to the menu m. */
@@ -300,7 +366,10 @@ static void add_folder_rows(int m, int col)
 		if (c == 0) snprintf(sub, sizeof(sub), "%s", T("Empty"));
 		else if (col == CAT_GAME) snprintf(sub, sizeof(sub), T(c == 1 ? "%d game" : "%d games"), c);
 		else snprintf(sub, sizeof(sub), T(c == 1 ? "%d app" : "%d apps"), c);
-		Item *it = add_item(m, KIND_FOLDER, folder_name[f], sub, NULL, tex_folder);
+		vita2d_texture *ft = tex_folder;
+		int ic = folder_icon[f] - 1;
+		if (ic >= 0 && ic < n_col_icons && col_icons[ic]) ft = col_icons[ic];
+		Item *it = add_item(m, KIND_FOLDER, folder_name[f], sub, NULL, ft);
 		if (it) { it->submenu = M_FOLDER; it->value_id = f; }
 	}
 }
@@ -320,6 +389,18 @@ static void rebuild_host_col(int c)
 		mn->items[i].pending_pix = NULL;
 	}
 	if (mn->count > col_fixed[c]) mn->count = col_fixed[c];
+	{	/* a column with more rows than its array (a retro system with hundreds of games): a larger array takes over. The old one stays allocated:
+		 * a pointer to one of its rows may still be around, and a stale row is harmless where a freed one is not. */
+		int need = col_fixed[c] + 1;
+		for (int i = 0; i < n_folders; i++) if (folder_col[i] == c) need++;
+		for (int i = 0; i < n_all; i++) if (app_colv[i] == c && app_fold[i] < 0) need++;
+		if (need > mn->cap) {
+			int ncap = mn->cap > 0 ? mn->cap : MAX_ITEMS;
+			while (ncap < need) ncap *= 2;
+			Item *nb = (Item *)calloc((size_t)ncap, sizeof(Item));
+			if (nb) { memcpy(nb, mn->items, (size_t)mn->count * sizeof(Item)); mn->items = nb; mn->cap = ncap; }
+		}
+	}
 	loader_pause = 0;
 	int keep = items_tr;
 	items_tr = 0;
@@ -352,8 +433,23 @@ static void rebuild_game_lists(void)
 	while (loader_busy) sceKernelDelayThread(1000);
 
 	{ int keep = items_tr; items_tr = 0; add_folder_rows(M_MEMCARD, CAT_GAME); items_tr = keep; }
+	if (cols_limited()) {                                      /* each extra column as a folder */
+		int keep = items_tr;
+		items_tr = 0;
+		for (int k = 0; k < CAT_COUNT; k++) {
+			int c = cat_order[k], na = c >= CAT_EMU && col_exists(c) ? vcol_apps(c) : 0, nf = 0;
+			for (int i = 0; i < n_folders; i++) nf += folder_col[i] == c;
+			if (c < CAT_EMU || !col_exists(c) || (!na && !nf)) continue;
+			char sub[32];
+			snprintf(sub, sizeof(sub), T(na == 1 ? "%d app" : "%d apps"), na);
+			vita2d_texture *ft = cat_tex[c] ? cat_tex[c] : tex_folder;
+			Item *it = add_item(M_MEMCARD, KIND_FOLDER, col_name(c), sub, NULL, ft);
+			if (it) { it->submenu = M_VCOL; it->value_id = c; }
+		}
+		items_tr = keep;
+	}
 	for (int i = 0; i < n_all; i++)
-		if (app_fold[i] < 0 && app_colv[i] == CAT_GAME) menu_add_app(M_MEMCARD, &all_apps[i]);
+		if (app_fold[i] < 0 && app_colv[i] == CAT_GAME && !(cols_limited() && app_realcol[i] >= CAT_EMU)) menu_add_app(M_MEMCARD, &all_apps[i]);
 	if (mn->count == 0)
 		{ int keep = items_tr; items_tr = 3; add_item(M_MEMCARD, KIND_INFO, "No games found", "Nothing in ux0:app", NULL, tex_game_s); items_tr = keep; }
 	if (mn->sel >= mn->count) mn->sel = mn->count - 1;
@@ -364,6 +460,7 @@ static void rebuild_game_lists(void)
 		if (c != CAT_SETTINGS && c != CAT_GAME) rebuild_host_col(c);
 	cat_refresh_hidden(cat_now);
 	fill_folder_menu(open_folder);
+	if (open_vcol >= 0) fill_vcol_menu(open_vcol);
 	lastplayed_refresh();                                     /* the disc under Memory Stick follows the installed apps */
 }
 
@@ -376,14 +473,21 @@ static void place_name(char *out, size_t n, int col, int folder)
 
 /* ---- the columns the user arranged: ux0:data/VitaXMB/columns.txt ----
  *   O<TAB>key key key ...    the order of the bar
- *   C<TAB>key<TAB>name       a column the user made (c1 .. c4)
+ *   C<TAB>key<TAB>name       a column the user made (c1 .. c22)
  *   R<TAB>key<TAB>name       a column the user renamed
  *   I<TAB>key<TAB>number     the picture the user chose (index in col_icons) */
 #define COLUMNS_PATH CONFIG_DIR "/columns.txt"
 
 static vita2d_texture *col_tex0[CAT_COUNT];         /* each column's own picture */
-static vita2d_texture *col_icons[18];               /* the pictures to choose from */
-static int n_col_icons;
+
+/* the pictures of the retro systems (assets/icons/tex_sys_<name>.png, made by tools/make_system_icons.py) follow the stock ones in the list, so the
+ * numbers saved in columns.txt and folders.txt stay valid */
+#define N_SYS_ICONS 33
+static const char *const sys_icon_slug[N_SYS_ICONS] = { "nes", "snes", "gb", "gbc", "gba", "md", "sms", "gg", "scd", "s32x", "pce", "pcecd", "neogeo", "ngp", "ws", "wsc", "a2600", "a5200", "a7800", "lynx", "atarist", "amiga", "c64", "msx", "msx2", "zx", "arcade", "mame", "coleco", "vectrex", "psx", "psp", "psm" };
+static const char *const sys_icon_label[N_SYS_ICONS] = { "NES", "SNES", "Game Boy", "Game Boy Color", "Game Boy Advance", "Mega Drive", "Master System", "Game Gear", "Sega CD", "Sega 32X", "PC Engine", "PC Engine CD", "Neo Geo", "Neo Geo Pocket", "WonderSwan", "WonderSwan Color", "Atari 2600", "Atari 5200", "Atari 7800", "Atari Lynx", "Atari ST", "Amiga", "Commodore 64", "MSX", "MSX2", "ZX Spectrum", "Arcade", "MAME", "ColecoVision", "Vectrex", "PlayStation", "PSP", "PSM" };
+static const char *const base_icon_label[18] = { "Game", "Music", "Video", "Photo", "Network", "Emulators", "Utilities", "Settings", "Trophies", "Folder", "UMD", "Memory Stick™",
+                                                 "Remote Play", "Sharing", "Browser", "RSS", "LocationFree TV", "Saved Data" };
+static int sys_icon_first = -1;                     /* where the systems' pictures start in col_icons[] */
 
 static void col_icons_init(void)
 {
@@ -391,7 +495,26 @@ static void col_icons_init(void)
 	for (int c = 0; c < CAT_COUNT; c++) col_tex0[c] = cat_tex[c];
 	vita2d_texture *l[] = { cat_tex[CAT_GAME], cat_tex[CAT_MUSIC], cat_tex[CAT_VIDEO], cat_tex[CAT_PHOTO], cat_tex[CAT_NETWORK], cat_tex[CAT_EMU], cat_tex[CAT_UTIL],
 	                        cat_tex[CAT_SETTINGS], tex_trophy, tex_folder, tex_umd, tex_ms_s, tex_remote, tex_sharing, tex_browser, tex_rss, tex_lftv, tex_savedata_s };
-	for (unsigned i = 0; i < sizeof(l) / sizeof(l[0]) && n_col_icons < 18; i++) if (l[i]) col_icons[n_col_icons++] = l[i];
+	for (unsigned i = 0; i < sizeof(l) / sizeof(l[0]) && n_col_icons < 18; i++)
+		if (l[i]) { col_icon_name[n_col_icons] = base_icon_label[i]; col_icons[n_col_icons++] = l[i]; }
+	sys_icon_first = n_col_icons;
+	for (int i = 0; i < N_SYS_ICONS && n_col_icons < 64; i++) {
+		char nm[24];
+		snprintf(nm, sizeof(nm), "sys_%s", sys_icon_slug[i]);
+		vita2d_texture *t = xicon(nm);
+		col_icon_name[n_col_icons] = sys_icon_label[i];
+		col_icons[n_col_icons++] = t ? t : tex_folder;                  /* a missing file keeps its place in the list */
+	}
+}
+
+/* the index in col_icons[] of a system's picture, or -1 */
+static int icon_by_slug(const char *slug)
+{
+	col_icons_init();
+	if (!slug || sys_icon_first < 0) return -1;
+	for (int i = 0; i < N_SYS_ICONS; i++)
+		if (!strcmp(sys_icon_slug[i], slug) && sys_icon_first + i < n_col_icons) return sys_icon_first + i;
+	return -1;
 }
 
 static void col_apply_icons(void)
@@ -460,7 +583,7 @@ static void columns_load(void)
 	col_apply_icons();
 }
 
-/* A new column of the user's: the first free one of the four. Returns it, or -1. */
+/* A new column of the user's: the first free one of the 22. Returns it, or -1. */
 static int col_create(const char *name)
 {
 	for (int c = CAT_C1; c < CAT_COUNT; c++) {

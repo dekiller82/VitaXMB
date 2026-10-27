@@ -1,7 +1,7 @@
 #pragma once
 
 /* ---- Arrange Columns: reorder, rename, hide, give another picture, make and delete the columns of the bar ---- */
-enum { AC_NONE, AC_CLOSE, AC_RENAME, AC_NEW, AC_DELETE };
+enum { AC_NONE, AC_CLOSE, AC_RENAME, AC_NEW, AC_DELETE, AC_ICON };
 static int ac_open, ac_sel, ac_grab;
 static float ac_t, ac_top;
 static int ac_rows[CAT_COUNT + 1], ac_n;        /* the column of each row (every column that exists, in bar order); the last row, -1, makes a new column */
@@ -92,6 +92,7 @@ static int ac_input(unsigned pressed)
 		sound_play(SND_CURSOR);
 	}
 	if ((pressed & SCE_CTRL_SQUARE) && c >= 0) { ac_grab = 0; sound_play(SND_CONFIRM); return AC_RENAME; }
+	if ((pressed & SCE_CTRL_SELECT) && c >= 0) { ac_grab = 0; sound_play(SND_CONFIRM); return AC_ICON; }
 	if ((pressed & SCE_CTRL_TRIANGLE) && c >= 0 && cat_can_hide(c)) {
 		cat_pref[c] = !cat_pref[c];
 		ac_save();
@@ -125,7 +126,7 @@ static void draw_arrange(float t)
 	if (a <= 3) return;
 	vita2d_draw_rectangle(0, 0, SCREEN_W, SCREEN_H, RGBA8(0, 0, 0, (int)(225 * t)));
 	ptext_vc(60, 46, WHITE(a), 28, T("Arrange Columns"));
-	const char *hint = ac_grab ? T("Up / Down: move   Cross: drop") : T("Cross: pick up and move");
+	const char *hint = ac_grab ? T("Up / Down: move   Cross: drop") : T("Cross: pick up and move   Select: icon list");
 	ptext_vc(900 - ptext_width(20, hint), 46, WHITE(a * 6 / 10), 20, hint);
 	vita2d_draw_rectangle(50, 76, 860, 2, WHITE(a * 30 / 100));
 

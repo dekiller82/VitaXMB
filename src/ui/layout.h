@@ -24,10 +24,13 @@
 static void launch_request(const Item *it)
 {
 	static const int flags[4] = { 0xFFFFF, 0x20000, 0x40000, 0xFFFFF };
-	char uri[64];
+	char uri[900];
 	const char *tid = it->id;
-	if (it->path[0]) { int fb; tid = psp_launch_id(it, &fb); }       /* a PSP game without a bubble: a borrowed bubble starts it */
-	snprintf(uri, sizeof(uri), "psgm:play?titleid=%s", tid);
+	if (it->rix && retro_launch_uri(it, uri, sizeof(uri))) tid = "RETROVITA";       /* a retro game: RetroArch or Emu4Vita+ with the core and the file */
+	else {
+		if (it->path[0]) { int fb; tid = psp_launch_id(it, &fb); }       /* a PSP game without a bubble: a borrowed bubble starts it */
+		snprintf(uri, sizeof(uri), "psgm:play?titleid=%s", tid);
+	}
 	lastplayed_save(it->id);
 	if (nla_on && !strcmp(tid, "PSPEMUCFW")) {                      /* Adrenaline 8 restarts itself once; tell the NoLiveArea plugin not to react (see plugin/nolivearea) */
 		SceUID af = sceIoOpen("ux0:data/NoLiveArea/adrenaline", SCE_O_WRONLY | SCE_O_CREAT, 0777);
@@ -302,14 +305,15 @@ static vita2d_texture *glow_for(vita2d_texture *src)
 	return g;
 }
 
-static int is_game_folder(int m) { return m == M_MEMCARD || m == M_SAVES || m == M_FOLDER; }
+static int is_game_folder(int m) { return m == M_MEMCARD || m == M_SAVES || m == M_FOLDER || m == M_VCOL; }
 static int menu_layout(int m) { return is_game_folder(m) ? LAY_GAME : (m >= M_VITAXMB && m != M_VIDEOS ? LAY_SUB : (m == M_VIDEOS ? LAY_SUB : LAY_COLUMN)); }
 static int menu_owner(int m)
 {
 	if (m < CAT_COUNT) return m;
 	if (m == M_VIDEOS) return CAT_VIDEO;
 	if (m == M_TRACKS) return CAT_MUSIC;
-	if (m == M_FOLDER) return open_col;                          /* a folder opens in the column it is in */
+	if (m == M_FOLDER) return cols_limited() ? CAT_GAME : open_col;   /* a folder opens in the column it is in (a theme without the extra columns: under Game) */
+	if (m == M_VCOL) return CAT_GAME;
 	if (m == M_MEMCARD || m == M_SAVES || m == M_TROPHY) return CAT_GAME;
 	return CAT_SETTINGS;
 }

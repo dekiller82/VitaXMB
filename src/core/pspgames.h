@@ -91,12 +91,13 @@ static void psp_add_game(const char *path, const char *fallback_name)
 	if (psp_bubble_for(path)) return;                                 /* its bubble is in the list already */
 	PmSrc src;
 	if (!pm_src_open(&src, path)) return;
-	char title[64] = "", disc[16] = "", id[16];
+	char title[64] = "", disc[16] = "", cat[8] = "", id[16];
 	size_t n = 0;
 	uint8_t *sfo = pm_game_file(&src, PM_F_SFO, &n);
 	if (sfo) {
 		pm_sfo_string(sfo, n, "TITLE", title, sizeof(title));
 		pm_sfo_string(sfo, n, "DISC_ID", disc, sizeof(disc));
+		pm_sfo_string(sfo, n, "CATEGORY", cat, sizeof(cat));
 		free(sfo);
 	}
 	if (!title[0]) snprintf(title, sizeof(title), "%s", fallback_name);
@@ -112,6 +113,7 @@ static void psp_add_game(const char *path, const char *fallback_name)
 		if (psp_extract(&src, PM_F_ICON0, png)) snprintf(it->icon_path, sizeof(it->icon_path), "%s", png);
 		if (psp_extract(&src, PM_F_PIC1, bg)) snprintf(it->pic_path, sizeof(it->pic_path), "%s", bg);
 		snprintf(it->path, sizeof(it->path), "%s", path);
+		it->org = !strcmp(cat, "ME") ? 2 : 1;                           /* PS1 classics are "ME", everything else is a PSP title */
 	}
 	pm_src_close(&src);
 }

@@ -270,7 +270,6 @@ Move	Переместить
 Nothing to sort: every app is already in its place.	Сортировать нечего: все приложения уже на своих местах.
 Sort apps into columns?	Разложить приложения по столбцам?
 Sort your apps into columns?	Разложить ваши приложения по столбцам?
-Emulators, utilities, music, video and network apps\nmove to their own columns; games stay in Game.\nApps you placed yourself stay where they are.	Эмуляторы, утилиты, а также музыкальные, видео- и\nсетевые приложения попадут в свои столбцы; игры останутся в «Игре».\nПриложения, размещённые вручную, не затрагиваются.
 No trophies	Нет трофеев
 Play a game with trophies first	Сначала сыграйте в игру с трофеями
 No trophy data for this game yet	Данных о трофеях для этой игры пока нет
@@ -291,8 +290,47 @@ Icon	Значок
 Delete	Удалить
 Drop	Положить
 Up / Down: move   Cross: drop	Вверх / вниз: двигать   ✕: положить
-Cross: pick up and move	✕: взять и переместить
 Delete the column "%.40s"?	Удалить столбец «%.40s»?
 Its apps move to Game.	Приложения переместятся в «Игру».
 Column %d	Столбец %d
 Column	Столбец
+ (no free column or folder for %d of the kinds)	 (нет свободного столбца или папки для видов: %d)
+%d games are over the limit and are not listed.	Игры сверх лимита (%d) не показаны.
+%d to sort	К сортировке: %d
+Change	Изменить
+Choose which kinds of app get their own column:\nemulators, utilities, PSP and PS1 games, homebrew...\nApps you placed yourself stay where they are.	Выберите, для каких видов приложений создать отдельный столбец:\nэмуляторы, утилиты, игры PSP и PS1, homebrew…\nПриложения, которые вы разместили сами, остаются на месте.
+Retro Games Launcher	Запуск ретро-игр
+Retro games go to	Ретро-игры помещать в
+RetroArch and Emu4Vita+ are not installed: these games cannot start yet.	RetroArch и Emu4Vita+ не установлены: эти игры пока не запустятся.
+Sort	Сортировать
+System	Система
+Tick what VitaXMB should sort. Apps you placed yourself stay where they are.	Отметьте, что VitaXMB должен разложить. Приложения, размещённые вами, остаются на месте.
+none	нет
+PSP games	Игры PSP
+PS1 games	Игры PS1
+PSM games	Игры PSM
+Homebrew	Homebrew
+RetroArch, PPSSPP, Adrenaline and other emulators	RetroArch, PPSSPP, Adrenaline и другие эмуляторы
+VitaShell, Checkpoint and other tools	VitaShell, Checkpoint и другие инструменты
+Music players	Музыкальные проигрыватели
+Video players and streaming apps	Видеоплееры и приложения для стриминга
+Remote play, browsers and downloaders	Удалённая игра, браузеры и загрузчики
+ISO / CSO images and PSP downloads, with or without a bubble	Образы ISO / CSO и загрузки PSP, с «пузырьком» или без
+PS1 classics, with or without a bubble	Классика PS1, с «пузырьком» или без
+PlayStation Mobile games (ux0:psm)	Игры PlayStation Mobile (ux0:psm)
+Every other app that is not a retail game	Все остальные приложения, кроме коммерческих игр
+Folders in Emulators	Папки в «Эмуляторах»
+A column per system	Столбец для каждой системы
+One Retro column	Один столбец «Ретро»
+A folder for each system inside the Emulators column	Папка для каждой системы в столбце «Эмуляторы»
+A column of its own for each system (up to the free columns, then folders)	Отдельный столбец для каждой системы (пока есть свободные, затем папки)
+One column called Retro with a folder for each system	Один столбец «Retro» с папкой для каждой системы
+Choose Icon	Выбрать значок
+Change Icon	Сменить значок
+Default	По умолчанию
+Cross: pick up and move   Select: icon list	✕: взять и переместить   SELECT: список значков
+Uninstall	Удалить
+Uninstall "%.40s"?	Удалить «%.40s»?
+The app is removed. Its saved data stays.	Приложение будет удалено. Сохранённые данные останутся.
+Uninstalled.	Удалено.
+The app could not be uninstalled.	Не удалось удалить приложение.

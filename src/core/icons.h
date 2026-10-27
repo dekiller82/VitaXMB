@@ -1,5 +1,7 @@
 #pragma once
 
+static volatile unsigned icon_req_gen;               /* counts the icons asked for: the loader thread walks the rows only when it changed (thousands of retro games would make an idle walk cost) */
+
 static void update_icons(int m, int keep_other)
 {
 	int uploads = 0;
@@ -32,7 +34,7 @@ static void update_icons(int m, int keep_other)
 				continue;
 			}
 			if (near) {
-				if (st == 0 && !it->icon && !it->icon_tried) { it->icon_tried = 1; it->load_state = 1; }
+				if (st == 0 && !it->icon && !it->icon_tried) { it->icon_tried = 1; it->load_state = 1; icon_req_gen++; }
 			} else {
 				if (st == 1) { it->load_state = 0; it->icon_tried = 0; }
 				if (st == 4 || it->icon) {
@@ -122,12 +124,13 @@ static void load_item_art(Item *it)
 {
 	int w = 0, h = 0, rect = 0;
 	uint8_t *pix = NULL;
-	if (it->kind == KIND_APP) {
+	if (it->rix) pix = retro_art(it, (it->tr & 8) ? 200 : 320, &w, &h);                  /* a retro game: RetroArch's thumbnail */
+	else if (it->kind == KIND_APP) {
 		resolve_meta(it);
 		if (it->gate_path[0]) { pix = png_decode_scaled(it->gate_path, (it->tr & 8) ? 200 : 320, &w, &h); rect = pix != NULL; }
 	}
-	if (!pix) pix = png_decode_scaled(it->icon_path, (it->tr & 8) ? 200 : 320, &w, &h);
-	if (!pix && it->icon_path2[0]) pix = png_decode_scaled(it->icon_path2, (it->tr & 8) ? 200 : 320, &w, &h);
+	if (!pix && !it->rix) pix = png_decode_scaled(it->icon_path, (it->tr & 8) ? 200 : 320, &w, &h);
+	if (!pix && !it->rix && it->icon_path2[0]) pix = png_decode_scaled(it->icon_path2, (it->tr & 8) ? 200 : 320, &w, &h);
 	if (pix && w >= 8 && h >= 8 && (float)w / h < 1.5f) {              /* square or portrait art: a landscape tile like the rest of the list */
 		uint8_t *tile = landscape_tile(pix, w, h);
 		if (tile) { free(pix); pix = tile; w = TILE_W; h = TILE_H; rect = 1; }
@@ -142,8 +145,11 @@ static volatile int loader_run = 1;
 static int icon_thread(SceSize args, void *argp)
 {
 	(void)args; (void)argp;
+	unsigned seen = ~0u;
 	while (loader_run) {
 		if (loader_pause) { sceKernelDelayThread(2000); continue; }
+		if (seen == icon_req_gen) { sceKernelDelayThread(3000); continue; }          /* nothing was asked for since the last scan found nothing */
+		unsigned gen = icon_req_gen;
 		Item *best = NULL;
 		int bestd = 1 << 30;
 		for (int k = 0; k < M_COUNT; k++) {                 /* the menus whose rows carry art (the game lists, and the apps placed in a column) */
@@ -155,7 +161,7 @@ static int icon_thread(SceSize args, void *argp)
 				if (d < bestd) { bestd = d; best = it; }
 			}
 		}
-		if (!best) { sceKernelDelayThread(3000); continue; }
+		if (!best) { seen = gen; sceKernelDelayThread(3000); continue; }
 		loader_busy = 1;
 		best->load_state = 2;
 		load_item_art(best);

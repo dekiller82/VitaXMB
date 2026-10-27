@@ -28,6 +28,7 @@ static void setting_text(int id, char *out, size_t n)
 	case SET_NOLA:    snprintf(out, n, "%s", nla_bundled() ? onoff[nla_on] : T("Unavailable")); break;
 	case SET_CONFIRM: snprintf(out, n, "%s", onoff[confirm_dialogs]); break;
 	case SET_LAUNCH:  snprintf(out, n, "%s", T(launch_names[launch_mode])); break;
+	case SET_RETRO:   snprintf(out, n, "%s", retro_emu ? "Emu4Vita+" : "RetroArch"); break;
 	case SET_ART:     snprintf(out, n, "%s", onoff[art_decrypt]); break;
 	case SET_CUSTOM:  pt_text(out, n); break;
 	case SET_EXTRA: {
@@ -73,6 +74,7 @@ static void setting_change(int id, int dir)
 	case SET_NOLA:    nla_toggle(); nla_on = nla_enabled(); break;
 	case SET_CONFIRM: confirm_dialogs = !confirm_dialogs; break;
 	case SET_LAUNCH:  launch_mode = (launch_mode + dir + 4) % 4; break;
+	case SET_RETRO:   retro_emu = !retro_emu; break;
 	case SET_EXTRA:
 		extra_storage = !extra_storage;
 		rescan_media();

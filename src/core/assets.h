@@ -6,7 +6,7 @@
 
 /* The stock icons are 128 px (tools/make_hires_icons.py), twice the PSP's 64: drawing boxes are fixed sizes, so only code that works
  * in texture pixels (the glow) needs to know. icon_k = how many texture pixels make one PSP pixel. */
-static vita2d_texture *hi_icons[64];
+static vita2d_texture *hi_icons[128];
 static int hi_icon_n;
 
 static int icon_k(const vita2d_texture *t)
@@ -22,7 +22,7 @@ static vita2d_texture *xicon(const char *name)
 	vita2d_texture *t = vita2d_load_PNG_file(path);
 	if (t) {
 		vita2d_texture_set_filters(t, SCE_GXM_TEXTURE_FILTER_LINEAR, SCE_GXM_TEXTURE_FILTER_LINEAR);
-		if ((vita2d_texture_get_width(t) == 128 || vita2d_texture_get_width(t) == 56) && hi_icon_n < 64) hi_icons[hi_icon_n++] = t;
+		if ((vita2d_texture_get_width(t) == 128 || vita2d_texture_get_width(t) == 56) && hi_icon_n < 128) hi_icons[hi_icon_n++] = t;
 	}
 	return t;
 }

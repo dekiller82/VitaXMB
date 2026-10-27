@@ -63,9 +63,11 @@
 - **The PS button stays out of the way inside VitaXMB:** it no longer drops to the LiveArea, like the PSP's XMB (a long press still opens the Vita's quick menu). Leave VitaXMB with *Exit to LiveArea* in Settings.
 - **Touch screen** support for the whole XMB (see [Controls](#controls)).
 - **NoLiveArea plugin (beta):** an optional plugin, offered at the first start, that keeps the LiveArea out of sight: VitaXMB opens by itself when the Vita turns on, the screen stays black while a game loads, and VitaXMB comes back when a game closes (see [NoLiveArea plugin](#nolivearea-plugin-beta)).
-- **Columns of your own:** rename, reorder, hide and add columns and folders, and sort your apps into them (see [Columns, folders and moving apps](#columns-folders-and-moving-apps), which has a short tutorial). Custom themes and your own columns do not mix: see the warning there.
+- **Columns of your own:** rename, reorder, hide and add columns and folders, and sort your apps into them (see [Columns, folders and moving apps](#columns-folders-and-moving-apps), which has a short tutorial). With a theme that has no picture for them, those columns appear as folders under Memory Stick: see the warning there.
+- **Retro and PSM games.** The ROMs of your RetroArch playlists and RetroFlow folders can be placed in a folder per system under Emulators, a column per system, or one Retro column, and start through RetroArch or Emu4Vita+; PlayStation Mobile games are listed too (see [Retro games and PSM games](#retro-games-and-psm-games)).
 - **Hide categories** you don't use (Photo, Music, Video, Network, Emulators, Utilities) in *Settings > VitaXMB Settings*; the bar closes up and left/right skip them.
 - **Your apps where they belong.** ViTube can sit under Video, Moonlight under Network, RetroArch under Emulators: every app can be moved to any column (Photo, Music, Video, Game, Network, and the new **Emulators** and **Utilities**, which show up once something is in them), and every column can hold your own folders. A "Move to..." screen moves one app, **Organize Apps** moves many at once, and the first start offers to sort what is installed for you (see [Columns, folders and moving apps](#columns-folders-and-moving-apps)).
+- **Uninstall apps** from their Options, with a confirmation, without opening the LiveArea (see [Moving apps](#moving-apps)).
 - **Trophies** without opening the LiveArea: *Game > Trophy Collection* lists every game with its progress, and a game's Options has *Trophies* (see [Trophies](#trophies)).
 - **Settings** has real, working pages: *System Information* (firmware, nickname, MAC address, model, memory card, battery, CPU clock), plus VitaXMB's own settings (theme color, clock format, sound effects, startup animation, confirmation dialogs, launch method).
 - **Music** plays **MP3, FLAC, WAV, AIFF and Ogg Vorbis** with the PSP's player screen: LED spectrum analyzer driven by the real audio, track badge, title and artist from the file's tags, elapsed and total time, progress bar, next/previous and seeking. Files are streamed from the card, so a big lossless file does not need the memory it takes. The list uses the PSP's own number box, digits and format tag, redrawn at the Vita's native resolution.
@@ -266,11 +268,11 @@ An experimental *Decrypt Artwork (beta)* setting (off by default, asks for confi
 
 ## Columns, folders and moving apps
 
-**Warning: columns of your own, and the extra columns, do not work with every custom theme.** A PSP theme is made for the PSP's six columns. A theme that paints the whole category bar (full-height panels or strips, such as the Xbox 360 and Euphoria style themes) has no picture for Emulators, Utilities or a column you made: while such a theme is on, those columns are hidden and their apps are shown in **Game** instead. Other themes show the new columns with VitaXMB's own icons, which will not match the theme's artwork. Reordering or renaming columns can also make a theme's painted look wrong. If a theme looks broken, switch it off (*Settings > Theme Settings > Custom Theme > Off*) or keep to the six standard columns.
+**Warning: columns of your own, and the extra columns, do not work with every custom theme.** A PSP theme is made for the PSP's six columns. A theme that paints the whole category bar (full-height panels or strips, such as the Xbox 360 and Euphoria style themes) has no picture for Emulators, Utilities or a column you made: while such a theme is on, those columns are hidden and each one appears as a **folder under Game > Memory Stick™** instead (its own folders are folders inside it, and its apps are in it). Other themes show the new columns with VitaXMB's own icons, which will not match the theme's artwork. Reordering or renaming columns can also make a theme's painted look wrong. If a theme looks broken, switch it off (*Settings > Theme Settings > Custom Theme > Off*) or keep to the six standard columns.
 
 ### Tutorial: tidy your Vita in a few minutes
 
-1. **Let VitaXMB sort for you.** *Settings > VitaXMB Settings > Sort Apps into Columns*, then **Yes**. Emulators, utilities, music, video and network apps move to their own columns; games stay in Game. Nothing is deleted, and whatever it guesses wrong you fix in step 2.
+1. **Let VitaXMB sort for you.** *Settings > VitaXMB Settings > Sort Apps into Columns* opens a list of what it can sort, each with the number of apps it would move: Emulators, Utilities, Music, Video, Network, **PSP games**, **PS1 games**, **PSM games** and **Homebrew**. If you have retro games (see below) the list goes on with a **Retro games go to** row and one row per system. **Cross** ticks a row (or changes the layout), **Square** ticks all or none, **L / R** jump five rows, **Triangle** sorts, **Circle** cancels. PSP games, PS1 games, PSM games and Homebrew go to columns of your own named *PSP*, *PS1*, *PSM* and *Homebrew* (made for you, or reused if you already have a column with that name; you can have 22 columns of your own). PSP and PS1 games are told apart by their `PARAM.SFO`, with or without an Adrenaline bubble. Retail Vita games stay in Game, apps you placed yourself never move, and nothing is deleted: whatever it guesses wrong you fix in step 2.
 2. **Move one app.** Highlight it (for example in *Game > Memory Stick™*), press **Triangle** and choose **Move to...**. Pick a column (or a folder under it) and press **Cross**. A line at the top confirms where it went.
 3. **Move many apps.** Press **Triangle** on any row of a column and choose **Organize Apps**. Tick apps with **Cross** (**Square** ticks all or none), press **Triangle** (*Move Selected*), pick the place and press **Cross**.
 4. **Make a folder.** **Triangle > New Folder**, type a name, then tick the apps that belong in it and press **Circle**. Faster: in **Move to...** press **Triangle** to make a folder in the column you are looking at; it is selected for you, so one more **Cross** puts the app in it. Folders can be renamed, moved to another column (**Move Folder to...**) and deleted (the apps stay installed) from their own Options.
@@ -281,23 +283,58 @@ Starting over is easy: delete `folders.txt` and `columns.txt` in `ux0:data/VitaX
 
 Every installed app lives in exactly one place: a **column** of the bar, and inside it optionally one of your **folders**. New apps start in **Game > Memory Stick™**. The columns are Photo, Music, Video, Game, Network and two that appear on their own: **Emulators** and **Utilities** show up as soon as an app is in them and go away when they are empty (in *Settings > VitaXMB Settings*, *Emulators Category* and *Utilities Category* can also be set to Hidden). Apps placed in a column are listed in that column itself, as rows like the *Last Played* disc under Memory Stick: a game icon until the cursor is on the row, then the game's own picture with the title beside it. Folders sit above them and open the wide list. Game keeps using Memory Stick.
 
+### Tutorial: sort PSP, PS1, homebrew and retro games
+
+The sort list does in one go what Move to... does one app at a time. Nothing is deleted and you can run it again whenever you install more.
+
+1. **Open it.** *Settings > VitaXMB Settings > Sort Apps into Columns* (VitaXMB also offers it once at the first start). The list shows every kind of app it can sort and how many apps of that kind have no place yet. A kind with *none* has nothing to move.
+2. **Tick what you want.** **Cross** ticks or unticks the highlighted row, **Square** ticks all or none, **L / R** jump five rows. Everything with something to move starts ticked.
+3. **What the rows do.**
+   - *Emulators, Utilities, Music, Video, Network:* the app goes to that column of the bar, told apart by its name and title ID (RetroArch and PPSSPP to Emulators, VitaShell to Utilities, ViTube to Video, and so on).
+   - *PSP games* and *PS1 games:* every ISO / CSO and `EBOOT.PBP` in the Adrenaline folders, and every Adrenaline bubble, goes to a column called **PSP** or **PS1**. They are told apart by the game's own `PARAM.SFO`.
+   - *PSM games:* PlayStation Mobile titles go to a column called **PSM**.
+   - *Homebrew:* every other app that is not a retail game goes to a column called **Homebrew**.
+   - The new columns are made for you with a matching icon. If you already have a column with that name it is used as it is.
+4. **Retro games.** If RetroArch or RetroFlow Launcher knows ROMs (see [Retro games and PSM games](#retro-games-and-psm-games)), the list continues with a row **Retro games go to** and one row per system with its number of games. Press **Left / Right** (or **Cross**) on that row to choose the layout:
+   - **Folders in Emulators** (the default): one folder per system inside the Emulators column, each with the system's icon.
+   - **A column per system:** a column of your own for each system. When your 22 columns are used up, the rest go to folders in Emulators.
+   - **One Retro column:** a single column called *Retro* with one folder per system.
+5. **Sort.** Press **Triangle**. A line at the top says how many apps moved. **Circle** leaves without changing anything.
+6. **Afterwards.** Retail Vita games stay in Game and apps you placed yourself never move. To change anything, use **Move to...**, **Organize Apps** or **Arrange Columns**. Every column and folder can get another picture: *Arrange Columns* > **Select** for a column, and a folder's Options > **Change Icon**. To start over, delete `folders.txt` and `columns.txt` in `ux0:data/VitaXMB`.
+
+With a custom theme that cannot show the extra columns, each of them is a folder under *Game > Memory Stick™* instead (with its folders inside it), so nothing is lost.
+
 ### Arranging the columns
 
-*Settings > VitaXMB Settings > **Arrange Columns*** (or **Options > Arrange Columns** on a column's rows) lists every column in the order of the bar. **Cross** picks a column up, **Up / Down** carries it to a new place, **Cross** drops it. **Square** renames it (with the Vita's keyboard), **Triangle** shows or hides it (Settings and Game always stay; Emulators and Utilities say *Automatic* while they are on the bar only when something is in them), **L / R** change its picture (18 to choose from). The last row, **New Column**, makes a column of your own (up to four); select one and press **Start** to delete it (its apps and folders go to Game). Every choice is kept in `ux0:data/VitaXMB/columns.txt`. A PSP theme that draws the bar as full-height panels or strips cannot show columns of its own or Emulators and Utilities; with such a theme their apps are shown in Game.
+*Settings > VitaXMB Settings > **Arrange Columns*** (or **Options > Arrange Columns** on a column's rows) lists every column in the order of the bar. **Cross** picks a column up, **Up / Down** carries it to a new place, **Cross** drops it. **Square** renames it (with the Vita's keyboard), **Triangle** shows or hides it (Settings and Game always stay; Emulators and Utilities say *Automatic* while they are on the bar only when something is in them), **L / R** step through its pictures and **Select** opens the whole list (the stock pictures, then the icons of the retro systems). The last row, **New Column**, makes a column of your own (up to 22); select one and press **Start** to delete it (its apps and folders go to Game). Every choice is kept in `ux0:data/VitaXMB/columns.txt`. A PSP theme that draws the bar as full-height panels or strips cannot show columns of its own or Emulators and Utilities; with such a theme each of those columns is a folder under Game > Memory Stick™, with its folders inside it.
 
 ### Moving apps
 
 - **Move to...** is in the Options (Triangle) of every app. A list shows every column with your folders under it, how many apps each holds, and where the app is now. **Cross** moves it there, **Triangle** makes a **New Folder** in the highlighted column on the spot (you name it with the Vita's keyboard and it is selected, so one more **Cross** puts the app in it), **Circle** cancels (a folder made there and left empty is removed again). A move is confirmed with a line at the top of the screen.
+- **Uninstall** (Options on an installed app) asks once, then removes the app's bubble and its files; its saved data stays, as when you delete an app from the LiveArea. It is not offered for VitaXMB itself, PSP game images, retro games or PSM titles.
 - **Organize Apps** (Options on any row of a column, or *Settings > VitaXMB Settings*) lists every app with the place it is in. **Cross** ticks, **Square** ticks all or none, **Triangle** moves what is ticked (or the highlighted app when nothing is ticked) through the same Move screen, **Circle** closes.
-- **Sort Apps into Columns** (*Settings > VitaXMB Settings*, and offered once at the first start with this version) moves emulators, utilities, music, video and network apps to their columns by name and title ID: for example RetroArch, PPSSPP and Adrenaline go to Emulators, VitaShell and Checkpoint to Utilities, ViTube and VLC to Video, music players to Music, Moonlight, Cordless and VitaRPS5 to Network. It asks first, never touches an app you already placed yourself, and never moves retail games or PSP / PS1 games. It is a guess from the name: whatever it gets wrong, Move to... fixes.
+- **Sort Apps into Columns** (*Settings > VitaXMB Settings*, and offered once at the first start) opens the sort list described in step 1 of the tutorial above. Emulators, utilities, music, video and network apps are told apart by name and title ID: for example RetroArch, PPSSPP and Adrenaline go to Emulators, VitaShell and Checkpoint to Utilities, ViTube and VLC to Video, music players to Music, Moonlight, Cordless and VitaRPS5 to Network. PSP and PS1 games, PSM games and homebrew can get columns of their own, and retro games a column or a folder per system (see [Retro games and PSM games](#retro-games-and-psm-games)). It never touches an app you already placed yourself and never moves retail Vita games. It is a guess from the name and the title ID: whatever it gets wrong, Move to... fixes.
 
 ### Folders
 
 - **New Folder** (Options on any column's row, on Memory Stick's games or on a folder) asks for a name and creates the folder in that column, then opens the picker.
 - The **picker** lists every installed app with a tick box. **Cross** ticks or unticks, **L / R** jump five rows, **Triangle** selects all or none, **Circle** saves and closes. An app that is already in another folder shows where; ticking it moves it here.
-- On a folder (or inside one): **Select Games** reopens the picker, **Rename Folder**, **Move Folder to...** (to another column, with everything in it; the screen follows it there), **Delete Folder** (asks first; the apps stay installed and return to the folder's column). Inside a folder, **Remove from Folder** takes the highlighted app out.
+- On a folder (or inside one): **Select Games** reopens the picker, **Rename Folder**, **Change Icon** (the same list of pictures a column can have, so a folder can show a console), **Move Folder to...** (to another column, with everything in it; the screen follows it there), **Delete Folder** (asks first; the apps stay installed and return to the folder's column). Inside a folder, **Remove from Folder** takes the highlighted app out.
 
 Everything is stored in `ux0:data/VitaXMB/folders.txt` (plain text: an `F` line per folder with an optional `C` line for its column and `A` lines with title IDs, and `P` lines for apps placed straight in a column), so it survives uninstalling and reinstalling an app. The file of an older version still loads. 
+
+### Retro games and PSM games
+
+**Retro games.** VitaXMB can list the ROMs you already have and start them through RetroArch or Emu4Vita+, without the other launcher's own browser:
+
+- **Where it looks:** RetroArch's playlists (`ux0:data/retroarch/playlists/*.lpl`, the ones RetroArch makes when you scan your ROMs; the History and Favorites lists are skipped) and the ROM folders RetroFlow Launcher uses (`ux0:data/RetroFlow/ROMS/<system>`, for example `Nintendo - Super Nintendo Entertainment System`). A game found in both is listed once.
+- **They wait until you place them.** A ROM is in no list until you sort it, so a library of thousands does not bury Game. *Sort Apps into Columns* lists each system with its number of games. **Retro games go to** has three layouts: **Folders in Emulators** (a folder per system inside the Emulators column), **A column per system** (a column of your own for each, as many as are free, then folders) and **One Retro column** (one column called *Retro* with a folder per system). Placed games behave like any app: Move to..., Organize Apps, folders.
+- **Icons:** the sort list gives every column and folder it makes the system's own icon (a PSP-style picture of the console or its controller); a column or folder you already have keeps the picture you chose. Any column or folder can change its icon later (*Arrange Columns* > **Select**, and *Change Icon* in a folder's Options).
+- **Pictures:** RetroArch's thumbnails (`ux0:data/retroarch/thumbnails/<system>/Named_Boxarts`, then RetroFlow's `COVERS`, then screenshots and title screens), looked up by the game's name.
+- **Starting one:** *Settings > VitaXMB Settings > Retro Games Launcher* chooses RetroArch (the default) or Emu4Vita+. A game of a RetroArch playlist uses the playlist's core, otherwise the recommended core of the system (the same ones RetroFlow Launcher recommends). If the chosen launcher is not installed the other one is used when it can.
+- **Limits:** up to 6144 apps and games in all. The ROM lists are read at every start; *Refresh List* reads them again.
+
+**PSM games.** PlayStation Mobile games (`ux0:psm`) are listed in Game like any other game, with their LiveArea icon, and start through their bubble. The sort list has a *PSM games* row.
 
 ## Trophies
 
@@ -380,7 +417,8 @@ Tested on one console: an SD2Vita as `ux0:` plus a real memory card mounted as `
 | Arrange Columns | (opens) | reorder, rename, hide, change the picture of, add and delete columns |
 | Emulators / Utilities Category | Automatic / Hidden | Automatic shows the column once an app is in it; see [Columns, folders and moving apps](#columns-folders-and-moving-apps) |
 | Organize Apps | (opens) | every app with its place; tick some and move them together |
-| Sort Apps into Columns | (asks) | puts emulators, utilities, music, video and network apps in their columns; never moves what you placed yourself |
+| Sort Apps into Columns | (opens) | choose which kinds go to a column: emulators, utilities, music, video, network, PSP games, PS1 games, homebrew; never moves what you placed yourself |
+| Retro Games Launcher | RetroArch / Emu4Vita+ | the emulator that starts retro games |
 | Check for Updates at Start | On / Off | looks for a new release a few seconds after startup, see [Updates](#updates) |
 | Extra Storage (beta) | On / Off | experimental, see above |
 | Decrypt Artwork (beta) | On / Off | experimental, see above |
@@ -417,12 +455,12 @@ Release builds contain no debugging code. Configure with `-DVITAXMB_DEBUG=ON` to
 ```
 CMakeLists.txt            build definition (VPK, SELF, assets)
 src/main.c                the launcher: main loop and input
-src/core/                 data, config, items and menus, game scanning, artwork, settings, the updater, folders and columns (folders.h: where every app lives, the sort, columns.txt), trophies (trophy.h)
+src/core/                 data, config, items and menus, game scanning, artwork, settings, the updater, folders and columns (folders.h: where every app lives, columns.txt), the sort list (sortwiz.h), retro games (retro.h), PSM games (psm.h), uninstalling (uninstall.h), trophies (trophy.h)
 src/media/                sound mixer, media scan, music player, video engines (video.h: FFmpeg, avp.h: the system player), the game boot movie (gameboot.h)
 src/render/               textures, drawing, text engine, backgrounds, waves
 src/theme/                PSP theme loader, RCO runtime, boot intro, theme sounds, the PSP engine's list styles and easing (paf.h)
-src/ui/                   layouts, lists, pages, dialogs, pickers, Move to... (mover.h), Arrange Columns (arrange.h), the trophy page, the video player screen (videoui.h)
-tools/                    build_ffmpeg.sh (+ the stack-size patch), the scripts that made the music / video pictures, make_column_icons.py (the Emulators, Utilities and trophy icons), make_hires_icons.py (the 128 px XMB icons, made from the 64 px originals in tools/icons64)
+src/ui/                   layouts, lists, pages, dialogs, pickers, Move to... (mover.h), Arrange Columns (arrange.h), the sort list (sortui.h), Choose Icon (iconpick.h), the trophy page, the video player screen (videoui.h)
+tools/                    build_ffmpeg.sh (+ the stack-size patch), the scripts that made the music / video pictures, make_column_icons.py (the Emulators, Utilities and trophy icons), make_hires_icons.py (the 128 px XMB icons, made from the 64 px originals in tools/icons64), make_system_icons.py (the retro systems' icons)
 updater/main.c            the small installer app (VitaXMB Updater)
 psp/launcher/             the small PSP program that starts a game for Adrenaline (built with pspdev into assets/psp/vxmbboot.pbp)
 assets/lang/              the language files (one per PSP language), made by tools/lang
@@ -444,6 +482,29 @@ Everything in the tree is needed to build (apart from the FFmpeg libraries you b
 ## Changelog
 
 Every release has its own notes and VPK on the [Releases page](https://github.com/dekiller82/VitaXMB/releases). Each version includes everything from the ones before it.
+
+### [1.10.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.10.0) (2026-10-28)
+
+**New**
+
+- **A real sort list.** *Sort Apps into Columns* (and the question at the first start) is now a list with a tick box per kind of app and the number of apps it would move: Emulators, Utilities, Music, Video, Network, and new **PSP games**, **PS1 games**, **PSM games** and **Homebrew**. PSP and PS1 games are told apart by their `PARAM.SFO`, with or without an Adrenaline bubble. The new kinds go to columns of your own named *PSP*, *PS1*, *PSM* and *Homebrew*, made for you with a matching icon. [Step-by-step tutorial in the README.](#tutorial-sort-psp-ps1-homebrew-and-retro-games)
+- **Retro games.** The ROMs of your RetroArch playlists and RetroFlow Launcher's ROM folders are listed by system and start through RetroArch or Emu4Vita+ (*Retro Games Launcher* in *Settings > VitaXMB Settings*). The sort list has a **Retro games go to** row: **Folders in Emulators** (the default), **A column per system**, or **One Retro column**. They stay out of Game until you sort them, so a library of thousands does not bury your games. Pictures come from RetroArch's thumbnails or RetroFlow's covers.
+- **PSM games** (`ux0:psm`) are listed and start through their bubble.
+- **Icons for every system.** 33 PSP-style system icons (NES, SNES, Game Boy, Mega Drive, PlayStation, PSP, Arcade, Amiga and more). Columns and folders the sort list makes get the right one automatically.
+- **Change icons.** A folder's Options has **Change Icon**, and *Arrange Columns* > **Select** opens the same grid of pictures for a column.
+- **Uninstall apps.** **Triangle > Uninstall** on an installed app asks once, then removes it. Saved data stays.
+- **Custom themes without panels for the extra columns** (such as the Xbox 360 and Euphoria style themes) no longer pour every app into Memory Stick: each extra column is a folder under *Game > Memory Stick™*, with its own folders inside it.
+- **More room:** up to 22 columns of your own, 160 folders and 6144 apps and games.
+
+**Changed**
+
+- The first-start question and the settings entry open the sort list instead of asking yes or no. Apps you placed yourself and retail Vita games are still never moved.
+- The Information page shows the system and the file of a retro game, and the title, ID and location of a PSM game.
+- Every new text is translated into the PSP's 12 languages (by hand; **corrections welcome**).
+
+**Fixed**
+
+- The *Choose Icon* grid was drawn underneath *Arrange Columns*, so changing a column's picture with **Select** seemed to do nothing.
 
 ### [1.9.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.9.1) (2026-10-25)
 
@@ -649,9 +710,10 @@ First release.
 
 ## Known issues
 
-- **Custom themes and columns of your own.** Themes that paint the whole category bar (Xbox 360 and Euphoria style) cannot show Emulators, Utilities or columns you made; their apps are shown in Game while such a theme is on, and other themes show those columns with VitaXMB's icons, which do not match the theme. Turn the theme off to see your columns.
+- **Custom themes and columns of your own.** Themes that paint the whole category bar (Xbox 360 and Euphoria style) cannot show Emulators, Utilities or columns you made; they appear as folders under Game > Memory Stick™ while such a theme is on, and other themes show those columns with VitaXMB's icons, which do not match the theme. Turn the theme off to see your columns.
 - **Starting a game shows the Vita's LiveArea bubble transition** before the game appears. The system draws it whenever one app starts another, so no launcher (VitaShell and vita-launcher included) can skip it; only a shell-level plugin could. VitaXMB's own [NoLiveArea plugin](#nolivearea-plugin-beta) is that plugin: with it installed the bubble transition stays out of sight (the screen stays black while the game loads).
 - **System apps cannot be started by title ID** from an app (the Vita shows error `C2-12570-5`). VitaXMB therefore opens them through their own URI schemes (`wbapp0:` Browser, `settings_dlg:` Settings, `psns:` PlayStation Store, `pspy:` Party, `psnmsg:` Messages, `near:` Near, `photo:`, `music:`, `video:`). The Browser and the Settings pages are confirmed to work; the others come from a working third-party launcher but have not been tried on every setup.
+- **Retro games are built from RetroFlow Launcher's launch method and could not be tried on every setup.** A game starts RetroArch or Emu4Vita+ with the core and the file as parameters of the app's URI. If the emulator only opens without the game, its version does not take those parameters (RetroFlow recommends RetroArch 1.9.4 and Emu4Vita+ 0.71 or newer). PSM games are listed from `ux0:psm` and the LiveArea database and have not been tried on a console with PSM titles.
 - If launch requests are being refused (the call returns `0x80802026` in a debug build), the console's app manager is in a bad state: reboot the Vita.
 - `ux0:music`, `ux0:video` and `ux0:picture` cannot be read by apps; use the Adrenaline folders or the Vita's own apps.
 - **The video player is a beta.** Pictures bigger than 720p do not play smoothly (the Vita's hardware decoder stops at 720p and the software one is far slower); non-MP4 files are decoded in software, so a large one starts slowly and stutters. There is no hardware path for H.264 inside MKV / AVI yet.
@@ -673,6 +735,7 @@ VitaXMB is released under the **GNU GPL v3** (see `LICENSE`).
 - [Vita-Media-Player](https://github.com/SonicMastr/Vita-Media-Player) by SonicMastr: the reference for driving the Vita's SceAvPlayer library (its frame allocation and its YUV texture setup).
 - [Source Sans 3](https://github.com/adobe-fonts/source-sans) by Adobe (SIL Open Font License 1.1): the digits and format tags of the music list were redrawn with it (`tools/make_native_music.py`).
 - [mbed TLS](https://github.com/Mbed-TLS/mbedtls) for the update download (Apache-2.0 / GPL-2.0-or-later).
+- [retroarch-assets](https://github.com/libretro/retroarch-assets) by the libretro team (CC BY 4.0): the monochrome system icons (`xmb/monochrome`) are the outlines of the retro systems' icons in `assets/icons/tex_sys_*.png`. They were recoloured and bevelled, and their small details were left out, by `tools/make_system_icons.py`.
 - [VitaShell](https://github.com/TheOfficialFloW/VitaShell) by TheFloW (GPL-3.0) and [CopyIcons](https://github.com/cy33hc/copyicons) by cy33hc (GPL-3.0): the user-module header, the import stub and the PFS-mount approach used for artwork decryption, and the way packages are installed (system installer plus a helper app, as in VitaShell's own updater).
 - [vita-uriCaller](https://github.com/Freakler/vita-uriCaller) for the list of system URIs.
 - [VitaOS](https://github.com/hotdog-face/VitaOS) by hotdog-face (GPL-3.0): its shell plugin `plugin/vitaos_ps.c` was the reference for the polling safety net of the NoLiveArea plugin (asking the shell for the running apps with the `...ForShell` calls and treating a game as gone only when neither its title ID nor its process resolves), for the marker file that says a game was started from the launcher (with a time window), for the longer settle time for Adrenaline and RetroFlow's PSP launcher, for starting an app by URI a second time when the first only opens its LiveArea page, and for holding the PS button lock in the launcher.

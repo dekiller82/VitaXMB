@@ -272,7 +272,6 @@ Move	이동
 Nothing to sort: every app is already in its place.	정렬할 항목이 없습니다. 모든 앱이 이미 제자리에 있습니다.
 Sort apps into columns?	앱을 열별로 정렬할까요?
 Sort your apps into columns?	설치된 앱을 열별로 정렬할까요?
-Emulators, utilities, music, video and network apps\nmove to their own columns; games stay in Game.\nApps you placed yourself stay where they are.	에뮬레이터, 유틸리티, 음악·비디오·네트워크 앱은\n각각의 열로 이동하고 게임은 게임에 남습니다.\n직접 배치한 앱은 그대로 유지됩니다.
 No trophies	트로피 없음
 Play a game with trophies first	먼저 트로피가 있는 게임을 플레이하세요
 No trophy data for this game yet	이 게임의 트로피 데이터가 아직 없습니다
@@ -293,8 +292,47 @@ Icon	아이콘
 Delete	삭제
 Drop	놓기
 Up / Down: move   Cross: drop	위 / 아래: 이동   ✕: 놓기
-Cross: pick up and move	✕: 잡아서 이동
 Delete the column "%.40s"?	열 “%.40s”을(를) 삭제할까요?
 Its apps move to Game.	앱은 게임으로 이동합니다.
 Column %d	열 %d
 Column	열
+ (no free column or folder for %d of the kinds)	 (%d개 종류는 빈 열이나 폴더가 없음)
+%d games are over the limit and are not listed.	한도를 넘은 게임 %d개는 표시되지 않습니다.
+%d to sort	정렬할 항목 %d개
+Change	변경
+Choose which kinds of app get their own column:\nemulators, utilities, PSP and PS1 games, homebrew...\nApps you placed yourself stay where they are.	전용 열을 만들 앱 종류를 고르세요:\n에뮬레이터, 유틸리티, PSP·PS1 게임, 홈브루…\n직접 배치한 앱은 그대로 둡니다.
+Retro Games Launcher	레트로 게임 실행기
+Retro games go to	레트로 게임 위치
+RetroArch and Emu4Vita+ are not installed: these games cannot start yet.	RetroArch와 Emu4Vita+가 설치되어 있지 않아 이 게임들은 아직 실행할 수 없습니다.
+Sort	정렬
+System	시스템
+Tick what VitaXMB should sort. Apps you placed yourself stay where they are.	VitaXMB가 정렬할 항목을 선택하세요. 직접 배치한 앱은 그대로 둡니다.
+none	없음
+PSP games	PSP 게임
+PS1 games	PS1 게임
+PSM games	PSM 게임
+Homebrew	홈브루
+RetroArch, PPSSPP, Adrenaline and other emulators	RetroArch, PPSSPP, Adrenaline 등 에뮬레이터
+VitaShell, Checkpoint and other tools	VitaShell, Checkpoint 등 도구
+Music players	음악 플레이어
+Video players and streaming apps	동영상 플레이어 및 스트리밍 앱
+Remote play, browsers and downloaders	리모트 플레이, 브라우저, 다운로더
+ISO / CSO images and PSP downloads, with or without a bubble	ISO / CSO 이미지와 PSP 다운로드 게임 (버블 유무와 관계없이)
+PS1 classics, with or without a bubble	PS1 클래식 (버블 유무와 관계없이)
+PlayStation Mobile games (ux0:psm)	PlayStation Mobile 게임 (ux0:psm)
+Every other app that is not a retail game	상용 게임이 아닌 모든 앱
+Folders in Emulators	에뮬레이터 안의 폴더
+A column per system	시스템마다 열
+One Retro column	레트로 열 하나
+A folder for each system inside the Emulators column	에뮬레이터 열 안에 시스템마다 폴더를 만듭니다
+A column of its own for each system (up to the free columns, then folders)	시스템마다 전용 열을 만듭니다 (빈 열이 없으면 폴더)
+One column called Retro with a folder for each system	Retro라는 열 하나에 시스템마다 폴더를 둡니다
+Choose Icon	아이콘 선택
+Change Icon	아이콘 변경
+Default	기본
+Cross: pick up and move   Select: icon list	✕: 잡아서 이동   SELECT: 아이콘 목록
+Uninstall	삭제
+Uninstall "%.40s"?	"%.40s"을(를) 삭제할까요?
+The app is removed. Its saved data stays.	앱이 삭제됩니다. 저장 데이터는 남습니다.
+Uninstalled.	삭제했습니다.
+The app could not be uninstalled.	앱을 삭제하지 못했습니다.

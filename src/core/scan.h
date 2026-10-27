@@ -45,10 +45,14 @@ static void scan_apps(void)
 		sceIoDclose(dfd);
 	}
 	scan_psp_games();                                 /* the games of Adrenaline's folders, with or without a bubble */
+	scan_psm_games();                                 /* PlayStation Mobile games: ux0:psm, with a bubble in ur0:appmeta */
 	qsort(mn->items, mn->count, sizeof(Item), item_cmp);
 	n_all = mn->count;
 	if (all_apps) memcpy(all_apps, mn->items, n_all * sizeof(Item));
 	else n_all = 0;
+	retro_scan();                                     /* the ROMs of RetroArch's playlists and RetroFlow's folders wait as records; the placed ones become apps */
+	retro_add_placed();
+	if (all_apps) qsort(all_apps, n_all, sizeof(Item), item_cmp);
 	rebuild_game_lists();
 }
 

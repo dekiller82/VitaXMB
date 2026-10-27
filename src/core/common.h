@@ -79,7 +79,8 @@
 #define CONFIG_PATH CONFIG_DIR "/config.bin"
 
 #define MAX_ITEMS  256
-#define GAME_MAX   2048    /* installed apps / saves that fit in the game lists */
+#define GAME_MAX   6144    /* installed apps, PSP / PSM games and retro games that fit in the game lists */
+#define SAVES_MAX  2048    /* saved data entries */
 #define ICON_KEEP  7        /* icons kept loaded within +/- this many rows */
 
 #define WHITE(a) RGBA8(255, 255, 255, (a))

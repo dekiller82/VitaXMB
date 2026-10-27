@@ -264,7 +264,6 @@ Move	Mover
 Nothing to sort: every app is already in its place.	Nada que ordenar: todas las apps ya están en su sitio.
 Sort apps into columns?	¿Ordenar las apps en columnas?
 Sort your apps into columns?	¿Ordenar tus apps en columnas?
-Emulators, utilities, music, video and network apps\nmove to their own columns; games stay in Game.\nApps you placed yourself stay where they are.	Los emuladores, utilidades y apps de música, vídeo\ny red pasan a sus propias columnas; los juegos siguen en Juego.\nLas apps que colocaste tú se quedan donde están.
 No trophies	Sin trofeos
 Play a game with trophies first	Juega antes a un juego con trofeos
 No trophy data for this game yet	Aún no hay datos de trofeos de este juego
@@ -285,8 +284,47 @@ Icon	Icono
 Delete	Eliminar
 Drop	Soltar
 Up / Down: move   Cross: drop	Arriba / abajo: mover   ✕: soltar
-Cross: pick up and move	✕: coger y mover
 Delete the column "%.40s"?	¿Eliminar la columna «%.40s»?
 Its apps move to Game.	Sus apps pasan a Juego.
 Column %d	Columna %d
 Column	Columna
+ (no free column or folder for %d of the kinds)	 (sin columna ni carpeta libre para %d tipos)
+%d games are over the limit and are not listed.	%d juegos superan el límite y no aparecen en la lista.
+%d to sort	%d por ordenar
+Change	Cambiar
+Choose which kinds of app get their own column:\nemulators, utilities, PSP and PS1 games, homebrew...\nApps you placed yourself stay where they are.	Elige qué tipos de app tendrán su propia columna:\nemuladores, utilidades, juegos de PSP y PS1, homebrew…\nLas apps que colocaste tú siguen donde están.
+Retro Games Launcher	Lanzador de juegos retro
+Retro games go to	Los juegos retro van a
+RetroArch and Emu4Vita+ are not installed: these games cannot start yet.	RetroArch y Emu4Vita+ no están instalados: estos juegos aún no pueden iniciarse.
+Sort	Ordenar
+System	Sistema
+Tick what VitaXMB should sort. Apps you placed yourself stay where they are.	Marca lo que VitaXMB debe ordenar. Las apps que colocaste tú siguen donde están.
+none	ninguno
+PSP games	Juegos de PSP
+PS1 games	Juegos de PS1
+PSM games	Juegos de PSM
+Homebrew	Homebrew
+RetroArch, PPSSPP, Adrenaline and other emulators	RetroArch, PPSSPP, Adrenaline y otros emuladores
+VitaShell, Checkpoint and other tools	VitaShell, Checkpoint y otras herramientas
+Music players	Reproductores de música
+Video players and streaming apps	Reproductores de vídeo y apps de streaming
+Remote play, browsers and downloaders	Juego remoto, navegadores y descargadores
+ISO / CSO images and PSP downloads, with or without a bubble	Imágenes ISO / CSO y descargas de PSP, con o sin burbuja
+PS1 classics, with or without a bubble	Clásicos de PS1, con o sin burbuja
+PlayStation Mobile games (ux0:psm)	Juegos de PlayStation Mobile (ux0:psm)
+Every other app that is not a retail game	Cualquier otra app que no sea un juego comercial
+Folders in Emulators	Carpetas en Emuladores
+A column per system	Una columna por sistema
+One Retro column	Una sola columna Retro
+A folder for each system inside the Emulators column	Una carpeta por sistema dentro de la columna Emuladores
+A column of its own for each system (up to the free columns, then folders)	Una columna por sistema (mientras haya libres; después, carpetas)
+One column called Retro with a folder for each system	Una columna llamada Retro con una carpeta por sistema
+Choose Icon	Elegir icono
+Change Icon	Cambiar icono
+Default	Predeterminado
+Cross: pick up and move   Select: icon list	✕: coger y mover   SELECT: lista de iconos
+Uninstall	Desinstalar
+Uninstall "%.40s"?	¿Desinstalar «%.40s»?
+The app is removed. Its saved data stays.	Se elimina la aplicación. Sus datos guardados permanecen.
+Uninstalled.	Desinstalada.
+The app could not be uninstalled.	No se pudo desinstalar la aplicación.

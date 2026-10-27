@@ -271,7 +271,6 @@ Move	移動
 Nothing to sort: every app is already in its place.	沒有需要分類的項目：所有應用程式都已就位。
 Sort apps into columns?	要將應用程式分類到欄位嗎？
 Sort your apps into columns?	要將您的應用程式分類到欄位嗎？
-Emulators, utilities, music, video and network apps\nmove to their own columns; games stay in Game.\nApps you placed yourself stay where they are.	模擬器、工具程式與音樂、影片、網路類應用程式\n會移到各自的欄位；遊戲仍留在「遊戲」。\n您自行放置的應用程式不會變動。
 No trophies	沒有獎盃
 Play a game with trophies first	請先遊玩支援獎盃的遊戲
 No trophy data for this game yet	此遊戲尚無獎盃資料
@@ -292,8 +291,47 @@ Icon	圖示
 Delete	刪除
 Drop	放下
 Up / Down: move   Cross: drop	上 / 下：移動   ✕：放下
-Cross: pick up and move	✕：拿起並移動
 Delete the column "%.40s"?	要刪除欄位「%.40s」嗎？
 Its apps move to Game.	其中的應用程式會移到「遊戲」。
 Column %d	欄位 %d
 Column	欄位
+ (no free column or folder for %d of the kinds)	 (有 %d 種類沒有可用的欄位或資料夾)
+%d games are over the limit and are not listed.	超出上限的 %d 款遊戲不會列出。
+%d to sort	待分類 %d 項
+Change	變更
+Choose which kinds of app get their own column:\nemulators, utilities, PSP and PS1 games, homebrew...\nApps you placed yourself stay where they are.	選擇哪些類型的應用程式要有自己的欄位:\n模擬器、工具程式、PSP 與 PS1 遊戲、自製程式…\n您自行放置的應用程式不會移動。
+Retro Games Launcher	復古遊戲啟動器
+Retro games go to	復古遊戲放置於
+RetroArch and Emu4Vita+ are not installed: these games cannot start yet.	尚未安裝 RetroArch 與 Emu4Vita+，這些遊戲暫時無法啟動。
+Sort	分類
+System	系統
+Tick what VitaXMB should sort. Apps you placed yourself stay where they are.	勾選要讓 VitaXMB 分類的項目。您自行放置的應用程式不會移動。
+none	無
+PSP games	PSP 遊戲
+PS1 games	PS1 遊戲
+PSM games	PSM 遊戲
+Homebrew	自製程式
+RetroArch, PPSSPP, Adrenaline and other emulators	RetroArch、PPSSPP、Adrenaline 與其他模擬器
+VitaShell, Checkpoint and other tools	VitaShell、Checkpoint 與其他工具
+Music players	音樂播放器
+Video players and streaming apps	影片播放器與串流應用程式
+Remote play, browsers and downloaders	遠端遊玩、瀏覽器與下載工具
+ISO / CSO images and PSP downloads, with or without a bubble	ISO / CSO 映像檔與 PSP 下載遊戲(不論有無泡泡)
+PS1 classics, with or without a bubble	PS1 經典遊戲(不論有無泡泡)
+PlayStation Mobile games (ux0:psm)	PlayStation Mobile 遊戲(ux0:psm)
+Every other app that is not a retail game	所有非商業遊戲的其他應用程式
+Folders in Emulators	模擬器內的資料夾
+A column per system	每個系統一個欄位
+One Retro column	單一「復古」欄位
+A folder for each system inside the Emulators column	在「模擬器」欄位內為每個系統建立資料夾
+A column of its own for each system (up to the free columns, then folders)	為每個系統建立專屬欄位(欄位用完後改用資料夾)
+One column called Retro with a folder for each system	建立一個名為 Retro 的欄位,內含每個系統的資料夾
+Choose Icon	選擇圖示
+Change Icon	變更圖示
+Default	預設
+Cross: pick up and move   Select: icon list	✕：拿起並移動   SELECT: 圖示清單
+Uninstall	解除安裝
+Uninstall "%.40s"?	要解除安裝「%.40s」嗎？
+The app is removed. Its saved data stays.	將移除此應用程式，儲存資料會保留。
+Uninstalled.	已解除安裝。
+The app could not be uninstalled.	無法解除安裝此應用程式。

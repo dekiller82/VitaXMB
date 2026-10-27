@@ -77,6 +77,18 @@ static void gameinfo_gather(const Item *it, int is_save)
 {
 	info_n = 0;
 	char path[128], val[96];
+	if (it->rix >= 1 && it->rix <= n_retro && it->kind == KIND_APP) {          /* a retro game: its system and its file */
+		info_add(T("Title"), "%s", it->title);
+		info_add(T("System"), "%s", retro_sys[retro_rec[it->rix - 1].sys].db);
+		info_add(T("Location"), "%s", retro_rec[it->rix - 1].rom);
+		return;
+	}
+	if (it->org == ORG_PSM && it->kind == KIND_APP) {                          /* a PlayStation Mobile game */
+		info_add(T("Title"), "%s", it->title);
+		info_add(T("Title ID"), "%s", it->id);
+		info_add(T("Location"), "ux0:psm/%s", it->id);
+		return;
+	}
 	if (it->path[0] && it->kind == KIND_APP) {                         /* a PSP or PS1 game of Adrenaline's folders */
 		info_add(T("Title"), "%s", it->title);
 		if (it->sub[0]) info_add(T("Disc ID"), "%s", it->sub);
