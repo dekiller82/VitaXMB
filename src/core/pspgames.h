@@ -175,6 +175,18 @@ static uint32_t psp_crc_file(const char *p)
 	return any ? c : 0;
 }
 
+/* an older build of our own launcher: its module name VXMBBOOT is in the file */
+static int psp_is_our_launcher(const char *p)
+{
+	SceUID fd = sceIoOpen(p, SCE_O_RDONLY, 0);
+	if (fd < 0) return 0;
+	static uint8_t head[262144];
+	int n = sceIoRead(fd, head, sizeof(head)), found = 0;
+	sceIoClose(fd);
+	for (int i = 0; i + 8 <= n && !found; i++) found = !memcmp(head + i, "VXMBBOOT", 8);
+	return found;
+}
+
 static int psp_write_file(const char *p, const void *d, int n)
 {
 	SceUID fd = sceIoOpen(p, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
@@ -228,7 +240,8 @@ static int psp_autorun_prepare(const char *game)
 	sceIoMkdir("ux0:pspemu", 0777); sceIoMkdir("ux0:pspemu/PSP", 0777); sceIoMkdir("ux0:pspemu/PSP/GAME", 0777); sceIoMkdir(PSP_BOOT_DIR, 0777);
 	uint32_t have = psp_crc_file(PSP_BOOT_DIR "/EBOOT.PBP");
 	if (have != ours) {
-		if (have) { xlog("psp launch: %s/EBOOT.PBP is somebody else's autorun program: not touching it\n", PSP_BOOT_DIR); return 0; }
+		if (have && !psp_is_our_launcher(PSP_BOOT_DIR "/EBOOT.PBP")) { xlog("psp launch: %s/EBOOT.PBP is somebody else's autorun program: not touching it\n", PSP_BOOT_DIR); return 0; }
+		if (have) xlog("psp launch: updating an older VitaXMB launcher\n");
 		SceUID in = sceIoOpen("app0:assets/psp/vxmbboot.pbp", SCE_O_RDONLY, 0);
 		int size = in >= 0 ? sceIoLseek32(in, 0, SCE_SEEK_END) : -1;
 		uint8_t *b = size > 0 ? malloc((size_t)size) : NULL;
@@ -256,6 +269,19 @@ static int psp_autorun_prepare(const char *game)
 static int psp_abm_modules(void)
 {
 	return psp_exists("ux0:app/PSPEMUCFW/sce_module/adrbubblebooter.suprx") && psp_exists("ux0:app/PSPEMUCFW/sce_module/bootconv.suprx");
+}
+
+/* A listed game that is an old Adrenaline bubble (PSPEMU000...) is started by that bubble only when the bubble tool's modules are installed; without them the bubble
+ * stops with "Could not load adrenaline_kernel.skprx". Then the game file it points at goes to the launcher, like a game without a bubble. */
+static const char *psp_bubble_launch_id(const char *id)
+{
+	static char keep[16];
+	if (psp_abm_modules()) return id;
+	char game[192];
+	if (!pm_bubble_game(id, game, sizeof(game))) return id;
+	if (!psp_autorun_prepare(game)) { xlog("psp launch: bubble %s: the launcher could not be prepared, trying the bubble\n", id); snprintf(keep, sizeof(keep), "%s", id); return keep; }
+	xlog("psp launch: bubble %s has no helper modules, the launcher starts %s\n", id, game);
+	return "PSPEMUCFW";
 }
 
 /* the title ID to start for a listed game: its own bubble when that can work, else Adrenaline itself with the launcher doing the rest */

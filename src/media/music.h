@@ -550,6 +550,19 @@ static void meta_read(const char *path, char *title, size_t tn, char *artist, si
 	bf_close(&bf);
 }
 
+/* The same song reached twice is listed once: the Vita's Music folder is open as music0: and as ux0:music, and a card or the PSP's MUSIC folder often holds a
+ * copy; two files with the same name (any case) and size are one song, the first found wins. */
+static uint32_t mus_seen_h[MAX_ITEMS];
+static uint32_t mus_seen_sz[MAX_ITEMS];
+static int mus_seen_n;
+
+static uint32_t mus_name_hash(const char *n)
+{
+	uint32_t h = 2166136261u;
+	for (; *n; n++) h = (h ^ (uint32_t)(unsigned char)tolower((unsigned char)*n)) * 16777619u;
+	return h;
+}
+
 static void scan_music_dir(const char *dir, int depth)
 {
 	SceUID d = sceIoDopen(dir);
@@ -568,13 +581,19 @@ static void scan_music_dir(const char *dir, int depth)
 			int dup = 0;
 			for (int i = 0; i < menus[M_TRACKS].count; i++)
 				if (!strcasecmp(menus[M_TRACKS].items[i].path, full)) { dup = 1; break; }
+			const uint32_t nh = mus_name_hash(e.d_name), nsz = (uint32_t)e.d_stat.st_size;
+			for (int i = 0; i < mus_seen_n && !dup; i++)
+				if (mus_seen_h[i] == nh && mus_seen_sz[i] == nsz) dup = 1;
 			if (dot && !dup && (!strcasecmp(dot, ".mp3") || !strcasecmp(dot, ".flac") || !strcasecmp(dot, ".ogg") || !strcasecmp(dot, ".wav") ||
 			                    !strcasecmp(dot, ".aif") || !strcasecmp(dot, ".aiff") || !strcasecmp(dot, ".aifc"))) {
 				char title[64], artist[48];
 				meta_read(full, title, sizeof(title), artist, sizeof(artist));
 				if (!title[0]) snprintf(title, sizeof(title), "%.*s", (int)(dot - e.d_name) > 60 ? 60 : (int)(dot - e.d_name), e.d_name);
 				Item *it = add_item(M_TRACKS, KIND_TRACK, title, artist, NULL, tex_music_s);
-				if (it) snprintf(it->path, sizeof(it->path), "%s", full);
+				if (it) {
+					snprintf(it->path, sizeof(it->path), "%s", full);
+					if (mus_seen_n < MAX_ITEMS) { mus_seen_h[mus_seen_n] = nh; mus_seen_sz[mus_seen_n] = nsz; mus_seen_n++; }
+				}
 			}
 		}
 		memset(&e, 0, sizeof(e));
@@ -585,6 +604,16 @@ static void scan_music_dir(const char *dir, int depth)
 static void scan_music(void)
 {
 	clear_menu(M_TRACKS);
+	mus_seen_n = 0;
+	/* The Vita's own Music folder is closed to an app's file calls (ux0:music answers 80010001); the system opens it for apps that ask through AppUtil, as music0: */
+	static int music0 = -1;
+	if (music0 < 0) {
+		lang_system();                                               /* (starts AppUtil) */
+		int r = sceAppUtilMusicMount();
+		trace("music: sceAppUtilMusicMount -> %08x\n", (unsigned)r);
+		music0 = r >= 0;
+	}
+	if (music0) scan_music_dir("music0:", 0);
 	scan_music_dir("ux0:music", 0);
 	scan_music_dir("ux0:pspemu/MUSIC", 0);
 	if (extra_storage) {
@@ -846,6 +875,8 @@ static void draw_player(float alpha, int closing)
 
 /* Draws one vertical list. xoff slides it sideways, amul fades it, sub_p (0..1) shrinks it into the
  * icon-only "parent" column shown to the left of a Settings-style sub list. */
+static float pm_pic0_a;                          /* pspmedia.h: how far a game's text block (PIC0) has faded in; the item text gives way to it */
+
 static void draw_column(int m, float xoff, float amul, float grow, float sub_p)
 {
 	if (amul <= 0.01f) return;
@@ -943,7 +974,7 @@ static void draw_column(int m, float xoff, float amul, float grow, float sub_p)
 		}
 
 		/* title above / subtitle below a thin rule; ink edges flush at the text column */
-		int ta = (int)(a * (1.0f - sp));
+		int ta = (int)(a * (1.0f - sp) * (1.0f - clampf(pm_pic0_a * 1.6f, 0.0f, 1.0f)));       /* with the text block up, the PSP shows no item titles */
 		if (ta <= 4) continue;
 		float tx = text_x + xoff;
 		if (dmix > 0.0f) tx = lerpf(tx, ix + 90.0f + 22.0f, dmix);               /* right of the tile */

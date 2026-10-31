@@ -7,7 +7,8 @@
  * Its title id is kept in ux0:data/VitaXMB/lastplayed.txt when a game is launched. */
 
 #define LASTPLAYED_PATH CONFIG_DIR "/lastplayed.txt"
-#define LP_FIRST_EXTRA 3          /* the Game column holds Saved Data Utility, Memory Stick and Trophy Collection; the disc comes after them */
+static int game_top_n;          /* folders.h: the folder rows at the head of the Game column */
+#define LP_FIRST_EXTRA (game_top_n + 3)          /* the Game column holds Saved Data Utility, Memory Stick and Trophy Collection; the disc comes after them */
 
 static char lp_id[16];
 static int lp_loaded;

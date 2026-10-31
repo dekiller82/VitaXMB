@@ -10,7 +10,7 @@ CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 
 LIBDIR =
-LIBS = -lpspsystemctrl_user
+LIBS = -lpspsystemctrl_user -lpspkubridge
 LDFLAGS =
 
 EXTRA_TARGETS = EBOOT.PBP

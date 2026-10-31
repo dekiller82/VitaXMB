@@ -10,6 +10,9 @@
  * A theme's own opening_plugin.rco is used when it has one.
  */
 
+static int wave_rt_render(const WaveModel *M, float frame, float alpha);       /* background.h: the model's firmware look in a 480 x 272 texture, scaled up like the PSP's picture */
+static void wave_rt_draw(float alpha);
+
 static float boot_sky_t0, boot_hand_t, boot_end_t;
 static float boot_handoff_ms;                                 /* how long the background wave has been running when the boot ends */
 static uint64_t boot_hand_abs;                                /* process time (us) at which the wave began */
@@ -103,6 +106,16 @@ static void boot_play(int month, void (*backdrop)(float, float), const unsigned 
 		float hand = boot_hand_t > boot_sky_t0 ? (ms - boot_sky_t0) / (boot_hand_t - boot_sky_t0) : 1.0f;     /* 0..1 up to the ribbon becoming the wave */
 		if (hand < 0.0f) hand = 0.0f;
 		if (hand > 1.0f) hand = 1.0f;
+		int rt_ribbon = 0, rt_wave = 0;                             /* the ribbon and the handed-over wave in the firmware's look, soft like the PSP's 480 x 272 picture */
+		if (n_model >= 0 && boot_m.ok && boot_m.refl) {
+			float ma0 = r->nodes[n_model].a * r->nodes[n_model].ca;
+			float fr0 = ms * boot_m.fps / 1000.0f;
+			if (fr0 > boot_m.end) fr0 = boot_m.end;
+			if (ma0 > 1.0f) ma0 = 1.0f;
+			if (ma0 > 0.0f && ms < boot_hand_t) rt_ribbon = wave_rt_render(&boot_m, fr0, 1.0f);
+		}
+		if (!rt_ribbon && ms >= boot_hand_t && wave_m.ok && wave_m.refl)
+			rt_wave = wave_rt_render(&wave_m, fmodf(((ms - boot_hand_t) / 1000.0f) * wave_m.fps, wave_m.end), 1.0f);
 		flush_free();
 		vita2d_start_drawing();
 		vita2d_clear_screen();
@@ -118,11 +131,11 @@ static void boot_play(int month, void (*backdrop)(float, float), const unsigned 
 			unsigned char rc[3];                                     /* white at first, the wave's own colour by the time it takes over */
 			for (int i = 0; i < 3; i++) rc[i] = 255; (void)hand; (void)col;
 			if (ma > 1.0f) ma = 1.0f;
-			if (ma > 0.0f && ms < boot_hand_t) wv_draw(&boot_m, fr, rc, ma, 1);
+			if (ma > 0.0f && ms < boot_hand_t) { if (rt_ribbon) wave_rt_draw(ma); else wv_draw(&boot_m, fr, rc, ma, boot_m.refl ? 3 : 1); }
 		}
 		if (ms >= boot_hand_t) {                                    /* system_bg_model_show: the system's wave takes over in the ribbon's last pose, with no frame in between */
 			if (!boot_hand_abs) boot_hand_abs = t0 + (uint64_t)(boot_hand_t * 1000.0f);
-			wave_draw((ms - boot_hand_t) / 1000.0f, white, 1.0f);
+			if (rt_wave) wave_rt_draw(1.0f); else wave_draw((ms - boot_hand_t) / 1000.0f, white, 1.0f);
 		}
 		if (n_logo >= 0) rco_draw_plane(r, n_logo, 1.0f, 0);
 #ifdef VITAXMB_DEBUG

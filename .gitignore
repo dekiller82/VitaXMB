@@ -38,6 +38,9 @@
 /docs/*
 !/docs/images/
 !/docs/demo.gif
+!/docs/index.html
+!/docs/fonts/
+!/docs/wave.js
 
 # tools: only what is needed to build (FFmpeg for the video player) and the scripts that made the committed pictures
 /tools/*
@@ -49,6 +52,7 @@
 !/tools/make_flat_rco.py
 !/tools/make_hires_icons.py
 !/tools/make_system_icons.py
+!/tools/make_web_font.py
 !/tools/icons64/
 !/tools/rlz.py
 /tools/SourceSans3.ttf
@@ -67,3 +71,8 @@
 !/tools/lang/
 /tools/lang/__pycache__/
 !/psp/launcher/env.sh
+
+# local-only PSP capture plugin (records what the stock XMB passes when it starts a game)
+/psp/capture/
+!/docs/favicon.png
+!/docs/apple-touch-icon.png

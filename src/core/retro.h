@@ -328,7 +328,8 @@ static uint8_t *retro_art(const Item *it, int maxw, int *w, int *h)
 		"ux0:data/retroarch/thumbnails/%s/Named_Snaps/%s.png", "ux0:data/retroarch/thumbnails/%s/Named_Titles/%s.png" };
 	for (int k = 0; k < 4; k++) {
 		char p[256];
-		snprintf(p, sizeof(p), pat[k], retro_sys[r->sys].db, t);
+		const RetroSys *d = retro_sys[r->sys].def;
+		snprintf(p, sizeof(p), pat[k], k == 1 && d && d->rf_dir ? d->rf_dir : retro_sys[r->sys].db, t);        /* RetroFlow names its COVERS folders like its ROM folders */
 		uint8_t *pix = png_decode_scaled(p, maxw, w, h);
 		if (pix) return pix;
 	}
@@ -348,6 +349,112 @@ static void retro_uri_enc(char *out, size_t n, const char *s)
 	out[o] = 0;
 }
 
+/* ---- the core RetroFlow Launcher is set to use ----
+ * RetroFlow keeps two files in ux0:data/RetroFlow: "Emulator cores global.lua" (a core for each system) and "Emulator cores override.lua" (a core for one game,
+ * keyed by the game's path), both of the form  return { ["key"] = "core", ... }. A core named *_libretro is a RetroArch core (app0:/<name>.self); any other name is an
+ * Emu4Vita+ core. RetroFlow fills the global file with its own recommended core for every system, so that file only counts where it differs from that default
+ * (the user changed it there); a game's own choice always counts. Either way it goes before the playlist's core and VitaXMB's own default. */
+#define RF_GLOBAL_FILE   "ux0:data/RetroFlow/Emulator cores global.lua"
+#define RF_OVERRIDE_FILE "ux0:data/RetroFlow/Emulator cores override.lua"
+
+static const struct { const char *sys, *core; } rf_default_core[] = {
+	{ "SNES", "snes9x2005_libretro" },
+	{ "NES", "quicknes_libretro" },
+	{ "GBA", "gpsp_libretro" },
+	{ "GBC", "gambatte_libretro" },
+	{ "GB", "gambatte_libretro" },
+	{ "SEGA_CD", "genesis_plus_gx_libretro" },
+	{ "s32X", "picodrive_libretro" },
+	{ "MD", "genesis_plus_gx_libretro" },
+	{ "SMS", "smsplus_libretro" },
+	{ "GG", "smsplus_libretro" },
+	{ "TG16", "mednafen_pce_fast_libretro" },
+	{ "TGCD", "mednafen_pce_fast_libretro" },
+	{ "PCE", "mednafen_pce_fast_libretro" },
+	{ "PCECD", "mednafen_pce_fast_libretro" },
+	{ "AMIGA", "puae_libretro" },
+	{ "C64", "vice_x64_libretro" },
+	{ "WSWAN_COL", "mednafen_wswan_libretro" },
+	{ "WSWAN", "mednafen_wswan_libretro" },
+	{ "MSX2", "fmsx_libretro" },
+	{ "MSX1", "fmsx_libretro" },
+	{ "ZXS", "fuse_libretro" },
+	{ "ATARI_7800", "prosystem_libretro" },
+	{ "ATARI_5200", "atari800_libretro" },
+	{ "ATARI_2600", "stella2014_libretro" },
+	{ "ATARI_LYNX", "handy_libretro" },
+	{ "COLECOVISION", "bluemsx_libretro" },
+	{ "VECTREX", "vecx_libretro" },
+	{ "FBA", "fbalpha2012_libretro" },
+	{ "MAME_2003_PLUS", "mame2003_plus_libretro" },
+	{ "MAME_2000", "mame2000_libretro" },
+	{ "NEOGEO", "fbalpha2012_neogeo_libretro" },
+	{ "NGPC", "mednafen_ngp_libretro" },
+	{ "PS1", "pcsx_rearmed_libretro" },
+	{ "ATARI_ST", "hatari_libretro" },
+	{ "DOS", "dosbox_pure_libretro" },
+};
+
+/* RetroFlow's id of a system, from our table (its icon names the system; the two arcade entries and MAME are told apart by their ROM folder) */
+static const char *retro_rf_id(const RetroSys *d)
+{
+	static const struct { const char *icon, *id; } m[] = {
+		{ "nes", "NES" }, { "snes", "SNES" }, { "gb", "GB" }, { "gbc", "GBC" }, { "gba", "GBA" }, { "md", "MD" }, { "sms", "SMS" }, { "gg", "GG" }, { "scd", "SEGA_CD" },
+		{ "s32x", "s32X" }, { "pce", "PCE" }, { "pcecd", "PCECD" }, { "psx", "PS1" }, { "a2600", "ATARI_2600" }, { "a5200", "ATARI_5200" }, { "a7800", "ATARI_7800" },
+		{ "lynx", "ATARI_LYNX" }, { "atarist", "ATARI_ST" }, { "ws", "WSWAN" }, { "wsc", "WSWAN_COL" }, { "ngp", "NGPC" }, { "neogeo", "NEOGEO" }, { "amiga", "AMIGA" },
+		{ "c64", "C64" }, { "msx", "MSX1" }, { "msx2", "MSX2" }, { "zx", "ZXS" }, { "coleco", "COLECOVISION" }, { "vectrex", "VECTREX" },
+	};
+	if (!d || !d->icon) return NULL;
+	if (!strcmp(d->icon, "arcade")) return d->rf_dir ? "FBA" : NULL;
+	if (!strcmp(d->icon, "mame")) return "MAME_2003_PLUS";
+	for (size_t i = 0; i < sizeof(m) / sizeof(m[0]); i++) if (!strcmp(d->icon, m[i].icon)) return m[i].id;
+	return NULL;
+}
+
+/* the value of ["key"] in one of those files; 0 when the file or the key is not there */
+static int rf_lookup(const char *file, const char *key, char *out, size_t n)
+{
+	FILE *f = fopen(file, "rb");
+	if (!f) return 0;
+	fseek(f, 0, SEEK_END);
+	long sz = ftell(f);
+	fseek(f, 0, SEEK_SET);
+	char *b = sz > 0 && sz < 4 * 1024 * 1024 ? malloc((size_t)sz + 1) : NULL;
+	if (!b || fread(b, 1, (size_t)sz, f) != (size_t)sz) { free(b); fclose(f); return 0; }
+	fclose(f);
+	b[sz] = 0;
+	char pat[320];
+	snprintf(pat, sizeof(pat), "[\"%s\"] = \"", key);
+	char *p = strstr(b, pat);
+	int ok = 0;
+	if (p) {
+		p += strlen(pat);
+		char *e = strchr(p, '"');
+		if (e && (size_t)(e - p) < n && e > p) { memcpy(out, p, (size_t)(e - p)); out[e - p] = 0; ok = 1; }
+	}
+	free(b);
+	return ok;
+}
+
+/* The core RetroFlow would use for this game, 1 when the user chose one there (see above). */
+static int retro_rf_core(const RetroRec *r, const RetroSys *d, char *out, size_t n)
+{
+	char alt[220];
+	const char *ro = r->rom;
+	if (rf_lookup(RF_OVERRIDE_FILE, ro, out, n)) return 1;
+	if (!strncmp(ro, "ux0:/", 5)) snprintf(alt, sizeof(alt), "ux0:%s", ro + 5);        /* RetroFlow writes the path with or without the slash */
+	else if (!strncmp(ro, "ux0:", 4)) snprintf(alt, sizeof(alt), "ux0:/%s", ro + 4);
+	else alt[0] = 0;
+	if (alt[0] && rf_lookup(RF_OVERRIDE_FILE, alt, out, n)) return 1;
+	const char *id = retro_rf_id(d);
+	if (id && rf_lookup(RF_GLOBAL_FILE, id, out, n)) {
+		for (size_t i = 0; i < sizeof(rf_default_core) / sizeof(rf_default_core[0]); i++)
+			if (!strcmp(rf_default_core[i].sys, id) && !strcmp(rf_default_core[i].core, out)) return 0;     /* RetroFlow's own default: no choice made */
+		return 1;
+	}
+	return 0;
+}
+
 /* the URI that starts a retro game; 0 when the item is not one */
 static int retro_launch_uri(const Item *it, char *uri, size_t n)
 {
@@ -355,6 +462,19 @@ static int retro_launch_uri(const Item *it, char *uri, size_t n)
 	const RetroRec *r = &retro_rec[it->rix - 1];
 	const RetroSys *d = retro_sys[r->sys].def;
 	int have_ra = psp_exists("ux0:app/RETROVITA"), have_e4 = psp_exists("ux0:app/EMU4VPLUS");
+	char rfc[64];
+	if (retro_rf_core(r, d, rfc, sizeof(rfc))) {                              /* the core the user set in RetroFlow Launcher */
+		int is_ra = strstr(rfc, "_libretro") != NULL;
+		if (is_ra && have_ra) { snprintf(uri, n, "psgm:play?titleid=RETROVITA&param=app0:/%s.self&param2=%s", rfc, r->rom); return 1; }
+		if (!is_ra && have_e4) {
+			snprintf(uri, n, "psgm:play?titleid=EMU4VPLUS&core=");
+			retro_uri_enc(uri, n, rfc);
+			size_t o = strlen(uri);
+			snprintf(uri + o, n - o, "&rom=");
+			retro_uri_enc(uri, n, r->rom);
+			return 1;
+		}                                                                       /* (that emulator is not installed: the usual choice below) */
+	}
 	int e4ok = have_e4 && d && d->emu4_core;
 	int use_e4 = retro_emu ? e4ok : (!have_ra && e4ok);                      /* the chosen launcher, else the one that is installed */
 	if (use_e4) {

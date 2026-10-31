@@ -292,7 +292,8 @@ int main(void)
 				if (r > 0 && ime_purpose == IME_NEW) {
 					int f = folder_new(nm, opt_col);
 					if (f >= 0) {
-						int fm = folder_col[f] == CAT_GAME ? M_MEMCARD : (cur == folder_col[f] ? cur : -1);
+						if (opt_col == CAT_GAME && opt_menu == CAT_GAME) folder_top[f] = 1;       /* made from the Game column: a row of the column itself */
+						int fm = folder_col[f] == CAT_GAME ? (folder_top[f] ? CAT_GAME : M_MEMCARD) : (cur == folder_col[f] ? cur : -1);
 						folders_save();
 						rebuild_game_lists();
 						for (int i = 0; fm >= 0 && i < menus[fm].count; i++)
@@ -415,7 +416,7 @@ int main(void)
 					depth = 0; prev_menu = -1; folder_trans = 0; in_t = out_t = 1.0f;
 					cur = cat;
 					open_col = tcol;
-					if (tcol == CAT_GAME) { menus[CAT_GAME].sel = 1; stack[0] = CAT_GAME; depth = 1; cur = M_MEMCARD; }
+					if (tcol == CAT_GAME) { menus[CAT_GAME].sel = game_top_n + 1; stack[0] = CAT_GAME; depth = 1; cur = M_MEMCARD; }
 					for (int i = 0; i < menus[fm].count; i++)
 						if (menus[fm].items[i].kind == KIND_FOLDER && menus[fm].items[i].value_id == mv_dest_folder) { menus[fm].sel = i; menus[fm].pos = (float)i; }
 					cat_ms = pt_ms_right;
@@ -1046,6 +1047,7 @@ int main(void)
 		/* ---------------- draw ---------------- */
 		flush_free();
 		text_frame_begin();
+		bg_wave_prepass(t);                               /* the wave's own 480 x 272 picture, before the frame's scene */
 		vita2d_start_drawing();
 		vita2d_clear_screen();
 
@@ -1059,6 +1061,7 @@ int main(void)
 			                               sc, sc, RGBA8(255, 255, 255, (int)(255 * pic_alpha)));
 			vita2d_draw_rectangle(0, 0, SCREEN_W, SCREEN_H, RGBA8(0, 0, 0, (int)(70 * pic_alpha)));
 		}
+		pm_pic0_draw();                              /* a PSP game's text block (PIC0.PNG), over its background */
 		if (!pt_blade_mode) draw_status(&dt);          /* with full-height panels the status bar goes on top of them, below */
 
 		xf_on = xf_set_up;                           /* a theme may turn the whole XMB in space (xform.h) */
@@ -1157,7 +1160,7 @@ int main(void)
 					cur_x += slide_dir * slide_px * (1.0f - ease_out(in_t));
 					cur_a *= ease_out(in_t);
 				}
-				draw_column(cur, cur_x, cur_a, pic_alpha, sub_t);
+				draw_column(cur, cur_x, cur_a, fmaxf(pic_alpha, pm_pic0_a), sub_t);
 			}
 		}
 

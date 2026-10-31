@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VitaXMB: the PSP's XMB on your PlayStation Vita</title>
+<meta name="description" content="VitaXMB rebuilds the PSP's cross media bar for the PlayStation Vita: your games and homebrew, music, video, settings and system apps in the layout, motion and sound of the original.">
+<meta name="theme-color" content="#071a3e">
+<link rel="canonical" href="https://dekiller82.github.io/VitaXMB/">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preload" href="fonts/rodin-db.woff2" as="font" type="font/woff2" crossorigin>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VitaXMB">
+<meta property="og:url" content="https://dekiller82.github.io/VitaXMB/">
+<meta property="og:title" content="VitaXMB: the PSP's XMB on your PlayStation Vita">
+<meta property="og:description" content="Your games, homebrew, PSP and PS1 games, music and video in the layout, motion and sound of the PSP's cross media bar. Free and open source.">
+<meta property="og:image" content="https://dekiller82.github.io/VitaXMB/images/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The VitaXMB Game category: the PSP's cross media bar with its blue wave, on a PlayStation Vita">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="VitaXMB: the PSP's XMB on your PlayStation Vita">
+<meta name="twitter:description" content="Your games, homebrew, PSP and PS1 games, music and video in the layout, motion and sound of the PSP's cross media bar.">
+<meta name="twitter:image" content="https://dekiller82.github.io/VitaXMB/images/og.png">
+<style>
+/* Concept: a PSP product page for 2025. Deep XMB blue and ceramic white in alternating bands, the PSP's own
+   typeface (the font the app ships, subset to Latin), real screenshots in glossy bezels, no cards. */
+@font-face { font-family: "Rodin"; src: url("fonts/rodin-db.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+:root {
+  --navy: #061532;
+  --deep: #0a2a6a;
+  --blue: #1b6be0;
+  --sky: #5aaeff;
+  --ice: #dcecff;
+  --paper: #f1f4f9;
+  --white: #ffffff;
+  --ink: #0b1730;
+  --ink2: #44536f;
+  --line-d: rgba(255, 255, 255, .16);
+  --line-l: rgba(11, 23, 48, .14);
+  --font: "Rodin", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", Consolas, "SF Mono", monospace;
+  --gutter: max(20px, env(safe-area-inset-left, 0px));
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; background: var(--navy); }
+body { margin: 0; font: 400 1.0625rem/1.7 var(--font); font-feature-settings: "palt" 1, "kern" 1; color: var(--ink); background: var(--paper); font-synthesis: none; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+img { max-width: 100%; height: auto; }
+a { color: var(--blue); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--sky); outline-offset: 3px; }
+.skip { position: absolute; left: -999px; top: 0; z-index: 60; background: var(--white); color: var(--ink); padding: 8px 14px; }
+.skip:focus { left: 0; }
+.in { width: min(1120px, 100%); margin-inline: auto; padding-left: var(--gutter); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+code, kbd { font: 500 .86em var(--mono); padding: 1px 7px; border-radius: 5px; background: rgba(27, 107, 224, .09); color: inherit; }
+.dark code, .dark kbd { background: rgba(255, 255, 255, .1); }
+kbd { border: 1px solid currentColor; border-color: rgba(127, 140, 165, .45); background: none; }
+
+/* ---------- bar ---------- */
+.nav { position: sticky; top: 0; z-index: 40; background: rgba(6, 21, 50, .86); backdrop-filter: blur(16px) saturate(1.3); -webkit-backdrop-filter: blur(16px) saturate(1.3); border-bottom: 1px solid var(--line-d); }
+.nav .in { display: flex; align-items: center; gap: 14px; height: 64px; }
+.logo { color: #fff; text-decoration: none; font-size: 1.28rem; letter-spacing: .01em; margin-right: auto; white-space: nowrap; }
+.logo b { color: var(--sky); font-weight: 400; }
+.nav ul { list-style: none; margin: 0; padding: 0; display: flex; gap: clamp(2px, 1.2vw, 14px); overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.nav ul::-webkit-scrollbar { display: none; }
+.nav li a { display: grid; justify-items: center; gap: 1px; width: 66px; padding: 6px 0 3px; color: #b6c6e4; text-decoration: none; }
+.nav li img { width: 30px; height: 30px; opacity: .6; transition: transform .3s, opacity .3s, filter .3s; }
+.nav li span { font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; height: 1em; line-height: 1; opacity: 0; transition: opacity .25s; }
+.nav li a:hover img, .nav li a:focus-visible img, .nav li a.on img { opacity: 1; transform: scale(1.14); filter: drop-shadow(0 0 8px rgba(120, 190, 255, .9)); }
+.nav li a:hover span, .nav li a:focus-visible span, .nav li a.on span { opacity: 1; color: #fff; }
+.pill { display: inline-block; padding: 9px 20px; border-radius: 999px; background: #fff; color: var(--navy); text-decoration: none; font-size: .9rem; white-space: nowrap; transition: background .2s, transform .2s; }
+.pill:hover, .pill:focus-visible { background: var(--ice); transform: translateY(-1px); }
+.pill.line { background: transparent; color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5); }
+.hero .pill.line { color: var(--hfg); box-shadow: inset 0 0 0 1px var(--hfg); }
+.hero .pill.line:hover { background: rgba(255, 255, 255, .25); }
+.pill.line:hover { background: rgba(255, 255, 255, .12); }
+.pill.big { padding: 15px 30px; font-size: 1.02rem; }
+
+/* ---------- hero ---------- */
+/* the sky is the firmware's picture for the month, stretched over the area with no veil, as in the app's firmware look */
+.hero { --hfg: #fff; --hmute: rgba(255, 255, 255, .86); --hshadow: rgba(0, 10, 50, .45); position: relative; overflow: hidden; color: var(--hfg); background: linear-gradient(rgba(255, 255, 255, .18), rgba(255, 255, 255, .18)), var(--sky, url("images/sky/08.png")) 0 0 / 100% 100% no-repeat; padding: clamp(48px, 7vw, 92px) 0 0; }
+.hero.ink { --hfg: #071a3e; --hmute: rgba(7, 26, 62, .8); --hshadow: rgba(255, 255, 255, .55); }
+.hero canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.hero .in { position: relative; }
+.eyebrow { font-size: .78rem; letter-spacing: .24em; text-transform: uppercase; color: var(--hmute); margin: 0 0 16px; }
+.hero h1 { margin: 0; font-size: clamp(3.4rem, 11.5vw, 8.6rem); line-height: .92; letter-spacing: -.012em; font-weight: 400; text-shadow: 0 2px 30px var(--hshadow); }
+.hero h1 em { font-style: normal; opacity: .72; }
+.hero .lead { margin: 22px 0 28px; max-width: 34rem; font-size: clamp(1.1rem, 2vw, 1.35rem); line-height: 1.55; color: var(--hmute); text-wrap: balance; }
+.hero .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.hero .ver { margin: 16px 0 0; font-size: .86rem; color: var(--hmute); }
+.months { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 18px; }
+.months span { font-size: .74rem; letter-spacing: .16em; text-transform: uppercase; color: var(--hmute); margin-right: 8px; }
+.months button { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 2px solid transparent; box-shadow: 0 0 0 1px var(--hmute); background: linear-gradient(var(--t), var(--b)); cursor: pointer; }
+.months button[aria-pressed="true"] { border-color: var(--hfg); }
+.stage { position: relative; margin-top: clamp(36px, 6vw, 70px); height: clamp(250px, 46vw, 560px); }
+.dev { position: absolute; padding: clamp(6px, 1.2vw, 14px); border-radius: clamp(14px, 2.4vw, 30px); background: linear-gradient(150deg, #3a404c 0, #12151b 45%, #07090c 100%); box-shadow: 0 0 0 1px rgba(255, 255, 255, .14) inset, 0 30px 70px -10px rgba(0, 8, 30, .75), 0 0 80px -20px rgba(90, 174, 255, .5); }
+.dev .scr { position: relative; overflow: hidden; border-radius: clamp(6px, 1vw, 12px); background: #000; line-height: 0; }
+.dev .scr img { display: block; width: 100%; }
+.dev .scr::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, rgba(255, 255, 255, .2) 0, rgba(255, 255, 255, .05) 28%, transparent 28.2%); pointer-events: none; }
+.dev.a { left: 50%; width: min(78%, 780px); transform: translateX(-50%) rotate(-1.5deg); top: 0; }
+.dev.b { right: 0; width: min(36%, 380px); bottom: -8%; transform: rotate(3deg); z-index: 2; }
+.dev.c { left: 0; width: min(30%, 320px); bottom: -2%; transform: rotate(-4deg); z-index: 2; }
+
+/* ---------- bands ---------- */
+.band { padding: clamp(60px, 9vw, 120px) 0; }
+.light { background: var(--paper); }
+.white { background: var(--white); }
+.dark { background: var(--navy); color: #fff; }
+.deep { background: linear-gradient(180deg, #08204f 0, #061532 100%); color: #fff; }
+.black { background: #03060d; color: #fff; }
+.k { font-size: .76rem; letter-spacing: .24em; text-transform: uppercase; color: var(--blue); margin: 0 0 14px; }
+.dark .k, .deep .k, .black .k { color: var(--sky); }
+h2 { margin: 0 0 18px; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.04; letter-spacing: -.01em; font-weight: 400; text-wrap: balance; }
+h3 { margin: 0 0 6px; font-size: 1.22rem; line-height: 1.3; font-weight: 400; }
+p { margin: 0 0 14px; }
+.mute { color: var(--ink2); } .dark .mute, .deep .mute, .black .mute { color: #a8bcdc; }
+.statement { font-size: clamp(1.5rem, 3.4vw, 2.5rem); line-height: 1.25; letter-spacing: -.005em; max-width: 52rem; margin: 0 0 clamp(36px, 6vw, 70px); text-wrap: balance; }
+.statement span { color: var(--blue); }
+
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line-l); border-bottom: 1px solid var(--line-l); }
+.facts div { padding: 22px 20px 20px 0; border-right: 1px solid var(--line-l); }
+.facts div + div { padding-left: 24px; }
+.facts div:last-child { border-right: 0; }
+.facts b { display: block; font-weight: 400; font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1; color: var(--blue); font-variant-numeric: tabular-nums; }
+.facts span { font-size: .82rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink2); }
+
+.row { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: clamp(28px, 5vw, 72px); align-items: center; margin-top: clamp(56px, 8vw, 110px); }
+.row.flip { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+.row.flip .pic { order: 2; }
+.row .pic .dev { position: relative; width: 100%; transform: none; box-shadow: 0 0 0 1px rgba(255, 255, 255, .12) inset, 0 34px 60px -24px rgba(8, 24, 70, .55); }
+.row ul { list-style: none; margin: 18px 0 0; padding: 0; }
+.row li { padding: 9px 0 9px 26px; position: relative; border-top: 1px solid var(--line-l); font-size: 1rem; color: var(--ink2); }
+.row li::before { content: ""; position: absolute; left: 2px; top: 1.05em; width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(145deg, #7cc2ff, #1b6be0); }
+
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(28px, 5vw, 72px); align-items: start; }
+ol.steps { list-style: none; counter-reset: s; margin: 0; padding: 0; }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 4px 12px; padding: 18px 0; border-top: 1px solid var(--line-d); }
+ol.steps li::before { content: counter(s); font-size: 2.2rem; line-height: 1; color: var(--sky); }
+ol.steps li > div { color: #b9cbe8; } ol.steps li strong { display: block; color: #fff; font-weight: 400; font-size: 1.12rem; }
+.sysgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 6px; padding: 18px; border-radius: 18px; background: linear-gradient(160deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .02)); box-shadow: inset 0 0 0 1px var(--line-d); }
+.sysgrid img { width: 100%; max-width: 56px; aspect-ratio: 1; opacity: .82; transition: transform .25s, opacity .25s; }
+.sysgrid img:hover { opacity: 1; transform: translateY(-3px) scale(1.1); }
+.flow { display: flex; flex-wrap: wrap; align-items: stretch; margin: 34px 0 0; border: 1px solid var(--line-d); border-radius: 16px; overflow: hidden; }
+.flow div { flex: 1 1 200px; padding: 18px 20px; border-right: 1px solid var(--line-d); color: #a8bcdc; font-size: .95rem; }
+.flow div:last-child { border-right: 0; }
+.flow b { display: block; color: #fff; font-weight: 400; font-size: 1.1rem; margin-bottom: 2px; }
+.flow .hot { background: linear-gradient(160deg, rgba(27, 107, 224, .45), rgba(27, 107, 224, .12)); }
+pre.tree { margin: 0; padding: 20px 22px; border-radius: 16px; background: rgba(0, 0, 0, .35); box-shadow: inset 0 0 0 1px var(--line-d); overflow-x: auto; font: 400 .84rem/1.8 var(--mono); color: #d3e3fb; }
+pre.tree .d { color: var(--sky); } pre.tree .c { color: #7f95ba; }
+
+.rail { margin-top: 30px; display: flex; gap: 22px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 6px var(--gutter) 28px; scrollbar-width: thin; scrollbar-color: var(--blue) transparent; }
+.rail figure { flex: 0 0 min(560px, 84%); margin: 0; scroll-snap-align: center; }
+.rail .dev { position: relative; transform: none; width: 100%; }
+.rail figcaption { padding: 12px 4px 0; font-size: .86rem; letter-spacing: .06em; color: #8fa6cc; }
+
+.notes { list-style: none; margin: 26px 0 0; padding: 0; border-top: 1px solid var(--line-l); max-width: 52rem; }
+.notes li { padding: 14px 0; border-bottom: 1px solid var(--line-l); color: var(--ink2); line-height: 1.5; }
+.notes li b { color: var(--ink); font-weight: 600; }
+.notes-more { margin-top: 18px; }
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line-l); }
+.three > div { padding: 24px 28px 8px 0; }
+.three > div + div { padding-left: 28px; border-left: 1px solid var(--line-l); }
+.three .n { font-size: 3.2rem; line-height: 1; color: var(--blue); margin-bottom: 8px; }
+.cmd { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; padding: 8px 8px 8px 14px; border-radius: 10px; background: #fff; box-shadow: inset 0 0 0 1px var(--line-l); font: 500 .88rem var(--mono); min-width: 0; }
+.cmd span { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+.cmd button { font: 400 .78rem var(--font); letter-spacing: .08em; text-transform: uppercase; padding: 6px 12px; border-radius: 7px; border: 0; background: var(--ink); color: #fff; cursor: pointer; }
+dl.keys { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 clamp(24px, 5vw, 64px); }
+dl.keys div { display: flex; gap: 16px; align-items: baseline; padding: 12px 0; border-top: 1px solid var(--line-l); }
+dl.keys dt { flex: none; min-width: 7.6rem; } dl.keys dd { margin: 0; color: var(--ink2); }
+
+details { border-top: 1px solid var(--line-l); padding: 18px 0; }
+details:last-of-type { border-bottom: 1px solid var(--line-l); }
+details summary { cursor: pointer; list-style: none; font-size: 1.2rem; display: flex; justify-content: space-between; gap: 16px; }
+details summary::-webkit-details-marker { display: none; }
+details summary::after { content: "+"; color: var(--blue); font-size: 1.6rem; line-height: 1; transition: transform .25s; }
+details[open] summary::after { transform: rotate(45deg); }
+details p { margin: 10px 0 0; color: var(--ink2); max-width: 46rem; }
+
+.join { background: radial-gradient(100% 140% at 85% 0, #2f7cf0 0, #0e3a8c 50%, #061532 100%); color: #fff; text-align: left; }
+.join .in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 26px 40px; }
+.join h2 { margin: 0 0 8px; } .join p { margin: 0; color: #cfe1fb; max-width: 30rem; }
+.join .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+footer { background: var(--navy); color: #8fa6cc; padding: 36px 0 52px; font-size: .88rem; }
+footer .in { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 30px; }
+footer a { color: #c7d9f5; margin-right: 18px; }
+
+@media (max-width: 900px) {
+  .row, .row.flip { grid-template-columns: minmax(0, 1fr); } .row.flip .pic { order: 0; }
+  .cols { grid-template-columns: minmax(0, 1fr); }
+  .three { grid-template-columns: minmax(0, 1fr); } .three > div, .three > div + div { padding: 20px 0 8px; border-left: 0; border-top: 1px solid var(--line-l); } .three { border-top: 0; }
+  dl.keys { grid-template-columns: minmax(0, 1fr); }
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .facts div { border-bottom: 1px solid var(--line-l); } .facts div:nth-child(2n) { border-right: 0; } .facts div:nth-child(odd) { padding-left: 0; }
+  .nav .pill.line { display: none; }
+}
+@media (max-width: 560px) {
+  .nav .in { gap: 8px; } .nav li:nth-child(n+5) { display: none; } .nav li a { width: 54px; }
+  .dev.c { display: none; } .dev.b { width: 44%; bottom: -10%; } .dev.a { width: 94%; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="in">
+    <a class="logo" href="#top">Vita<b>XMB</b></a>
+    <ul>
+      <li><a href="#explore" data-s="explore"><img src="images/xmb/game.png" width="30" height="30" alt=""><span>Explore</span></a></li>
+      <li><a href="#sort" data-s="sort"><img src="images/xmb/emulator.png" width="30" height="30" alt=""><span>Sort</span></a></li>
+      <li><a href="#retro" data-s="retro"><img src="images/xmb/folder.png" width="30" height="30" alt=""><span>Retro</span></a></li>
+      <li><a href="#screens" data-s="screens"><img src="images/xmb/video.png" width="30" height="30" alt=""><span>Screens</span></a></li>
+      <li><a href="#install" data-s="install"><img src="images/xmb/update.png" width="30" height="30" alt=""><span>Install</span></a></li>
+      <li><a href="#faq" data-s="faq"><img src="images/xmb/manual.png" width="30" height="30" alt=""><span>FAQ</span></a></li>
+    </ul>
+    <a class="pill line" href="https://discord.gg/X28rtMVxrD">Discord</a>
+    <a class="pill" id="dl2" href="https://github.com/dekiller82/VitaXMB/releases/latest">Download</a>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero" id="top">
+    <canvas id="waves" aria-hidden="true"></canvas>
+    <div class="in">
+      <p class="eyebrow">For the PlayStation Vita</p>
+      <h1>Vita<em>XMB</em></h1>
+      <p class="lead">The PSP's cross media bar, rebuilt for the Vita. Your games, homebrew, music, video and settings, in the layout, motion and sound of the original.</p>
+      <div class="cta">
+        <a class="pill big" id="dl" href="https://github.com/dekiller82/VitaXMB/releases/latest">Download the VPK</a>
+        <a class="pill big line" href="https://github.com/dekiller82/VitaXMB#readme">Read the README</a>
+      </div>
+      <p class="ver" id="ver">Free and open source. Needs a Vita with HENkaku / Enso.</p>
+      <div class="months" id="months" role="group" aria-label="Colour of the month"><span>Colour of the month</span></div>
+      <div class="stage">
+        <div class="dev c"><div class="scr"><img src="images/options-panel.webp" alt="The Options panel on a game" width="960" height="544"></div></div>
+        <div class="dev a"><div class="scr"><img src="images/home.webp" alt="VitaXMB on the Vita: the category bar with Game selected" width="960" height="544"></div></div>
+        <div class="dev b"><div class="scr"><img src="images/game-list.webp" alt="The wide game list with background art" width="960" height="544"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band light" id="explore">
+    <div class="in">
+      <p class="k">What it is</p>
+      <p class="statement">VitaXMB gives your Vita the PSP's home screen. The same icons, spacing, waves and sounds, with <span>your Vita games, homebrew, PSP and PS1 games, music and video</span> where the PSP would put them.</p>
+      <div class="facts">
+        <div><b>22</b><span>Columns of your own</span></div>
+        <div><b>33</b><span>System icons</span></div>
+        <div><b>12</b><span>Languages</span></div>
+        <div><b>6144</b><span>Apps and games, at most</span></div>
+      </div>
+
+      <div class="row">
+        <div>
+          <p class="k">Games</p>
+          <h2>Your whole library in the PSP's game list</h2>
+          <p class="mute">Every Vita title and homebrew bubble with its own artwork, plus PSP and PS1 games from Adrenaline's folders, listed under their real names. Rest on a PSP game and its ICON1 video and sound play, like on the PSP.</p>
+          <ul>
+            <li>Wide tiles, with the game's background art when you rest on it</li>
+            <li>PSP and PS1 ISO, CSO and EBOOT files, with or without an Adrenaline bubble</li>
+            <li>A Last played disc under Memory Stick, as in a PSP's drive</li>
+          </ul>
+        </div>
+        <div class="pic"><div class="dev"><div class="scr"><img src="images/game-list.webp" alt="The wide game list" loading="lazy" width="960" height="544"></div></div></div>
+      </div>
+
+      <div class="row flip">
+        <div>
+          <p class="k">Options</p>
+          <h2>Triangle opens Options, like it should</h2>
+          <p class="mute">Start, Information, Move to..., Uninstall and folders sit one button away on every game and every column row. Sort a whole library into columns and folders of your own, with a matching icon for every system.</p>
+          <ul>
+            <li>Up to 22 columns of your own, and folders inside them</li>
+            <li>Uninstall an app from its Options, with a question first</li>
+            <li>Trophy progress without opening the LiveArea</li>
+          </ul>
+        </div>
+        <div class="pic"><div class="dev"><div class="scr"><img src="images/options-panel.webp" alt="The Options panel" loading="lazy" width="960" height="544"></div></div></div>
+      </div>
+
+      <div class="row">
+        <div>
+          <p class="k">Music and video</p>
+          <h2>A player with the PSP's spectrum analyzer</h2>
+          <p class="mute">The PSP's music screens, drawn at the Vita's resolution and driven by the real audio. A video player (beta) with the PSP's control panel plays much more than the PSP could.</p>
+          <ul>
+            <li>MP3, FLAC, WAV, AIFF and Ogg Vorbis, streamed from the card</li>
+            <li>MP4, MKV, AVI, WebM and more, hardware decoded where the Vita allows</li>
+            <li>Full touch screen support in every list and player</li>
+          </ul>
+        </div>
+        <div class="pic"><div class="dev"><div class="scr"><img src="images/music-player.webp" alt="The music player" loading="lazy" width="960" height="544"></div></div></div>
+      </div>
+
+      <div class="row flip">
+        <div>
+          <p class="k">Settings</p>
+          <h2>The PSP's Settings, with the Vita's options added</h2>
+          <p class="mute">The PSP's two-level Settings layout, in the PSP's own 12 languages. Switch the monthly colour theme, load PSP custom themes (beta), and update VitaXMB from inside the app, like the PSP's System Update.</p>
+          <ul>
+            <li>Network Update checks GitHub, shows the notes and installs the new version</li>
+            <li>Twelve monthly colours with the PSP's animated waves</li>
+            <li>PSP .ctf and .ptf themes from a folder on the card</li>
+          </ul>
+        </div>
+        <div class="pic"><div class="dev"><div class="scr"><img src="images/vitaxmb-settings.webp" alt="VitaXMB Settings" loading="lazy" width="960" height="544"></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band deep dark" id="sort">
+    <div class="in">
+      <p class="k">Sort</p>
+      <h2>Sort the whole library from one list</h2>
+      <p class="mute" style="max-width:40rem">Nothing is deleted. Apps you placed yourself and retail Vita games never move.</p>
+      <div class="cols" style="margin-top:34px">
+        <ol class="steps">
+          <li><div><strong>Open the sort list</strong>Settings &gt; VitaXMB Settings &gt; Sort Apps into Columns. It is also offered once at the first start.</div></li>
+          <li><div><strong>Tick what you want</strong><kbd>Cross</kbd> ticks a row, <kbd>Square</kbd> ticks all or none, <kbd>L</kbd> and <kbd>R</kbd> jump five rows.</div></li>
+          <li><div><strong>Pick the targets</strong>Emulators, Utilities, Music, Video and Network go to their columns. PSP games, PS1 games, PSM games and Homebrew get columns of their own.</div></li>
+          <li><div><strong>Choose the retro layout</strong>A folder per system inside Emulators (the default), a column per system, or one Retro column.</div></li>
+          <li><div><strong>Press Triangle</strong>Fix anything with Move to..., Organize Apps or Arrange Columns.</div></li>
+        </ol>
+        <div>
+          <p class="mute">Every column and folder the list makes gets the icon of its system. You can change any of them later from Arrange Columns or a folder's Options.</p>
+          <div class="sysgrid" aria-label="The 33 system icons">
+            <img src="images/sys/nes.png" width="56" height="56" alt="NES" loading="lazy"><img src="images/sys/snes.png" width="56" height="56" alt="SNES" loading="lazy"><img src="images/sys/gb.png" width="56" height="56" alt="Game Boy" loading="lazy"><img src="images/sys/gbc.png" width="56" height="56" alt="Game Boy Color" loading="lazy"><img src="images/sys/gba.png" width="56" height="56" alt="Game Boy Advance" loading="lazy"><img src="images/sys/md.png" width="56" height="56" alt="Mega Drive" loading="lazy"><img src="images/sys/sms.png" width="56" height="56" alt="Master System" loading="lazy"><img src="images/sys/gg.png" width="56" height="56" alt="Game Gear" loading="lazy"><img src="images/sys/scd.png" width="56" height="56" alt="Sega CD" loading="lazy"><img src="images/sys/s32x.png" width="56" height="56" alt="Sega 32X" loading="lazy"><img src="images/sys/pce.png" width="56" height="56" alt="PC Engine" loading="lazy"><img src="images/sys/pcecd.png" width="56" height="56" alt="PC Engine CD" loading="lazy"><img src="images/sys/psx.png" width="56" height="56" alt="PlayStation" loading="lazy"><img src="images/sys/psp.png" width="56" height="56" alt="PSP" loading="lazy"><img src="images/sys/psm.png" width="56" height="56" alt="PSM" loading="lazy"><img src="images/sys/neogeo.png" width="56" height="56" alt="Neo Geo" loading="lazy"><img src="images/sys/ngp.png" width="56" height="56" alt="Neo Geo Pocket" loading="lazy"><img src="images/sys/arcade.png" width="56" height="56" alt="Arcade" loading="lazy"><img src="images/sys/mame.png" width="56" height="56" alt="MAME" loading="lazy"><img src="images/sys/ws.png" width="56" height="56" alt="WonderSwan" loading="lazy"><img src="images/sys/wsc.png" width="56" height="56" alt="WonderSwan Color" loading="lazy"><img src="images/sys/a2600.png" width="56" height="56" alt="Atari 2600" loading="lazy"><img src="images/sys/a5200.png" width="56" height="56" alt="Atari 5200" loading="lazy"><img src="images/sys/a7800.png" width="56" height="56" alt="Atari 7800" loading="lazy"><img src="images/sys/lynx.png" width="56" height="56" alt="Atari Lynx" loading="lazy"><img src="images/sys/atarist.png" width="56" height="56" alt="Atari ST" loading="lazy"><img src="images/sys/amiga.png" width="56" height="56" alt="Amiga" loading="lazy"><img src="images/sys/c64.png" width="56" height="56" alt="Commodore 64" loading="lazy"><img src="images/sys/msx.png" width="56" height="56" alt="MSX" loading="lazy"><img src="images/sys/msx2.png" width="56" height="56" alt="MSX2" loading="lazy"><img src="images/sys/zx.png" width="56" height="56" alt="ZX Spectrum" loading="lazy"><img src="images/sys/coleco.png" width="56" height="56" alt="ColecoVision" loading="lazy"><img src="images/sys/vectrex.png" width="56" height="56" alt="Vectrex" loading="lazy">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band dark" id="retro">
+    <div class="in">
+      <p class="k">Retro games</p>
+      <h2>Start your ROMs from the XMB</h2>
+      <p class="mute" style="max-width:42rem">Having RetroArch or Emu4Vita+ installed is not enough on its own. VitaXMB never searches the whole card: it reads two places.</p>
+      <div class="flow">
+        <div><b>Your ROMs</b>Anywhere on the card, or in RetroFlow-style folders</div>
+        <div><b>An index</b>RetroArch playlists, or the folders under RetroFlow/ROMS</div>
+        <div class="hot"><b>VitaXMB</b>Lists them by system and you sort them into folders or columns</div>
+        <div><b>The emulator</b>RetroArch or Emu4Vita+ gets the core and the file</div>
+      </div>
+      <div class="cols" style="margin-top:38px">
+        <div>
+          <h3>1. RetroArch playlists</h3>
+          <p class="mute">Scan your ROMs once in RetroArch (Import Content &gt; Scan Directory). RetroArch writes <code>ux0:data/retroarch/playlists/&lt;system&gt;.lpl</code> and VitaXMB reads it. The ROMs can be anywhere. A fresh RetroArch has empty playlists.</p>
+          <h3 style="margin-top:22px">2. RetroFlow-style folders</h3>
+          <p class="mute">Put ROMs in a folder named after the system. One level of subfolders is read. RetroFlow Launcher itself is not needed. Titles come from the file names, so name ROMs the No-Intro way. Pictures are PNG files with the same name, from RetroArch's thumbnails or RetroFlow's covers.</p>
+          <p class="mute">Choose the emulator in Settings &gt; VitaXMB Settings &gt; Retro Games Launcher. The README lists all 31 folder names and the cores.</p>
+          <p><a class="pill" href="https://github.com/dekiller82/VitaXMB#how-the-rom-folders-work-the-same-layout-as-retroflow-launcher">ROM folders in the README</a></p>
+        </div>
+        <pre class="tree"><span class="d">ux0:data/RetroFlow/</span>
+├─ <span class="d">ROMS/</span>
+│  ├─ Nintendo - Super Nintendo Entertainment System/
+│  │  └─ Super Mario World (USA).sfc
+│  ├─ Nintendo - Game Boy Advance/
+│  │  └─ Metroid Fusion (USA).gba
+│  └─ Sega - Mega Drive - Genesis/
+└─ <span class="d">COVERS/</span>  <span class="c"># optional PNG pictures</span>
+   └─ Nintendo - Super Nintendo Entertainment System/
+      └─ Super Mario World (USA).png</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="band black" id="screens">
+    <div class="in"><p class="k">Screens</p><h2>Captured on the Vita</h2></div>
+    <div class="rail" tabindex="0" aria-label="Screenshots, scroll sideways">
+      <figure><div class="dev"><div class="scr"><img src="images/home.webp" alt="The Game category" loading="lazy" width="960" height="544"></div></div><figcaption>Game: installed titles and saved data</figcaption></figure>
+      <figure><div class="dev"><div class="scr"><img src="images/game-list.webp" alt="The wide game list" loading="lazy" width="960" height="544"></div></div><figcaption>The game list</figcaption></figure>
+      <figure><div class="dev"><div class="scr"><img src="images/options-panel.webp" alt="The Options panel" loading="lazy" width="960" height="544"></div></div><figcaption>Options with Triangle</figcaption></figure>
+      <figure><div class="dev"><div class="scr"><img src="images/settings.webp" alt="Settings" loading="lazy" width="960" height="544"></div></div><figcaption>Settings</figcaption></figure>
+      <figure><div class="dev"><div class="scr"><img src="images/system-settings.webp" alt="The two-level Settings layout" loading="lazy" width="960" height="544"></div></div><figcaption>The two-level Settings layout</figcaption></figure>
+      <figure><div class="dev"><div class="scr"><img src="images/vitaxmb-settings.webp" alt="VitaXMB Settings" loading="lazy" width="960" height="544"></div></div><figcaption>VitaXMB Settings</figcaption></figure>
+      <figure><div class="dev"><div class="scr"><img src="images/music-player.webp" alt="The music player" loading="lazy" width="960" height="544"></div></div><figcaption>The music player</figcaption></figure>
+      <figure><div class="dev"><div class="scr"><img src="images/track-list.webp" alt="The track list" loading="lazy" width="960" height="544"></div></div><figcaption>The track list</figcaption></figure>
+      <figure><div class="dev"><div class="scr"><img src="images/system-information.webp" alt="System Information" loading="lazy" width="960" height="544"></div></div><figcaption>System Information</figcaption></figure>
+      <figure><div class="dev"><div class="scr"><img src="images/network.webp" alt="The Network category" loading="lazy" width="960" height="544"></div></div><figcaption>Network</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="band white" id="new">
+    <div class="in">
+      <p class="k">What's new</p>
+      <h2 id="new-title">The latest release</h2>
+      <ul class="notes" id="notes"><li>Loading the notes from GitHub...</li></ul>
+      <p class="notes-more"><a class="pill line" href="https://github.com/dekiller82/VitaXMB/releases">All releases and notes</a></p>
+    </div>
+  </section>
+
+  <section class="band light" id="install">
+    <div class="in">
+      <p class="k">Install</p>
+      <h2>Three steps, then the PSP's menu</h2>
+      <p class="mute" style="max-width:44rem">VitaXMB is an <em>unsafe</em> homebrew: it reads other apps' folders and starts other titles. Your Vita needs <strong>HENkaku / Enso</strong> with <strong>Enable Unsafe Homebrew</strong> switched on.</p>
+      <h3 style="margin:34px 0 0">Before you install</h3>
+      <div class="three" style="margin-top:14px">
+        <div><h3>Always</h3><p class="mute">A Vita with <strong>HENkaku</strong> or <strong>Enso</strong>, with <em>Enable Unsafe Homebrew</em> on. VitaXMB is built and tested on firmware 3.65. VitaShell, or any way to install a <code>.vpk</code>.</p></div>
+        <div><h3>For PSP and PS1 games</h3><p class="mute"><strong>Adrenaline</strong> with your games in <code>ux0:pspemu</code> (ISO, CSO, PSN or converted PS1 EBOOTs). VitaXMB lists them, shows their text blocks and starts them for you.</p></div>
+        <div><h3>For retro games</h3><p class="mute"><strong>RetroArch</strong> or <strong>Emu4Vita+</strong>, and ROMs in RetroFlow-style folders or a RetroArch playlist. Nothing to convert if you already use RetroFlow Launcher.</p></div>
+      </div>
+      <h3 style="margin:44px 0 0">Steps</h3>
+      <div class="three" style="margin-top:14px">
+        <div><div class="n">1</div><h3>Download</h3><p class="mute">Get the <code>.vpk</code> from the <a href="https://github.com/dekiller82/VitaXMB/releases/latest">latest release</a>.</p></div>
+        <div><div class="n">2</div><h3>Install with VitaShell</h3><p class="mute">Copy the file to the Vita, press <kbd>Cross</kbd> on it and confirm.</p></div>
+        <div><div class="n">3</div><h3>Start VitaXMB</h3><p class="mute">Open it from the LiveArea. Settings are kept in <code>ux0:data/VitaXMB</code>, with a <code>log.txt</code> for problems.</p></div>
+      </div>
+      <h3 style="margin:48px 0 6px">Start it when the Vita turns on</h3>
+      <p class="mute" style="max-width:44rem">Install AutoBoot and NoLockScreen with AutoPlugin 2, then pick VitaXMB under Extras &gt; AutoBoot &gt; Select App. By hand, <code>ux0:data/AutoBoot/boot.cfg</code> must contain only the title ID. VitaXMB also offers its own NoLiveArea plugin at the first start, which keeps the LiveArea out of sight and brings VitaXMB back when a game closes.</p>
+      <div class="cmd" style="max-width:420px"><span id="tid">VXMB00001</span><button type="button" id="cp">Copy</button></div>
+      <h3 style="margin:48px 0 6px">Controls</h3>
+      <dl class="keys">
+        <div><dt><kbd>Left</kbd> <kbd>Right</kbd></dt><dd>Change category. In Settings: back, and change the value.</dd></div>
+        <div><dt><kbd>Up</kbd> <kbd>Down</kbd></dt><dd>Move through the list. Hold to repeat.</dd></div>
+        <div><dt><kbd>L</kbd> <kbd>R</kbd></dt><dd>Jump five rows.</dd></div>
+        <div><dt><kbd>Cross</kbd></dt><dd>Open, start, change a value.</dd></div>
+        <div><dt><kbd>Circle</kbd></dt><dd>Back, close a page or dialog.</dd></div>
+        <div><dt><kbd>Triangle</kbd></dt><dd>Options on a game, folder, saved data or any column row.</dd></div>
+      </dl>
+      <p class="mute" style="margin-top:14px">Touch works everywhere: drag to scroll, tap a row to select and again to open, press and hold for Options.</p>
+    </div>
+  </section>
+
+  <section class="band white" id="faq">
+    <div class="in">
+      <p class="k">Questions</p>
+      <h2>Before you ask</h2>
+      <div style="margin-top:28px">
+        <details><summary>My apps are all in Memory Stick</summary><p>Run Settings &gt; VitaXMB Settings &gt; Sort Apps into Columns, or use Triangle &gt; Move to... on an app. With a custom theme that has no panels for the extra columns, each column shows as a folder under Memory Stick.</p></details>
+        <details><summary>A retro game only opens the emulator</summary><p>Games start through RetroArch or Emu4Vita+ with the core and the file as launch parameters. Older builds may not take them. RetroFlow recommends RetroArch 1.9.4 and Emu4Vita+ 0.71 or newer. Tell us which version you use in the Discord.</p></details>
+        <details><summary>The screen stays black after starting a game</summary><p>That is the NoLiveArea plugin hiding the LiveArea while the game loads. If it never ends, press the PS button or restart the Vita.</p></details>
+        <details><summary>How do I start over with columns and folders?</summary><p>Delete <code>folders.txt</code> and <code>columns.txt</code> in <code>ux0:data/VitaXMB</code>.</p></details>
+        <details><summary>Which custom themes work?</summary><p>PSP themes are a beta. Themes that paint the whole category bar, such as the Xbox 360 and Euphoria styles, have no picture for extra columns, so those columns appear as folders under Game &gt; Memory Stick.</p></details>
+        <details><summary>Where do I report a bug or ask for a feature?</summary><p>In the <a href="https://discord.gg/X28rtMVxrD">Discord</a>, no GitHub account needed, or as an issue on <a href="https://github.com/dekiller82/VitaXMB/issues">GitHub</a>. For bugs, attach <code>ux0:data/VitaXMB/log.txt</code>.</p></details>
+      </div>
+      <p class="mute" style="margin-top:22px;font-size:.95rem">The video player is a beta, the PlayStation Network and Extras categories of the real PSP are not implemented, and PSM games have not been tried on a console with PSM titles. The <a href="https://github.com/dekiller82/VitaXMB#known-issues">README</a> has the full list.</p>
+    </div>
+  </section>
+
+  <section class="band join" id="join">
+    <div class="in">
+      <div><h2>Questions, bugs, ideas</h2><p>Ask for help, report a bug or suggest a feature in the Discord. No GitHub account needed.</p></div>
+      <div class="cta"><a class="pill big" href="https://discord.gg/X28rtMVxrD">Join the Discord</a><a class="pill big line" href="https://github.com/dekiller82/VitaXMB">GitHub</a></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="in">
+    <div><a href="https://github.com/dekiller82/VitaXMB#changelog">Changelog</a><a href="https://github.com/dekiller82/VitaXMB/releases">Releases</a><a href="https://discord.gg/X28rtMVxrD">Discord</a></div>
+    <div>Free software under the GPL-3.0. An unofficial fan project, not affiliated with Sony.</div>
+  </div>
+</footer>
+
+<script src="wave.js"></script>
+<script>
+(function () {
+  var still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* the XMB's own wave (wave.js, ported from the app) over the firmware's picture for the month */
+  var hero = document.getElementById('top'), cv = document.getElementById('waves');
+  var TOP = [[209,212,221],[235,172,19],[111,193,52],[250,145,172],[0,65,25],[113,70,159],[7,152,186],[0,5,78],[31,4,66],[255,171,36],[86,30,18],[147,18,14]];
+  var BOT = [[175,181,196],[234,206,9],[111,183,42],[246,141,158],[43,170,30],[146,108,234],[11,185,214],[6,177,222],[128,23,158],[255,144,45],[54,8,3],[237,57,16]];
+  var NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  function lin(x) { x = (x + (255 - x) * .18) / 255; return x <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4); }
+  function lum(m) { var c = [0, 1, 2].map(function (k) { return TOP[m][k] * .6 + BOT[m][k] * .4; }); return .2126 * lin(c[0]) + .7152 * lin(c[1]) + .0722 * lin(c[2]); }
+  var mb = [], mwrap = document.getElementById('months');
+  function setMonth(m, save) {
+    hero.style.setProperty('--sky', 'url("images/sky/' + (m < 9 ? '0' : '') + (m + 1) + '.png")');
+    hero.classList.toggle('ink', lum(m) > .28);
+    mb.forEach(function (b, k) { b.setAttribute('aria-pressed', k === m ? 'true' : 'false'); });
+    if (typeof wave !== 'undefined' && wave) wave.setMonth(m);
+    if (save) { try { localStorage.setItem('vxmb-month', String(m)); } catch (e) {} }
+  }
+  NAMES.forEach(function (n, m) {
+    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', n); b.title = n;
+    b.style.setProperty('--t', 'rgb(' + TOP[m].join(',') + ')'); b.style.setProperty('--b', 'rgb(' + BOT[m].join(',') + ')');
+    b.addEventListener('click', function () { setMonth(m, true); });
+    mwrap.appendChild(b); mb.push(b);
+  });
+  var month = 7; try { var sm = parseInt(localStorage.getItem('vxmb-month'), 10); if (sm >= 0 && sm < 12) month = sm; } catch (e) {}
+  setMonth(month, false);
+  var wave = window.VitaWave ? window.VitaWave.start(cv, hero) : null;
+  if (wave) wave.setMonth(month);
+
+  /* the section in view lights its icon in the bar */
+  var items = {}; document.querySelectorAll('.nav li a').forEach(function (a) { items[a.dataset.s] = a; });
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) Object.keys(items).forEach(function (k) { items[k].classList.toggle('on', k === e.target.id); }); }); }, { rootMargin: '-40% 0px -55% 0px' });
+    Object.keys(items).forEach(function (k) { var s = document.getElementById(k); if (s) io.observe(s); });
+  }
+
+  /* copy the title ID */
+  var cp = document.getElementById('cp');
+  if (cp) cp.addEventListener('click', function () {
+    var el = document.getElementById('tid');
+    function ok() { cp.textContent = 'Copied'; setTimeout(function () { cp.textContent = 'Copy'; }, 1400); }
+    function fb() { var r = document.createRange(); r.selectNodeContents(el); var s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(el.textContent).then(ok, fb); else fb();
+  });
+
+  /* the release's own notes: the bullet list under "New in x" (or the first bullets), cleaned of markdown */
+  function esc(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function notes(rel, v) {
+    var ul = document.getElementById('notes');
+    if (!ul || !rel || !rel.body) return;
+    var out = [];
+    rel.body.split(/\r?\n/).forEach(function (l) {
+      var m = /^\s*[-*]\s+(.*\S)\s*$/.exec(l);
+      if (!m || out.length >= 8) return;
+      var raw = m[1];
+      if (raw.length > 260) {                                   /* keep whole sentences: cut where one ends */
+        var cut = raw.slice(0, 260), k = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));
+        raw = k > 60 ? cut.slice(0, k + 1) : cut.replace(/\s+\S*$/, '') + '...';
+        if ((raw.match(/\*\*/g) || []).length % 2) raw = raw.slice(0, raw.lastIndexOf('**')).replace(/\s+$/, '') + '...';      /* not in the middle of a bold run */
+        if ((raw.match(/`/g) || []).length % 2) raw = raw.slice(0, raw.lastIndexOf('`')).replace(/\s+$/, '') + '...';
+      }
+      var t = esc(raw).replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\*([^*]+)\*/g, '<em>$1</em>');
+      out.push('<li>' + t + '</li>');
+    });
+    if (!out.length) return;
+    ul.innerHTML = out.join('');
+    if (v) document.getElementById('new-title').textContent = 'New in ' + v;
+  }
+
+  /* newest version, when GitHub answers */
+  fetch('https://api.github.com/repos/dekiller82/VitaXMB/releases/latest').then(function (r) { return r.ok ? r.json() : null; }).then(function (rel) {
+    if (!rel) return;
+    var v = (rel.tag_name || '').replace(/^v/, '');
+    var a = (rel.assets || []).filter(function (x) { return /\.vpk$/i.test(x.name); })[0];
+    if (a) { ['dl', 'dl2'].forEach(function (id) { document.getElementById(id).href = a.browser_download_url; }); document.getElementById('dl').textContent = 'Download VitaXMB ' + v; }
+    if (v) document.getElementById('ver').textContent = 'Version ' + v + '. Free and open source. Needs a Vita with HENkaku / Enso.';
+    notes(rel, v);
+  }).catch(function () {});
+})();
+</script>
+</body>
+</html>

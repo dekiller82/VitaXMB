@@ -21,6 +21,8 @@ static int options_for(int m, const Item *it, int *ids, int *folder, int *newcol
 		*folder = it->value_id;
 		*newcol = folder_col[it->value_id];
 		ids[n++] = OPT_SELECT; ids[n++] = OPT_RENAME; ids[n++] = OPT_ICON; ids[n++] = OPT_MOVEFOLDER; ids[n++] = OPT_DELFOLDER; ids[n++] = OPT_NEWFOLDER;
+	} else if (m == CAT_GAME && it->kind == KIND_FOLDER) {                     /* the Memory Stick row of the Game column: where a folder under Game is made */
+		ids[n++] = OPT_NEWFOLDER; ids[n++] = OPT_ORGANIZE; ids[n++] = OPT_COLUMNS; ids[n++] = OPT_REFRESH;
 	} else if (m == CAT_GAME) {                                                /* the last played game under Memory Stick */
 		ids[n++] = OPT_START; ids[n++] = OPT_INFO;
 		if (troph) ids[n++] = OPT_TROPHIES;

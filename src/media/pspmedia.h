@@ -196,6 +196,14 @@ static int pm_game_path(const char *id, char *out, size_t n)
 }
 static volatile int pm_req_gen;
 
+/* The text block of a game: its PIC0.PNG (310 x 180), which the PSP draws over the background at the lower right, 5 PSP pixels from the right and bottom edges
+ * (measured on a capture of Adrenaline's XMB: x 165, y 87 at the PSP's 480 x 272). The worker writes it out as a file, the main thread makes the texture. */
+static char pm_pic0_file[112];
+static volatile int pm_pic0_gen;                  /* the request the file belongs to */
+static vita2d_texture *pm_pic0_tex;
+static const Item *pm_pic0_item;                  /* the game the texture is of */
+static float pm_pic0_a;                           /* how far it has faded in; also grows the selected icon and fades the item text, as the background art does */
+
 static int pm_stopped(int gen) { return pm_gen != gen; }
 
 static uint8_t *volatile pm_film_in;          /* the worker's ICON1.PMF, for the main thread to take */
@@ -287,7 +295,12 @@ static void *pm_worker(void *arg)
 		size_t ln = 0, ls = 0;
 		uint8_t *film = pm_game_file(&src, PM_F_ICON1, &ln);
 		uint8_t *snd = pm_game_file(&src, PM_F_SND0, &ls);
+		char p0[112];
+		sceIoMkdir(PSP_CACHE_DIR, 0777);
+		snprintf(p0, sizeof(p0), PSP_CACHE_DIR "/%s_p0.png", id);
+		int have0 = psp_extract(&src, PM_F_PIC0, p0);
 		pm_src_close(&src);
+		if (have0 && !pm_stopped(gen)) { snprintf(pm_pic0_file, sizeof(pm_pic0_file), "%s", p0); pm_pic0_gen = gen; }
 		if (film && !pm_stopped(gen)) { pm_film_in = film; pm_film_in_n = ln; pm_film_in_gen = gen; } else free(film);
 		if (snd && !pm_stopped(gen) && sound_on && !mus_playing) {
 			bgm_target = 0.0f;
@@ -324,6 +337,31 @@ static void pm_stop(void)
 	if (late) { pm_film_in = NULL; free(late); }
 }
 
+/* fades the text block in for the game the cursor rests on and out for any other; the texture is made once the worker has written the file */
+static void pm_pic0_step(const Item *sel, int bubble)
+{
+	int here = bubble && sel && pm_pic0_tex && pm_pic0_item == sel;
+	float target = here ? 1.0f : 0.0f;
+	pm_pic0_a += (target - pm_pic0_a) * (target > pm_pic0_a ? 0.07f : 0.18f);
+	if (pm_pic0_a < 0.002f) pm_pic0_a = 0.0f;
+	if (pm_pic0_tex && !here && pm_pic0_a == 0.0f) { defer_free(pm_pic0_tex); pm_pic0_tex = NULL; pm_pic0_item = NULL; }
+	if (!pm_pic0_tex && bubble && sel && pm_pic0_gen == pm_gen) {
+		int w = 0, h = 0;
+		uint8_t *pix = png_decode_scaled(pm_pic0_file, 1024, &w, &h);
+		vita2d_texture *t = pix ? texture_from_rgba(pix, w, h) : NULL;
+		free(pix);
+		pm_pic0_gen = 0;                                           /* once: a game without a text block is not asked again every frame */
+		if (t) { pm_pic0_tex = t; pm_pic0_item = sel; }
+	}
+}
+
+static void pm_pic0_draw(void)
+{
+	if (!pm_pic0_tex || pm_pic0_a <= 0.0f) return;
+	float tw = (float)vita2d_texture_get_width(pm_pic0_tex), th = (float)vita2d_texture_get_height(pm_pic0_tex);
+	vita2d_draw_texture_tint_scale(pm_pic0_tex, SCREEN_W - 10.0f - tw * 2.0f, SCREEN_H - 10.0f - th * 2.0f, 2.0f, 2.0f, RGBA8(255, 255, 255, (int)(255.0f * pm_pic0_a)));
+}
+
 /* called once a frame with the item the cursor rests on and for how long; plays the film and the sound of a PSP game bubble */
 static void pm_tick(const Item *sel, float dwell, int allowed)
 {
@@ -340,6 +378,7 @@ static void pm_tick(const Item *sel, float dwell, int allowed)
 	} else if (!sel || sel != pm_checked) pm_checked = NULL;
 	if (!bubble) {
 		if (pm_active_id[0] || pm_icon_item) pm_stop();
+		pm_pic0_step(sel, 0);
 		return;
 	}
 	if (strcmp(pm_active_id, sel->id)) {                           /* a new game: ask the worker for its files */
@@ -364,4 +403,5 @@ static void pm_tick(const Item *sel, float dwell, int allowed)
 		if (pm_film_open(film, pm_film_in_n)) pm_icon_item = sel;
 	}
 	if (pm_icon_item == sel) pm_film_update();
+	pm_pic0_step(sel, 1);
 }

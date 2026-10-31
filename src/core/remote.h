@@ -131,7 +131,7 @@ static void launch_uri(const char *uri)
 
 static int item_has_options(int m, const Item *it)
 {
-	if (m == CAT_GAME) return it->kind == KIND_APP;             /* the last played game */
+	if (m == CAT_GAME) return it->kind == KIND_APP || (it->kind == KIND_FOLDER && (it->submenu == M_MEMCARD || it->submenu == M_FOLDER));      /* the last played game; the Memory Stick row: New Folder, Organize Apps... */
 	if (m == M_MEMCARD) return it->kind == KIND_APP || it->kind == KIND_FOLDER;
 	if (m == M_FOLDER || m == M_VCOL) return 1;
 	if (m < CAT_COUNT && m != CAT_SETTINGS) return 1;           /* the other columns: New Folder, Organize, Arrange Columns */

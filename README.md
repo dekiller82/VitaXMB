@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/demo.gif" alt="VitaXMB demo: startup animation, category bar, Settings pages, music player" width="720">
+  <img src="docs/images/home.png" alt="VitaXMB: the Game category of the cross media bar, rebuilt for the Vita" width="720">
 </p>
 
 <p align="center">
@@ -255,7 +255,7 @@ An experimental *Decrypt Artwork (beta)* setting (off by default, asks for confi
 
 **Music**
 
-- Plays **MP3, FLAC, WAV, AIFF and Ogg Vorbis**. The system blocks apps from reading `ux0:music`, so VitaXMB scans **`ux0:pspemu/MUSIC`** (Adrenaline's folder). Put your songs there.
+- Plays **MP3, FLAC, WAV, AIFF and Ogg Vorbis**. VitaXMB lists the songs of **the Vita's own Music folder** (`ux0:music`, which the system only opens for an app that asks for it, as VitaXMB does) and of **`ux0:pspemu/MUSIC`** (Adrenaline's folder), and of a second card when *Extra Storage* is on. A song that is in more than one of these places (same name and size) is listed once.
 - Titles and artists come from the file's tags: ID3 (MP3), Vorbis comments (FLAC, Ogg), the INFO block (WAV) and NAME / AUTH (AIFF); without tags the file name is the title.
 - Opus files, compressed AIFF-C and files with more than two channels (FLAC) are not supported.
 
@@ -279,7 +279,7 @@ An experimental *Decrypt Artwork (beta)* setting (off by default, asks for confi
 1. **Let VitaXMB sort for you.** *Settings > VitaXMB Settings > Sort Apps into Columns* opens a list of what it can sort, each with the number of apps it would move: Emulators, Utilities, Music, Video, Network, **PSP games**, **PS1 games**, **PSM games** and **Homebrew**. If you have retro games (see below) the list goes on with a **Retro games go to** row and one row per system. **Cross** ticks a row (or changes the layout), **Square** ticks all or none, **L / R** jump five rows, **Triangle** sorts, **Circle** cancels. PSP games, PS1 games, PSM games and Homebrew go to columns of your own named *PSP*, *PS1*, *PSM* and *Homebrew* (made for you, or reused if you already have a column with that name; you can have 22 columns of your own). PSP and PS1 games are told apart by their `PARAM.SFO`, with or without an Adrenaline bubble. Retail Vita games stay in Game, apps you placed yourself never move, and nothing is deleted: whatever it guesses wrong you fix in step 2.
 2. **Move one app.** Highlight it (for example in *Game > Memory Stick™*), press **Triangle** and choose **Move to...**. Pick a column (or a folder under it) and press **Cross**. A line at the top confirms where it went.
 3. **Move many apps.** Press **Triangle** on any row of a column and choose **Organize Apps**. Tick apps with **Cross** (**Square** ticks all or none), press **Triangle** (*Move Selected*), pick the place and press **Cross**.
-4. **Make a folder.** **Triangle > New Folder**, type a name, then tick the apps that belong in it and press **Circle**. Faster: in **Move to...** press **Triangle** to make a folder in the column you are looking at; it is selected for you, so one more **Cross** puts the app in it. Folders can be renamed, moved to another column (**Move Folder to...**) and deleted (the apps stay installed) from their own Options.
+4. **Make a folder.** Under Game, press **Triangle** on a row of the Game column (**Memory Stick™**, for example) and choose **New Folder**: the folder becomes a row of the Game column itself, above Saved Data Utility and Memory Stick™ (a folder made from an app inside Memory Stick™ stays inside it). Every other column has **New Folder** on any of its rows. Type a name, then tick the apps that belong in it and press **Circle**. Faster: in **Move to...** press **Triangle** to make a folder in the column you are looking at; it is selected for you, so one more **Cross** puts the app in it. Folders can be renamed, moved to another column (**Move Folder to...**) and deleted (the apps stay installed) from their own Options.
 5. **Make a column of your own.** *Settings > VitaXMB Settings > Arrange Columns* (or **Triangle > Arrange Columns** on a column's rows), go to the last row, **New Column**, and type a name. Then move apps into it with **Move to...** or **Organize Apps**.
 6. **Arrange the bar.** In *Arrange Columns*: **Cross** picks a column up, **Up / Down** carries it, **Cross** drops it; **Square** renames, **Triangle** shows or hides, **L / R** change the picture, **Start** deletes a column of your own (its apps go to Game). **Circle** closes and saves.
 
@@ -337,6 +337,66 @@ Everything is stored in `ux0:data/VitaXMB/folders.txt` (plain text: an `F` line 
 - **Pictures:** RetroArch's thumbnails (`ux0:data/retroarch/thumbnails/<system>/Named_Boxarts`, then RetroFlow's `COVERS`, then screenshots and title screens), looked up by the game's name.
 - **Starting one:** *Settings > VitaXMB Settings > Retro Games Launcher* chooses RetroArch (the default) or Emu4Vita+. A game of a RetroArch playlist uses the playlist's core, otherwise the recommended core of the system (the same ones RetroFlow Launcher recommends). If the chosen launcher is not installed the other one is used when it can.
 - **Limits:** up to 6144 apps and games in all. The ROM lists are read at every start; *Refresh List* reads them again.
+
+#### How the ROM folders work (the same layout as RetroFlow Launcher)
+
+**Short version.** Installing RetroArch or Emu4Vita+ is not enough on its own: VitaXMB only lists ROMs it can find in one of two places, and it never searches the whole card.
+
+- **Way 1, RetroArch playlists:** open RetroArch and scan your ROMs once (*Import Content > Scan Directory*). RetroArch then writes `ux0:data/retroarch/playlists/<system>.lpl`, and VitaXMB reads those. The ROMs can be anywhere on the card. A fresh RetroArch has empty playlists, so nothing shows until you have scanned.
+- **Way 2, RetroFlow-style folders:** put the ROMs in `ux0:data/RetroFlow/ROMS/<system folder>/` (the exact folder names are in the table below). No scan and no RetroFlow Launcher needed, only the folders.
+
+You also need the emulator itself installed to start a game (RetroArch, title ID `RETROVITA`, or Emu4Vita+, `EMU4VPLUS`), and the games must be sorted (step 6) before they appear in a list.
+
+If you already use [RetroFlow Launcher](https://github.com/jimbob4000/RetroFlow-Launcher), VitaXMB reads the same folders, so there is nothing to move or convert. If you do not, make the folders yourself:
+
+1. **One folder per system** inside `ux0:data/RetroFlow/ROMS/`, named exactly like the table below (the names are the libretro system names, with their ` - ` separators). Put the ROM files in it. One level of subfolders is read too (for example a folder per game or per letter); deeper ones are not.
+2. **Only the file types of that system are listed** (the table), so a stray `.txt` or `.sav` does not show up. Names are matched without regard to upper or lower case.
+3. **The title is the file name without its extension**, so `Super Mario World (USA).sfc` is listed as *Super Mario World (USA)*. Name your ROMs the way No-Intro does (`Game Name (Region)`): the same name finds the picture.
+4. **Pictures** are looked up by that title, as PNG, in this order:
+   1. `ux0:data/retroarch/thumbnails/<system>/Named_Boxarts/<title>.png` (RetroArch's own thumbnails; `<system>` is the libretro name, for example `Nintendo - Super Nintendo Entertainment System`)
+   2. `ux0:data/RetroFlow/COVERS/<ROM folder>/<title>.png` (RetroFlow's covers; the folder has the same name as the system's ROM folder)
+   3. `.../Named_Snaps/<title>.png`, then `.../Named_Titles/<title>.png` in RetroArch's thumbnails (a screenshot or the title screen)
+
+   The characters `& * / : ` " < > ? \ |` are written as `_` in these file names, as RetroArch does. A game without any picture shows the plain game icon.
+5. **RetroArch playlists work too.** Everything RetroArch lists in `ux0:data/retroarch/playlists/*.lpl` (made by *Import Content* / *Scan Directory* in RetroArch) is listed under the playlist's system, with the name RetroArch shows, and starts with the core stored in the playlist. A game found both in a playlist and in a ROM folder is listed once. `History` and `Favorites` (`content_*.lpl`) are skipped.
+6. **Press *Refresh List* (or restart VitaXMB)** after adding ROMs. Then open *Settings > VitaXMB Settings > Sort Apps into Columns*: the new games are listed per system under **Retro games go to**, and stay out of every list until you sort them.
+7. **Starting a game.** *Retro Games Launcher* (*Settings > VitaXMB Settings*) chooses **RetroArch** (title ID `RETROVITA`) or **Emu4Vita+** (`EMU4VPLUS`); if the one you chose is not installed, the other is used when it can play the system. VitaXMB starts the emulator with the game's file and the core as the parameters of its launch URI, exactly as RetroFlow Launcher does. **The core you chose in RetroFlow Launcher comes first:** if you set a core for a system or for one game in RetroFlow (its *Emulator cores* settings, kept in `ux0:data/RetroFlow`), VitaXMB starts the game with that core, in RetroArch or in Emu4Vita+ depending on the core, as long as that emulator is installed. Without a choice made there, RetroArch uses the core of the playlist, or else the one in the table (`app0:/<core>.self`); Emu4Vita+ uses the core in the table.
+
+| System | ROM folder (inside `ux0:data/RetroFlow/ROMS/`) | File types | RetroArch core | Emu4Vita+ core |
+|---|---|---|---|---|
+| NES | `Nintendo - Nintendo Entertainment System` | nes, fds, unf, unif, zip | quicknes_libretro | fceumm |
+| SNES | `Nintendo - Super Nintendo Entertainment System` | smc, sfc, swc, fig, bs, st, zip | snes9x2005_libretro | snes9x2005_plus |
+| Game Boy | `Nintendo - Game Boy` | gb, zip | gambatte_libretro | gambatte |
+| Game Boy Color | `Nintendo - Game Boy Color` | gbc, zip | gambatte_libretro | gambatte |
+| Game Boy Advance | `Nintendo - Game Boy Advance` | gba, zip | gpsp_libretro | gpsp |
+| Mega Drive | `Sega - Mega Drive - Genesis` | md, smd, gen, bin, zip | genesis_plus_gx_libretro | genesis_plus_gx |
+| Master System | `Sega - Master System - Mark III` | sms, zip | smsplus_libretro | genesis_plus_gx |
+| Game Gear | `Sega - Game Gear` | gg, zip | smsplus_libretro | genesis_plus_gx |
+| Sega CD | `Sega - Mega-CD - Sega CD` | cue, chd, iso, m3u | genesis_plus_gx_libretro | genesis_plus_gx |
+| Sega 32X | `Sega - 32X` | 32x, zip | picodrive_libretro | picodrive |
+| PC Engine | `NEC - PC Engine` | pce, zip | mednafen_pce_fast_libretro | mednafen_pce_fast |
+| PC Engine CD | `NEC - PC Engine CD` | cue, chd, m3u | mednafen_pce_fast_libretro | mednafen_pce_fast |
+| PlayStation | `Sony - PlayStation - RetroArch` | pbp, cue, chd, img, m3u, iso | pcsx_rearmed_libretro | pcsx_rearmed |
+| Atari 2600 | `Atari - 2600` | a26, bin, zip | stella2014_libretro | stella2014 |
+| Atari 5200 | `Atari - 5200` | a52, bin, zip | atari800_libretro | atari800 |
+| Atari 7800 | `Atari - 7800` | a78, bin, zip | prosystem_libretro | prosystem |
+| Atari Lynx | `Atari - Lynx` | lnx, zip | handy_libretro | handy |
+| Atari ST | `Atari - ST` | st, msa, zip | hatari_libretro | - |
+| WonderSwan | `Bandai - WonderSwan` | ws, zip | mednafen_wswan_libretro | mednafen_wswan |
+| WonderSwan Color | `Bandai - WonderSwan Color` | wsc, zip | mednafen_wswan_libretro | mednafen_wswan |
+| Neo Geo Pocket | `SNK - Neo Geo Pocket Color` | ngc, ngp, zip | mednafen_ngp_libretro | mednafen_ngp |
+| Neo Geo | `SNK - Neo Geo - FBA 2012` | zip | fbalpha2012_neogeo_libretro | fbneo |
+| Arcade | `FBA 2012` | zip | fbalpha2012_libretro | fbalpha2012 |
+| MAME | `MAME 2003 Plus` | zip | mame2003_plus_libretro | mame2003_plus |
+| Amiga | `Commodore - Amiga` | adf, ipf, lha, zip | puae_libretro | uae4arm |
+| Commodore 64 | `Commodore - 64` | d64, t64, prg, crt, tap, zip | vice_x64_libretro | vice |
+| MSX | `Microsoft - MSX` | rom, mx1, dsk, zip | fmsx_libretro | fmsx |
+| MSX2 | `Microsoft - MSX2` | rom, mx2, dsk, zip | fmsx_libretro | fmsx |
+| ZX Spectrum | `Sinclair - ZX Spectrum` | tzx, tap, z80, sna, zip | fuse_libretro | fuse |
+| ColecoVision | `Coleco - ColecoVision` | col, rom, zip | bluemsx_libretro | bluemsx |
+| Vectrex | `GCE - Vectrex` | vec, bin, zip | vecx_libretro | vecx |
+
+The two arcade entries share one icon: *FB Alpha - Arcade Games* is read from a `FBA 2012` folder and *MAME* from `MAME 2003 Plus`. Systems RetroArch writes a playlist for but this table does not have still get a folder of their own under Emulators (or a column), with the plain folder picture.
 
 **PSM games.** PlayStation Mobile games (`ux0:psm`) are listed in Game like any other game, with their LiveArea icon, and start through their bubble. The sort list has a *PSM games* row.
 
@@ -486,6 +546,26 @@ Everything in the tree is needed to build (apart from the FFmpeg libraries you b
 ## Changelog
 
 Every release has its own notes and VPK on the [Releases page](https://github.com/dekiller82/VitaXMB/releases). Each version includes everything from the ones before it.
+
+### [1.10.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.10.1) (2026-10-31)
+
+**New**
+
+- **A game's text block.** A PSP or PS1 game's own `PIC0` picture (its title, story, rating and logos) now shows over its background at the lower right, where the PSP puts it, and the item titles fade out while it is up.
+- **Folders in the Game column.** **Triangle** on a row of the Game column (for example **Memory Stick™**) opens Options with **New Folder**, **Organize Apps**, **Arrange Columns** and **Refresh List**. A folder made there is a row of the Game column itself, above Saved Data Utility and Memory Stick™; a folder made from an app inside Memory Stick™ still stays inside it.
+- **The Vita's own Music folder.** Songs in `ux0:music` are listed too (the system only opens that folder for an app that asks for it, which VitaXMB now does). A song found in more than one place (same name and size) is listed once.
+- **The wave drawn the way the PSP draws it.** The background wave and the boot ribbon now add the firmware's reflection map with face culling and the PSP's soft two-pixel lines, instead of a translucent sheet. The edge flags and surface normals follow the firmware's own, which removes a hard line along the model's seam.
+
+**Fixed**
+
+- **PS1 games and old Adrenaline bubble games start from VitaXMB.** PS1 games stopped after Adrenaline opened with "The game could not be started (80010002)", and games that had an old Adrenaline bubble stopped with "Could not load adrenaline_kernel.skprx". The launcher now starts them the way Adrenaline's own XMB does, and a bubble that cannot start by itself is started through the launcher.
+- The covers of RetroFlow's `COVERS` folder are found for retro games.
+- **Retro games start with the core you chose in RetroFlow Launcher** (for a system or for one game), in RetroArch or Emu4Vita+ as that core needs, instead of always the default core.
+- The boot wave could draw with the wrong mesh size.
+
+**Project page**
+
+- The project page (`docs/`) has the new screenshots, a "Before you install" block, a "What's new" section read from the latest release, and a lighter wave and images.
 
 ### [1.10.0](https://github.com/dekiller82/VitaXMB/releases/tag/v1.10.0) (2026-10-28)
 

@@ -79,6 +79,22 @@ static void wave_strip(float base0, float base1, float t, const float p[3], unsi
 	vita2d_draw_array(SCE_GXM_PRIMITIVE_TRIANGLE_STRIP, v, cols * 2);
 }
 
+/* The PSP draws at 480 x 272 and the picture is scaled up to the display, so its thin crest lines are two pixels wide and soft where a 960 x 544 draw
+ * makes them one-pixel lines. The firmware's look of the wave is therefore drawn into a 480 x 272 texture (before the frame's own scene starts, see
+ * bg_wave_prepass) and added to the sky scaled up 2 x with linear filtering. */
+static vita2d_texture *wave_rt;
+static int wave_rt_ready;                      /* the texture holds this frame's wave */
+
+static void wave_rt_draw(float alpha)
+{
+	int g = (int)(255.0f * alpha);
+	if (g < 0) g = 0;
+	if (g > 255) g = 255;
+	vita2d_set_blend_mode_add(1);
+	vita2d_draw_texture_tint_scale(wave_rt, 0, 0, 2.0f, 2.0f, RGBA8(g, g, g, 255));
+	vita2d_set_blend_mode_add(0);
+}
+
 static int sw_solid = -1;                      /* the default is the model wave (as before); an empty ux0:data/VitaXMB/solidwave switches to the SolidWave */
 
 static void draw_background(float t, int month)
@@ -100,7 +116,7 @@ static void draw_background(float t, int month)
 		vita2d_texture *mtex = month_sky_tex(mi);
 		if (mtex) {
 			vita2d_draw_texture_tint_scale(mtex, 0, 0, SCREEN_W / (float)SKY_TEX_W, SCREEN_H / (float)SKY_TEX_H, RGBA8(255, 255, 255, (int)(255 * bg_alpha)));
-			vita2d_draw_rectangle(0, 0, SCREEN_W, SCREEN_H, bga(WHITE((int)(255 * SKY_VEIL))));
+			/* (no white veil: a capture of the real XMB shows the month picture unlifted where the wave adds nothing, 60 % of the screen) */
 		}
 	}
 	vita2d_color_vertex *g = NULL;
@@ -126,7 +142,7 @@ static void draw_background(float t, int month)
 	if (wave_m.ok) {                               /* the firmware's own moving wave (or the theme's) */
 		static const unsigned char white[3] = { 255, 255, 255 };     /* the same model and material as the boot's ribbon: white, translucent, shaded by its folds */
 		if (wave_off) return;
-		if (bgs.ok) bgs_draw(bg_alpha); else wave_draw(t, white, bg_alpha);
+		if (bgs.ok) bgs_draw(bg_alpha); else if (wave_rt_ready) wave_rt_draw(bg_alpha); else wave_draw(t, white, bg_alpha);
 		return;
 	}
 	unsigned int wt = RGBA8(pal.wave_top[0], pal.wave_top[1], pal.wave_top[2], 255);
@@ -146,4 +162,29 @@ static void draw_background(float t, int month)
 	static const float p3[3] = { 16, 0.0079f, 0.24f };
 	wave_strip(452, 460, t, p3, WHITE(0), WHITE(26));
 	wave_strip(460, 500, t, p3, WHITE(26), WHITE(0));
+}
+
+/* Called before the frame's scene starts: draws the firmware's wave into its 480 x 272 texture when the plain stock wave is what will be on screen. */
+/* Renders a model's firmware look into the 480 x 272 texture (outside any frame: it starts and ends its own drawing); 0 when it cannot. */
+static int wave_rt_render(const WaveModel *M, float frame, float alpha)
+{
+	if (!M->ok || !M->refl) return 0;
+	if (!wave_rt) {
+		wave_rt = vita2d_create_empty_texture_rendertarget(480, 272, SCE_GXM_TEXTURE_FORMAT_A8B8G8R8);
+		if (!wave_rt) return 0;
+		vita2d_texture_set_filters(wave_rt, SCE_GXM_TEXTURE_FILTER_LINEAR, SCE_GXM_TEXTURE_FILTER_LINEAR);
+	}
+	static const unsigned char white[3] = { 255, 255, 255 };
+	vita2d_start_drawing_advanced(wave_rt, 0);
+	vita2d_clear_screen();                                         /* opaque black: the texture's alpha is 1 everywhere, so adding it adds exactly its colour */
+	wv_draw(M, frame, white, alpha, 3);
+	vita2d_end_drawing();
+	return 1;
+}
+
+static void bg_wave_prepass(float t)
+{
+	wave_rt_ready = 0;
+	if (bg_no_wave || pt_wall || !wave_m.ok || wave_off || bgs.ok || !wave_m.refl || sw_solid > 0) return;
+	wave_rt_ready = wave_rt_render(&wave_m, fmodf(t * wave_m.fps, wave_m.end), 1.0f);
 }

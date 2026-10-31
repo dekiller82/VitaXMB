@@ -33,6 +33,8 @@ static int col_from_key(const char *k)
 
 static char folder_name[MAX_FOLDERS][40];
 static int folder_col[MAX_FOLDERS];
+static unsigned char folder_top[MAX_FOLDERS];   /* a folder of the Game column that is a row of the column itself (at the head of its list), not inside Memory Stick */
+static int game_top_n;                  /* how many of those rows the Game column has (lastplayed.h: the disc comes after them and the column's own three rows)  */
 static short folder_icon[MAX_FOLDERS];  /* the picture chosen for a folder: an index in col_icons[] plus one; 0 is the folder picture */
 static vita2d_texture *col_icons[64];   /* the pictures a column or a folder can have (the stock ones, then the systems') */
 static const char *col_icon_name[64];
@@ -123,6 +125,7 @@ static void folders_save(void)
 	for (int i = 0; i < n_folders; i++) {
 		fprintf(f, "F\t%s\n", folder_name[i]);
 		if (folder_col[i] != CAT_GAME) fprintf(f, "C\t%s\n", col_key[folder_col[i]]);
+		if (folder_top[i] && folder_col[i] == CAT_GAME) fprintf(f, "T\t1\n");
 		if (folder_icon[i] > 0) fprintf(f, "I\t%d\n", folder_icon[i] - 1);
 		for (int k = 0; k < n_assign; k++)
 			if (assign[k].folder == i) fprintf(f, "A\t%s\n", assign[k].id);
@@ -147,8 +150,11 @@ static void folders_load(void)
 			snprintf(folder_name[cur], sizeof(folder_name[0]), "%s", line + 2);
 			folder_col[cur] = CAT_GAME;
 			folder_icon[cur] = 0;
+			folder_top[cur] = 0;
 		} else if (line[0] == 'C' && line[1] == '\t' && cur >= 0) {
 			folder_col[cur] = col_from_key(line + 2);
+		} else if (line[0] == 'T' && line[1] == '\t' && cur >= 0) {
+			folder_top[cur] = atoi(line + 2) != 0;
 		} else if (line[0] == 'I' && line[1] == '\t' && cur >= 0) {
 			int v = atoi(line + 2);
 			folder_icon[cur] = v >= 0 && v < 63 ? (short)(v + 1) : 0;
@@ -197,6 +203,7 @@ static int folder_new(const char *name, int col)
 	if (!folder_name[f][0]) folder_default_name(folder_name[f], sizeof(folder_name[0]));
 	folder_col[f] = col >= 0 && col < CAT_COUNT && col != CAT_SETTINGS ? col : CAT_GAME;
 	folder_icon[f] = 0;
+	folder_top[f] = 0;
 	return f;
 }
 
@@ -207,7 +214,7 @@ static void folder_delete(int f)
 		if (assign[i].folder == f) { assign[i].folder = -1; assign[i].col = folder_col[f]; }
 		else if (assign[i].folder > f) assign[i].folder--;
 	}
-	for (int i = f; i < n_folders - 1; i++) { memcpy(folder_name[i], folder_name[i + 1], sizeof(folder_name[0])); folder_col[i] = folder_col[i + 1]; folder_icon[i] = folder_icon[i + 1]; }
+	for (int i = f; i < n_folders - 1; i++) { memcpy(folder_name[i], folder_name[i + 1], sizeof(folder_name[0])); folder_col[i] = folder_col[i + 1]; folder_icon[i] = folder_icon[i + 1]; folder_top[i] = folder_top[i + 1]; }
 	n_folders--;
 }
 
@@ -215,6 +222,7 @@ static void folder_delete(int f)
 static void folder_move(int f, int col)
 {
 	folder_col[f] = col;
+	if (col != CAT_GAME) folder_top[f] = 0;
 	for (int i = 0; i < n_assign; i++) if (assign[i].folder == f) assign[i].col = col;
 }
 
@@ -318,6 +326,7 @@ static void fill_folder_menu(int f)
 /* A theme with its own panels has no picture for the extra columns (Emulators, Utilities, the user's own), so each one is a folder under Memory Stick,
  * and the folders of that column are folders inside it. */
 static void add_folder_rows(int m, int col);
+static void rebuild_game_col_top(void);
 
 static int vcol_apps(int c)
 {
@@ -354,7 +363,8 @@ static void lastplayed_refresh(void);
 static void add_folder_rows(int m, int col)
 {
 	int order[MAX_FOLDERS], n = 0;
-	for (int i = 0; i < n_folders; i++) if (folder_col[i] == col) order[n++] = i;
+	for (int i = 0; i < n_folders; i++)
+		if (folder_col[i] == col && (col != CAT_GAME || (m == CAT_GAME) == (folder_top[i] != 0))) order[n++] = i;
 	for (int i = 1; i < n; i++) {                              /* insertion sort by name */
 		int v = order[i], k = i - 1;
 		while (k >= 0 && strcasecmp(folder_name[order[k]], folder_name[v]) > 0) { order[k + 1] = order[k]; k--; }
@@ -458,10 +468,57 @@ static void rebuild_game_lists(void)
 	loader_pause = 0;
 	for (int c = 0; c < CAT_COUNT; c++)
 		if (c != CAT_SETTINGS && c != CAT_GAME) rebuild_host_col(c);
+	rebuild_game_col_top();
 	cat_refresh_hidden(cat_now);
 	fill_folder_menu(open_folder);
 	if (open_vcol >= 0) fill_vcol_menu(open_vcol);
 	lastplayed_refresh();                                     /* the disc under Memory Stick follows the installed apps */
+}
+
+/* The Game column's list is [the top folders] Saved Data Utility, Memory Stick, Trophy Collection [the disc of the last played game]. The folders are rebuilt here;
+ * the three rows of its own are moved, not made again, and the cursor stays on what it was on. */
+static void rebuild_game_col_top(void)
+{
+	Menu *mn = &menus[CAT_GAME];
+	if (!mn->items || mn->count < game_top_n + 3) return;
+	loader_pause = 1;
+	while (loader_busy) sceKernelDelayThread(1000);
+	int sel_kind = -1, sel_sub = -1, sel_val = -1, sel_own = -1;
+	if (mn->sel >= 0 && mn->sel < mn->count) {
+		const Item *si = &mn->items[mn->sel];
+		sel_kind = si->kind; sel_sub = si->submenu; sel_val = si->value_id;
+		sel_own = mn->sel - game_top_n;                            /* 0..2: one of its own rows, 3 the disc */
+	}
+	Item own[3];
+	memcpy(own, &mn->items[game_top_n], sizeof(own));
+	for (int i = 0; i < game_top_n; i++) {                        /* the old folder rows */
+		if (mn->items[i].icon) defer_free(mn->items[i].icon);
+		free(mn->items[i].pending_pix);
+		mn->items[i].pending_pix = NULL;
+	}
+	for (int i = game_top_n + 3; i < mn->count; i++) {            /* the disc is made again after this (lastplayed_refresh) */
+		if (mn->items[i].icon) defer_free(mn->items[i].icon);
+		free(mn->items[i].pending_pix);
+		mn->items[i].pending_pix = NULL;
+	}
+	mn->count = 0;
+	int ntop = 0;
+	for (int i = 0; i < n_folders; i++) ntop += folder_col[i] == CAT_GAME && folder_top[i];
+	if (ntop > mn->cap - 5) ntop = mn->cap - 5;
+	int keep = items_tr;
+	items_tr = 0;
+	add_folder_rows(CAT_GAME, CAT_GAME);
+	items_tr = keep;
+	if (mn->count > ntop) mn->count = ntop;
+	game_top_n = mn->count;
+	for (int i = 0; i < 3; i++) mn->items[mn->count++] = own[i];
+	int ns = -1;
+	if (sel_kind == KIND_FOLDER && sel_sub == M_FOLDER) { for (int i = 0; i < game_top_n; i++) if (mn->items[i].value_id == sel_val) ns = i; }
+	else if (sel_own >= 0 && sel_own <= 3) ns = game_top_n + sel_own;
+	if (ns < 0) ns = game_top_n + 1;                               /* Memory Stick */
+	mn->sel = ns;
+	mn->pos = (float)ns;
+	loader_pause = 0;
 }
 
 /* The name of a place, for the messages: "Music", "Music > Concerts". */

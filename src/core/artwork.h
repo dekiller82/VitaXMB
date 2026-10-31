@@ -135,8 +135,12 @@ static void clean_title(char *t)
 
 static void update_game_counts(void)
 {
-	Item *saves = &menus[CAT_GAME].items[0];
-	Item *card  = &menus[CAT_GAME].items[1];
+	Item *saves = &menus[CAT_GAME].items[0], *card = &menus[CAT_GAME].items[1];
+	for (int i = 0; i < menus[CAT_GAME].count; i++) {                 /* (folders of the Game column may come first) */
+		Item *gi = &menus[CAT_GAME].items[i];
+		if (gi->kind == KIND_FOLDER && gi->submenu == M_SAVES) saves = gi;
+		else if (gi->kind == KIND_FOLDER && gi->submenu == M_MEMCARD) card = gi;
+	}
 	int ns = menus[M_SAVES].items[0].kind == KIND_INFO ? 0 : menus[M_SAVES].count;
 	int na = menus[M_MEMCARD].items[0].kind == KIND_INFO ? 0 : menus[M_MEMCARD].count;
 	(void)ns; (void)na;

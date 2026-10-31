@@ -29,6 +29,7 @@ static void launch_request(const Item *it)
 	if (it->rix && retro_launch_uri(it, uri, sizeof(uri))) tid = "RETROVITA";       /* a retro game: RetroArch or Emu4Vita+ with the core and the file */
 	else {
 		if (it->path[0]) { int fb; tid = psp_launch_id(it, &fb); }       /* a PSP game without a bubble: a borrowed bubble starts it */
+		else if (!strncmp(tid, "PSPEMU", 6) && strcmp(tid, "PSPEMUCFW")) tid = psp_bubble_launch_id(tid);       /* an old Adrenaline bubble: through the launcher when its modules are missing */
 		snprintf(uri, sizeof(uri), "psgm:play?titleid=%s", tid);
 	}
 	lastplayed_save(it->id);
