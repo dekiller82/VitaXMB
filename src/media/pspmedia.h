@@ -46,15 +46,15 @@ static void pm_film_free(void)
 }
 
 /* takes the video of a PSMF out of its MPEG program stream: the payloads of the video PES packets, one after the other */
-static int pm_film_parse(const uint8_t *d, size_t n)
+static int pm_film_parse(const uint8_t *d, size_t n, uint8_t **ps_out, size_t *n_out)
 {
 	size_t pos = 0;
 	if (n > 16 && !memcmp(d, "PSMF", 4)) {
 		pos = ((size_t)d[8] << 24) | (d[9] << 16) | (d[10] << 8) | d[11];
 		if (pos < 0x100 || pos >= n) pos = 0x800;
 	}
-	pm_ps = malloc(n + AV_INPUT_BUFFER_PADDING_SIZE);
-	if (!pm_ps) return 0;
+	uint8_t *ps = malloc(n + AV_INPUT_BUFFER_PADDING_SIZE);
+	if (!ps) return 0;
 	size_t vn = 0;
 	while (pos + 6 <= n) {
 		if (d[pos] || d[pos + 1] || d[pos + 2] != 1) { pos++; continue; }
@@ -68,30 +68,98 @@ static int pm_film_parse(const uint8_t *d, size_t n)
 		if (code >= 0xE0 && code <= 0xEF && pos + 9 <= n && len >= 3) {
 			size_t pl = pos + 9 + d[pos + 8], end = len ? pos + 6 + len : n;
 			if (end > n) end = n;
-			if (pl <= end) { memcpy(pm_ps + vn, d + pl, end - pl); vn += end - pl; }
+			if (pl <= end) { memcpy(ps + vn, d + pl, end - pl); vn += end - pl; }
 		}
 		if (!len) break;                                                     /* an unbounded packet runs to the end */
 		pos += 6 + len;
 	}
-	memset(pm_ps + vn, 0, AV_INPUT_BUFFER_PADDING_SIZE);
-	pm_ps_n = vn;
-	return vn > 64;
+	memset(ps + vn, 0, AV_INPUT_BUFFER_PADDING_SIZE);
+	if (vn <= 64) { free(ps); return 0; }
+	*ps_out = ps;
+	*n_out = vn;
+	return 1;
 }
 
-static int pm_film_open(uint8_t *file, size_t n)
+/* A film made ready by the worker thread: parsed, with its decoder open (parsing the file and opening the decoder took 100-250 ms, far too long for
+ * the frame loop). The main thread only takes it over (pm_film_install) and decodes its small pictures. */
+typedef struct { uint8_t *ps; size_t ps_n; AVCodecContext *vctx; AVCodecParserContext *vpar; AVFrame *vframe; AVPacket *vpkt; struct SwsContext *sws; } PmFilmPrep;
+
+static void pm_prep_free(PmFilmPrep *fp)
+{
+	if (!fp) return;
+	if (fp->vframe) av_frame_free(&fp->vframe);
+	if (fp->vpkt) av_packet_free(&fp->vpkt);
+	if (fp->vpar) av_parser_close(fp->vpar);
+	if (fp->vctx) avcodec_free_context(&fp->vctx);
+	if (fp->sws) sws_freeContext(fp->sws);
+	free(fp->ps);
+	free(fp);
+}
+
+/* worker thread: the ICON1.PMF bytes (freed here) -> a film ready to play, or NULL */
+static PmFilmPrep *pm_film_prepare(uint8_t *file, size_t n)
+{
+	PmFilmPrep *fp = calloc(1, sizeof(*fp));
+	int ok = fp && pm_film_parse(file, n, &fp->ps, &fp->ps_n);
+	free(file);
+	if (!ok) { free(fp); return NULL; }
+	const AVCodec *c = avcodec_find_decoder(AV_CODEC_ID_H264);
+	fp->vctx = c ? avcodec_alloc_context3(c) : NULL;
+	fp->vpar = av_parser_init(AV_CODEC_ID_H264);
+	fp->vframe = av_frame_alloc();
+	fp->vpkt = av_packet_alloc();
+	if (!fp->vctx || !fp->vpar || !fp->vframe || !fp->vpkt) { pm_prep_free(fp); return NULL; }
+	fp->vctx->thread_count = 1;
+	if (avcodec_open2(fp->vctx, c, NULL) < 0) { pm_prep_free(fp); return NULL; }
+	/* Warm-up: the first picture decoded and converted here. The first decode of the process builds the codec's tables and the first conversion builds the
+	 * colour converter (together 40 to 90 ms on the console); the frame loop gets a decoder that has done both. The film is then wound back to its start. */
+	{
+		size_t pos = 0;
+		int flushing = 0, got = 0;
+		for (int guard = 0; guard < 2000 && !got; guard++) {
+			int r = avcodec_receive_frame(fp->vctx, fp->vframe);
+			if (r >= 0) { got = 1; break; }
+			if (r != AVERROR(EAGAIN)) break;
+			if (pos >= fp->ps_n) {
+				if (flushing) break;
+				flushing = 1;
+				avcodec_send_packet(fp->vctx, NULL);
+				continue;
+			}
+			uint8_t *out = NULL; int out_n = 0;
+			int used = av_parser_parse2(fp->vpar, fp->vctx, &out, &out_n, fp->ps + pos, (int)(fp->ps_n - pos), AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+			if (used < 0) break;
+			pos += (size_t)used;
+			if (out_n > 0) { fp->vpkt->data = out; fp->vpkt->size = out_n; avcodec_send_packet(fp->vctx, fp->vpkt); }
+		}
+		if (got) {
+			int w = fp->vframe->width, h = fp->vframe->height;
+			if (w >= 16 && h >= 16 && w <= 480 && h <= 272) {
+				fp->sws = sws_getCachedContext(NULL, w, h, (enum AVPixelFormat)fp->vframe->format, w, h, AV_PIX_FMT_RGBA, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+				uint8_t *tmp = fp->sws ? malloc((size_t)w * h * 4) : NULL;
+				if (tmp) {
+					uint8_t *dst[4] = { tmp, NULL, NULL, NULL };
+					int ds[4] = { w * 4, 0, 0, 0 };
+					sws_scale(fp->sws, (const uint8_t *const *)fp->vframe->data, fp->vframe->linesize, 0, h, dst, ds);
+					free(tmp);
+				}
+			}
+			av_frame_unref(fp->vframe);
+		}
+		avcodec_flush_buffers(fp->vctx);                               /* back to the start of the stream */
+		av_parser_close(fp->vpar);
+		fp->vpar = av_parser_init(AV_CODEC_ID_H264);
+	}
+	return fp;
+}
+
+/* main thread: makes a prepared film the current one (takes over its parts and frees the shell) */
+static int pm_film_install(PmFilmPrep *fp)
 {
 	pm_film_free();
-	int ok = pm_film_parse(file, n);
-	free(file);
-	if (!ok) { pm_film_free(); return 0; }
-	const AVCodec *c = avcodec_find_decoder(AV_CODEC_ID_H264);
-	pm_vctx = c ? avcodec_alloc_context3(c) : NULL;
-	pm_vpar = av_parser_init(AV_CODEC_ID_H264);
-	pm_vframe = av_frame_alloc();
-	pm_vpkt = av_packet_alloc();
-	if (!pm_vctx || !pm_vpar || !pm_vframe || !pm_vpkt) { pm_film_free(); return 0; }
-	pm_vctx->thread_count = 1;
-	if (avcodec_open2(pm_vctx, c, NULL) < 0) { pm_film_free(); return 0; }
+	pm_ps = fp->ps; pm_ps_n = fp->ps_n; pm_ps_pos = 0;
+	pm_vctx = fp->vctx; pm_vpar = fp->vpar; pm_vframe = fp->vframe; pm_vpkt = fp->vpkt; pm_sws = fp->sws;
+	free(fp);
 	pm_t0 = sceKernelGetProcessTimeWide();
 	return 1;
 }
@@ -200,6 +268,8 @@ static volatile int pm_req_gen;
  * (measured on a capture of Adrenaline's XMB: x 165, y 87 at the PSP's 480 x 272). The worker writes it out as a file, the main thread makes the texture. */
 static char pm_pic0_file[112];
 static volatile int pm_pic0_gen;                  /* the request the file belongs to */
+static uint8_t *pm_pic0_pix;                      /* the worker's decoded picture, waiting for the main thread to make a texture of it (swapped atomically) */
+static int pm_pic0_w, pm_pic0_h;
 static vita2d_texture *pm_pic0_tex;
 static const Item *pm_pic0_item;                  /* the game the texture is of */
 static float pm_pic0_a;                           /* how far it has faded in; also grows the selected icon and fades the item text, as the background art does */
@@ -281,6 +351,7 @@ static void pm_sound_play(uint8_t *file, size_t n, int gen)
 static void *pm_worker(void *arg)
 {
 	(void)arg;
+	sceKernelChangeThreadPriority(0, 0x10000110);                 /* a pthread starts at the main thread's priority; this one decodes audio and parses films: it must never compete with the frame loop */
 	int done = 0;
 	for (;;) {
 		while (pm_req_gen == done) sceKernelDelayThread(20000);
@@ -300,8 +371,19 @@ static void *pm_worker(void *arg)
 		snprintf(p0, sizeof(p0), PSP_CACHE_DIR "/%s_p0.png", id);
 		int have0 = psp_extract(&src, PM_F_PIC0, p0);
 		pm_src_close(&src);
-		if (have0 && !pm_stopped(gen)) { snprintf(pm_pic0_file, sizeof(pm_pic0_file), "%s", p0); pm_pic0_gen = gen; }
-		if (film && !pm_stopped(gen)) { pm_film_in = film; pm_film_in_n = ln; pm_film_in_gen = gen; } else free(film);
+		if (have0 && !pm_stopped(gen)) {                     /* decoded here: the main thread only has to upload it */
+			int w = 0, h = 0;
+			uint8_t *pix = png_decode_scaled(p0, 1024, &w, &h);
+			snprintf(pm_pic0_file, sizeof(pm_pic0_file), "%s", p0);
+			if (pix) {
+				pm_pic0_w = w; pm_pic0_h = h;
+				uint8_t *old = __atomic_exchange_n(&pm_pic0_pix, pix, __ATOMIC_SEQ_CST);
+				free(old);
+			}
+			pm_pic0_gen = gen;
+		}
+		PmFilmPrep *prep = film && !pm_stopped(gen) ? pm_film_prepare(film, ln) : (free(film), NULL);       /* parsed and opened here, not in the frame loop */
+		if (prep && !pm_stopped(gen)) { pm_film_in = (uint8_t *)prep; pm_film_in_n = ln; pm_film_in_gen = gen; } else pm_prep_free(prep);
 		if (snd && !pm_stopped(gen) && sound_on && !mus_playing) {
 			bgm_target = 0.0f;
 			for (int w = 0; w < 100 && bgm_gain_now > 0.0f && !pm_stopped(gen); w++) sceKernelDelayThread(5000);      /* the last game's sound has to fade out first */
@@ -333,8 +415,8 @@ static void pm_stop(void)
 	pm_icon_item = NULL;
 	pm_active_id[0] = 0;
 	pm_film_free();
-	uint8_t *late = pm_film_in;
-	if (late) { pm_film_in = NULL; free(late); }
+	uint8_t *late = __atomic_exchange_n(&pm_film_in, NULL, __ATOMIC_SEQ_CST);
+	if (late) pm_prep_free((PmFilmPrep *)late);
 }
 
 /* fades the text block in for the game the cursor rests on and out for any other; the texture is made once the worker has written the file */
@@ -346,8 +428,8 @@ static void pm_pic0_step(const Item *sel, int bubble)
 	if (pm_pic0_a < 0.002f) pm_pic0_a = 0.0f;
 	if (pm_pic0_tex && !here && pm_pic0_a == 0.0f) { defer_free(pm_pic0_tex); pm_pic0_tex = NULL; pm_pic0_item = NULL; }
 	if (!pm_pic0_tex && bubble && sel && pm_pic0_gen == pm_gen) {
-		int w = 0, h = 0;
-		uint8_t *pix = png_decode_scaled(pm_pic0_file, 1024, &w, &h);
+		uint8_t *pix = __atomic_exchange_n(&pm_pic0_pix, NULL, __ATOMIC_SEQ_CST);
+		int w = pm_pic0_w, h = pm_pic0_h;
 		vita2d_texture *t = pix ? texture_from_rgba(pix, w, h) : NULL;
 		free(pix);
 		pm_pic0_gen = 0;                                           /* once: a game without a text block is not asked again every frame */
@@ -367,13 +449,15 @@ static void pm_tick(const Item *sel, float dwell, int allowed)
 {
 	int bubble = 0;
 	if (allowed && sel && sel->kind == KIND_APP && dwell > 0.6f) {
+		static int chk_pending;
 		if (sel != pm_checked) {
 			pm_checked = sel;
-			char p[64];
-			snprintf(p, sizeof(p), "ux0:app/%.20s/data/boot.bin", sel->id);
-			SceIoStat st;
-			pm_checked_ok = sel->path[0] || (!strncmp(sel->id, "PSPEMU", 6) && strcmp(sel->id, "PSPEMUCFW") && sceIoGetstat(p, &st) >= 0);
+			chk_pending = 0;
+			pm_checked_ok = 0;
+			if (sel->path[0]) pm_checked_ok = 1;
+			else if (!strncmp(sel->id, "PSPEMU", 6) && strcmp(sel->id, "PSPEMUCFW")) { sys_stat_request(sel->id); chk_pending = 1; }       /* asked of the system thread, answered a few frames later */
 		}
+		if (chk_pending && sys_stat_ready()) { pm_checked_ok = sys_stat_ok; chk_pending = 0; }
 		bubble = pm_checked_ok;
 	} else if (!sel || sel != pm_checked) pm_checked = NULL;
 	if (!bubble) {
@@ -400,7 +484,7 @@ static void pm_tick(const Item *sel, float dwell, int allowed)
 	uint8_t *film = pm_film_in;
 	if (film && pm_film_in_gen == pm_gen && !pm_icon_item) {
 		pm_film_in = NULL;
-		if (pm_film_open(film, pm_film_in_n)) pm_icon_item = sel;
+		if (pm_film_install((PmFilmPrep *)film)) pm_icon_item = sel;
 	}
 	if (pm_icon_item == sel) pm_film_update();
 	pm_pic0_step(sel, 1);

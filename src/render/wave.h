@@ -203,8 +203,10 @@ static int wv_parse(WaveModel *M, const uint8_t *g, size_t n)
 }
 
 /* Installs a model into m from bytes (NULL or unreadable: the given fallback bytes). */
+static void wvw_quiesce(void);
 static void wv_install(WaveModel *m, const uint8_t *gmo, size_t n, const uint8_t *fallback, size_t fn)
 {
+	if (m == &wave_m) wvw_quiesce();
 	wv_free(m);
 	for (int pass = 0; pass < 2; pass++) {
 		const uint8_t *src = pass == 0 ? gmo : fallback;
@@ -265,12 +267,32 @@ static float wv_refl(const WaveModel *M, float nx, float ny)
  * (Looked up per vertex the lines smear into broad glows, because the model's samples are further apart than the lines are wide.) */
 #define WV_REFL_GAIN 0.75f
 
+/* Everything one evaluation of the patch needs as working space. The main thread has one; the wave worker thread (below) has its own. */
+typedef struct {
+	float P[1024][3], row[WAVE_MAX_V][WAVE_FU + 1][3], rowD[WAVE_MAX_V][WAVE_FU + 1][3];
+	float S[WAVE_FU + 1][WAVE_FV + 1][3], Q[WAVE_FU + 1][WAVE_FV + 1][3], Su[WAVE_FU + 1][WAVE_FV + 1][3], Sv[WAVE_FU + 1][WAVE_FV + 1][3];
+	vita2d_color_vertex pts[(WAVE_FU + 1) * (WAVE_FV + 1)];
+	float nxy[(WAVE_FU + 1) * (WAVE_FV + 1)][2];       /* the normal's x and y over its length, per sample */
+	vita2d_texture_vertex tv[WAVE_FU * WAVE_FV * 6];   /* the firmware look's kept triangles */
+	int ntv;
+} WvScr;
+static WvScr wv_main_scr;
+
+static void wv_draw_s(const WaveModel *M, float frame, const unsigned char col[3], float alpha, int smooth, WvScr *sc, int build_only);
+static void wv_firm_submit(const WaveModel *M, const vita2d_texture_vertex *tv, int n, const unsigned char col[3], float alpha);
+
 /* Draws a ribbon model at the given frame in the given colour; alpha 0..1 scales the whole thing. */
 static void wv_draw(const WaveModel *M, float frame, const unsigned char col[3], float alpha, int smooth)
 {
-	if (!M->ok || alpha <= 0.0f) return;
+	wv_draw_s(M, frame, col, alpha, smooth, &wv_main_scr, 0);
+}
+
+/* build_only (the worker thread): evaluates the firmware look into sc->tv / sc->ntv and draws nothing. */
+static void wv_draw_s(const WaveModel *M, float frame, const unsigned char col[3], float alpha, int smooth, WvScr *sc, int build_only)
+{
+	if (!M->ok || (alpha <= 0.0f && !build_only)) return;
 	const int NU = M->nu, NV = M->nv;
-	if (smooth == 3 && M->refl && !M->rtex && M->rw > 1) {      /* the map as a texture, once */
+	if (smooth == 3 && M->refl && !M->rtex && M->rw > 1 && !build_only) {      /* the map as a texture, once */
 		uint8_t *rgba = malloc((size_t)M->rw * M->rw * 4);
 		if (rgba) {
 			float mx = 0.0f;
@@ -294,34 +316,49 @@ static void wv_draw(const WaveModel *M, float frame, const unsigned char col[3],
 	wv_interp(M->mat, M->n_mat, 16, frame, m);
 	wv_interp(M->mor, M->n_mor, M->nt, frame, w);
 
-	static float P[1024][3], row[WAVE_MAX_V][WAVE_FU + 1][3], rowD[WAVE_MAX_V][WAVE_FU + 1][3], S[WAVE_FU + 1][WAVE_FV + 1][3], Q[WAVE_FU + 1][WAVE_FV + 1][3];
-	static float Su[WAVE_FU + 1][WAVE_FV + 1][3], Sv[WAVE_FU + 1][WAVE_FV + 1][3];
+	float (*P)[3] = sc->P, (*row)[WAVE_FU + 1][3] = sc->row, (*rowD)[WAVE_FU + 1][3] = sc->rowD;
+	float (*S)[WAVE_FV + 1][3] = sc->S, (*Q)[WAVE_FV + 1][3] = sc->Q, (*Su)[WAVE_FV + 1][3] = sc->Su, (*Sv)[WAVE_FV + 1][3] = sc->Sv;
 	for (int i = 0; i < NU * NV; i++)
 		for (int c = 0; c < 3; c++) {
 			float s = 0.0f;
 			for (int k = 0; k < M->nt; k++) s += M->ctrl[k][i][c] * w[k];
 			P[i][c] = s;
 		}
+	/* A cubic spline sample depends on four control points only: the basis rows are zero elsewhere, so each sum runs over its non-zero span
+	 * (the same result as summing all of them, a fifth of the work). */
+	int ulo[WAVE_FU + 1], uhi[WAVE_FU + 1], vlo[WAVE_FV + 1], vhi[WAVE_FV + 1];
+	for (int i = 0; i <= GUc; i++) {
+		ulo[i] = NU; uhi[i] = -1;
+		for (int u = 0; u < NU; u++) if (BU[i][u] != 0.0f || DBU[i][u] != 0.0f) { if (u < ulo[i]) ulo[i] = u; uhi[i] = u; }
+	}
+	for (int j = 0; j <= GVc; j++) {
+		vlo[j] = NV; vhi[j] = -1;
+		for (int v = 0; v < NV; v++) if (BV[j][v] != 0.0f || DBV[j][v] != 0.0f) { if (v < vlo[j]) vlo[j] = v; vhi[j] = v; }
+	}
 	for (int v = 0; v < NV; v++)                  /* control points run along u first */
-		for (int i = 0; i <= GUc; i++)
-			for (int c = 0; c < 3; c++) {
-				float s = 0.0f;
-				for (int u = 0; u < NU; u++) s += BU[i][u] * P[v * NU + u][c];
-				row[v][i][c] = s;
-				float d = 0.0f;
-				for (int u = 0; u < NU; u++) d += DBU[i][u] * P[v * NU + u][c];
-				rowD[v][i][c] = d;
+		for (int i = 0; i <= GUc; i++) {
+			float s0 = 0.0f, s1 = 0.0f, s2 = 0.0f, d0 = 0.0f, d1 = 0.0f, d2 = 0.0f;
+			for (int u = ulo[i]; u <= uhi[i]; u++) {
+				const float *pp = P[v * NU + u], b = BU[i][u], db = DBU[i][u];
+				s0 += b * pp[0]; s1 += b * pp[1]; s2 += b * pp[2];
+				d0 += db * pp[0]; d1 += db * pp[1]; d2 += db * pp[2];
 			}
+			row[v][i][0] = s0; row[v][i][1] = s1; row[v][i][2] = s2;
+			rowD[v][i][0] = d0; rowD[v][i][1] = d1; rowD[v][i][2] = d2;
+		}
 	for (int i = 0; i <= GUc; i++)
-		for (int j = 0; j <= GVc; j++)
-			for (int c = 0; c < 3; c++) {
-				float s = 0.0f;
-				for (int v = 0; v < NV; v++) s += BV[j][v] * row[v][i][c];
-				S[i][j][c] = s;
-				float a = 0.0f, b = 0.0f;
-				for (int v = 0; v < NV; v++) { a += BV[j][v] * rowD[v][i][c]; b += DBV[j][v] * row[v][i][c]; }
-				Su[i][j][c] = a; Sv[i][j][c] = b;
+		for (int j = 0; j <= GVc; j++) {
+			float s[3] = { 0, 0, 0 }, a[3] = { 0, 0, 0 }, b[3] = { 0, 0, 0 };
+			for (int v = vlo[j]; v <= vhi[j]; v++) {
+				const float bv = BV[j][v], dbv = DBV[j][v];
+				for (int c = 0; c < 3; c++) {
+					s[c] += bv * row[v][i][c];
+					a[c] += bv * rowD[v][i][c];
+					b[c] += dbv * row[v][i][c];
+				}
 			}
+			for (int c = 0; c < 3; c++) { S[i][j][c] = s[c]; Su[i][j][c] = a[c]; Sv[i][j][c] = b[c]; }
+		}
 	/* the motion's matrix, rows as stored: x' = M * x */
 	for (int i = 0; i <= GUc; i++)
 		for (int j = 0; j <= GVc; j++)
@@ -329,8 +366,8 @@ static void wv_draw(const WaveModel *M, float frame, const unsigned char col[3],
 				Q[i][j][r] = m[r * 4] * S[i][j][0] + m[r * 4 + 1] * S[i][j][1] + m[r * 4 + 2] * S[i][j][2];
 
 	const float dist = 500.0f, scale = 15.0f;       /* 7.5 px a unit at 480x272, doubled */
-	static vita2d_color_vertex pts[(WAVE_FU + 1) * (WAVE_FV + 1)];
-	static float nxy[(WAVE_FU + 1) * (WAVE_FV + 1)][2];       /* the normal's x and y over its length, per sample */
+	vita2d_color_vertex *pts = sc->pts;
+	float (*nxy)[2] = sc->nxy;
 	if (smooth == 3) smooth = 1;                                /* the sheet is the smooth = 1 look, only fainter */
 	for (int i = 0; i <= GUc; i++)
 		for (int j = 0; j <= GVc; j++) {
@@ -404,9 +441,9 @@ static void wv_draw(const WaveModel *M, float frame, const unsigned char col[3],
 				const vita2d_color_vertex *q0 = &pts[i * (GVc + 1) + j], *q1 = &pts[(i + 1) * (GVc + 1) + j], *q2 = &pts[(i + 1) * (GVc + 1) + j + 1], *q3 = &pts[i * (GVc + 1) + j + 1];
 				kept += (WV_KEEP(q0, q1, q2) ? 3 : 0) + (WV_KEEP(q0, q2, q3) ? 3 : 0);
 			}
+		sc->ntv = 0;
 		if (kept == 0) return;
-		vita2d_texture_vertex *tv = vita2d_pool_memalign((size_t)kept * sizeof(*tv), sizeof(*tv));
-		if (!tv) return;
+		vita2d_texture_vertex *tv = sc->tv;
 		int k2 = 0;
 		for (int i = 0; i < GUc; i++)
 			for (int j = 0; j < GVc; j++) {
@@ -421,13 +458,94 @@ static void wv_draw(const WaveModel *M, float frame, const unsigned char col[3],
 				if (WV_KEEP(&q[0], &q[2], &q[3])) { tv[k2++] = q[0]; tv[k2++] = q[2]; tv[k2++] = q[3]; }
 			}
 		#undef WV_KEEP
-		int g = (int)(M->rmax * WV_REFL_GAIN * alpha * 255.0f + 0.5f);       /* the tint scales the map back to its own brightness times the gain */
-		if (g < 0) g = 0;
-		if (g > 255) g = 255;
-		vita2d_set_blend_mode_add(1);
-		vita2d_draw_array_textured(M->rtex, SCE_GXM_PRIMITIVE_TRIANGLES, tv, (size_t)k2, RGBA8((g * col[0]) / 255, (g * col[1]) / 255, (g * col[2]) / 255, 255));
-		vita2d_set_blend_mode_add(0);
+		sc->ntv = k2;
+		if (build_only) return;
+		wv_firm_submit(M, tv, k2, col, alpha);
 	}
+}
+
+/* Draws the kept triangles of the firmware look (copied into this frame's vertex memory). */
+static void wv_firm_submit(const WaveModel *M, const vita2d_texture_vertex *tv, int n, const unsigned char col[3], float alpha)
+{
+	if (n <= 0 || !M->rtex) return;
+	vita2d_texture_vertex *pv = vita2d_pool_memalign((size_t)n * sizeof(*pv), sizeof(*pv));
+	if (!pv) return;
+	memcpy(pv, tv, (size_t)n * sizeof(*pv));
+	int g = (int)(M->rmax * WV_REFL_GAIN * alpha * 255.0f + 0.5f);       /* the tint scales the map back to its own brightness times the gain */
+	if (g < 0) g = 0;
+	if (g > 255) g = 255;
+	vita2d_set_blend_mode_add(1);
+	vita2d_draw_array_textured(M->rtex, SCE_GXM_PRIMITIVE_TRIANGLES, pv, (size_t)n, RGBA8((g * col[0]) / 255, (g * col[1]) / 255, (g * col[2]) / 255, 255));
+	vita2d_set_blend_mode_add(0);
+}
+
+/* ---- the wave worker thread ----
+ * The background wave's mesh (the spline evaluation, the normals, the culling) is a function of the time alone and costs about 9 ms of CPU, more than
+ * half a frame. A worker thread builds the mesh of the NEXT frame while the main thread draws this one's; the main thread only copies the mesh into
+ * the frame's vertex memory. If the worker is late the main thread draws the last mesh again (a repeated frame) and never waits for it. */
+static WvScr wvw_scr;                                   /* the worker's working space; its tv holds the mesh of the last finished request */
+static volatile int wvw_req, wvw_done, wvw_busy;
+static volatile float wvw_frame;
+static const WaveModel *volatile wvw_model;
+static vita2d_texture_vertex *wvw_last;                 /* the main thread's copy of the latest mesh */
+static int wvw_last_n;
+static SceUID wvw_thid = -1;
+
+static int wvw_thread(SceSize args, void *argp)
+{
+	(void)args; (void)argp;
+	static const unsigned char white[3] = { 255, 255, 255 };
+	int seen = 0;
+	for (;;) {
+		if (wvw_req == seen) { sceKernelDelayThread(1000); continue; }
+		int gen = wvw_req;
+		wvw_busy = 1;
+		__sync_synchronize();
+		const WaveModel *M = wvw_model;
+		float fr = wvw_frame;
+		if (M && M->ok && M->rtex) wv_draw_s(M, fr, white, 1.0f, 3, &wvw_scr, 1); else wvw_scr.ntv = 0;
+		__sync_synchronize();
+		seen = gen;
+		wvw_done = gen;
+		wvw_busy = 0;
+	}
+	return 0;
+}
+
+/* Before a model is replaced or freed: no request in flight, none will read it. */
+static void wvw_quiesce(void)
+{
+	wvw_model = NULL;
+	__sync_synchronize();
+	while (wvw_busy) sceKernelDelayThread(500);
+	wvw_last_n = 0;
+	wvw_done = wvw_req;                                   /* a request that was never started is dropped */
+}
+
+/* The firmware-look wave of the background, this frame at frame_now; the worker is asked for frame_next. */
+static void wv_firm_async(const WaveModel *M, float frame_now, float frame_next, const unsigned char col[3], float alpha)
+{
+	if (!wvw_last) wvw_last = malloc(sizeof(vita2d_texture_vertex) * WAVE_FU * WAVE_FV * 6);
+	if (wvw_thid < 0 && wvw_last) {
+		wvw_thid = sceKernelCreateThread("xmb_wave", wvw_thread, 0x10000110, 0x10000, 0, 0, NULL);
+		if (wvw_thid >= 0) sceKernelStartThread(wvw_thid, 0, NULL);
+	}
+	if (!wvw_last || wvw_thid < 0 || !M->rtex || wvw_last_n == 0) {              /* the very first frame (it also makes the map's texture), or no thread: build it here */
+		wv_draw_s(M, frame_now, col, alpha, 3, &wv_main_scr, 0);
+		if (wvw_last && M->rtex) { memcpy(wvw_last, wv_main_scr.tv, sizeof(vita2d_texture_vertex) * (size_t)wv_main_scr.ntv); wvw_last_n = wv_main_scr.ntv ? wv_main_scr.ntv : 0; }
+		return;
+	}
+	if (wvw_done == wvw_req) {                                                   /* the worker has finished: take its mesh, ask for the next */
+		if (wvw_req > 0) {
+			memcpy(wvw_last, wvw_scr.tv, sizeof(vita2d_texture_vertex) * (size_t)wvw_scr.ntv);
+			wvw_last_n = wvw_scr.ntv;
+		}
+		wvw_model = M;
+		wvw_frame = frame_next;
+		__sync_synchronize();
+		wvw_req++;
+	}
+	wv_firm_submit(M, wvw_last, wvw_last_n, col, alpha);
 }
 
 /* The background wave at time t seconds. */

@@ -192,6 +192,7 @@ static int sw_apply(int *no_place)
 		moved++;
 	}
 	retro_add_placed();                                                                           /* the games that now have a place become apps */
+	renames_apply();
 	qsort(all_apps, n_all, sizeof(Item), item_cmp);
 	if (made) columns_save();
 	folders_save();

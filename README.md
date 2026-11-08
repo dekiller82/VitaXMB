@@ -547,6 +547,22 @@ Everything in the tree is needed to build (apart from the FFmpeg libraries you b
 
 Every release has its own notes and VPK on the [Releases page](https://github.com/dekiller82/VitaXMB/releases). Each version includes everything from the ones before it.
 
+### [1.10.2](https://github.com/dekiller82/VitaXMB/releases/tag/v1.10.2) (2026-11-08)
+
+**New**
+
+- **Rename apps.** **Triangle** on an app in the Game column, in a folder or in one of your columns opens Options with **Rename**. Only the title shown on the bar changes; the app, its bubble and its files stay as they are. Leave the name empty to get the original title back. A name survives Refresh List and a restart.
+- **Plain `.ptf` themes now work, with their icons.** Themes saved with the PSP's own RLZ compression (a preview and wallpaper that did not appear before) now load their picture. A `.ptf` that carries icons also replaces the stock ones: the six category icons, and the list icons for Theme Settings, the clock, USB, Photo, Music, Video, Game, Memory Stick, Saved Data and the other items that have a matching picture.
+
+**Fixed**
+
+- **Smoother navigation.** Several things made the bar stutter now and then; each is gone:
+  - the moving wave is built on a second thread (it took more than half a frame of the main thread);
+  - text that has not been drawn before appears a frame or two late instead of freezing the screen while its letters are made (the text shadows are also much cheaper to make);
+  - the battery, charging state and volume are read in the background, not once every half second in the middle of a frame;
+  - a PSP game's film, text block (`PIC0`) and file check are prepared in the background when you rest on the game.
+- Resting on a PSP game for the first time can still cost a fraction of a second of choppy frames while its film starts.
+
 ### [1.10.1](https://github.com/dekiller82/VitaXMB/releases/tag/v1.10.1) (2026-10-31)
 
 **New**

@@ -87,6 +87,129 @@ static uint32_t pt_rd16(const uint8_t *p) { return p[0] | (p[1] << 8); }
 
 static float pt_rdf(const uint8_t *p) { float v; memcpy(&v, p, 4); return v; }
 
+/* ---- RLZ (compression 1 in a .ptf chunk): adaptive binary range coder + LZ, port of tools/rlz.py ---- */
+
+typedef struct { const uint8_t *d; uint32_t n, pos, code, range; } PtRc;
+
+static uint32_t ptrc_next(PtRc *r) { return r->pos < r->n ? r->d[r->pos++] : (r->pos++, 0); }
+static void ptrc_norm(PtRc *r)
+{
+	if ((r->range >> 24) == 0) { r->range <<= 8; r->code = (r->code << 8) | ptrc_next(r); }
+}
+static int ptrc_bit(PtRc *r, uint8_t *arr, int idx)
+{
+	uint32_t p = arr[idx], bound = (r->range >> 8) * p;
+	int b;
+	if (r->code < bound) { r->range = bound; b = 1; }
+	else { r->code -= bound; r->range -= bound; b = 0; }
+	uint32_t q = p - (p >> 3);
+	arr[idx] = (uint8_t)(b ? q + 31 : q);
+	ptrc_norm(r);
+	return b;
+}
+static uint32_t ptrc_direct(PtRc *r, int nbits)
+{
+	uint32_t v = 0;
+	for (int i = 0; i < nbits; i++) {
+		r->range >>= 1;
+		int b;
+		if (r->code >= r->range) { r->code -= r->range; b = 0; } else b = 1;
+		v = (v << 1) | (uint32_t)b;
+	}
+	ptrc_norm(r);
+	return v;
+}
+static uint32_t ptrc_special(PtRc *r, uint8_t *arr, int base, int edx)
+{
+	uint32_t num = 0;
+	if (edx >= 3) {
+		num |= (uint32_t)ptrc_bit(r, arr, base) << edx;
+		edx--;
+		if (edx >= 3) { num |= (uint32_t)ptrc_bit(r, arr, base) << edx; edx--; }
+		base++;
+		if (edx >= 3) {
+			num |= ptrc_direct(r, edx - 2) << 3;
+			edx = 2;
+		}
+	}
+	while (edx >= 0) { num |= (uint32_t)ptrc_bit(r, arr, base) << edx; base++; edx--; }
+	return num;
+}
+
+#define RLZ_LIT 0
+#define RLZ_DL (RLZ_LIT + 8 * 0xFF)
+#define RLZ_DS (RLZ_DL + 32 * 8 + 8)
+#define RLZ_DIST (RLZ_DS + 8 * 8 + 8)
+#define RLZ_LEND (RLZ_DIST + 40 * 0x20)
+#define RLZ_ML (RLZ_LEND + 8 * 8 + 8)
+#define RLZ_TOTAL (RLZ_ML + 16 * 8 * 4 + 64)
+
+static uint8_t *pt_rlz(const uint8_t *src, uint32_t clen, uint32_t dlen)
+{
+	if (clen < 5 || dlen == 0 || dlen > 16 * 1024 * 1024) return NULL;
+	uint8_t *out = malloc(dlen);
+	uint8_t *mem = malloc(RLZ_TOTAL);
+	if (!out || !mem) { free(out); free(mem); return NULL; }
+	int real = src[0] & 7;
+	memset(mem, (4 - ((src[0] >> 3) & 3)) << 5, RLZ_TOTAL);
+	PtRc r = { src, clen, 1, 0, 0xFFFFFFFFu };
+	for (int i = 0; i < 4; i++) r.code = (r.code << 8) | ptrc_next(&r);
+	uint32_t n_out = 0, var_c = 0;
+	int last = 0, ok = 1;
+	while (n_out < dlen && ok) {
+		if (r.pos > clen + 16) { ok = 0; break; }       /* ran far past the data */
+		int n = 0;
+		while (n < 8 && ptrc_bit(&r, mem, RLZ_LEND + n * 8 + (int)var_c)) n++;
+		int h = n - 1;
+		uint32_t length;
+		if (h < 0) length = 0;
+		else if (h == 0) length = 1;
+		else {
+			int i = h - 1;
+			int base = RLZ_ML + (int)(((var_c & 7) + (uint32_t)i * 8) * 4 + ((n_out << i) & 3));
+			length = (1u << h) | ptrc_special(&r, mem, base, i);
+		}
+		if (length == 0) {
+			int ctx = (int)((((n_out & 7) << 8 | (uint32_t)last) >> real) & 7);
+			int node = 1;
+			for (int i = 0; i < 8; i++) node = (node << 1) | ptrc_bit(&r, mem, RLZ_LIT + ctx * 0xFF + node - 1);
+			out[n_out++] = (uint8_t)node;
+			if (var_c > 0) var_c--;
+		} else {
+			uint32_t mlen = length + 1;
+			int tree = mlen < 4 ? RLZ_DS : RLZ_DL, nbits = mlen < 4 ? 3 : 5, add = mlen < 4 ? 0 : 0xC;
+			int node = 1, s = 0;
+			for (int i = 0; i < nbits; i++) {
+				int b = ptrc_bit(&r, mem, tree + node * 8 + h);
+				s = (s << 1) | b;
+				node = node * 2 + b;
+			}
+			int msb = add ? s - add : s;
+			if (msb < 0 || msb > 31) { ok = 0; break; }
+			uint32_t d;
+			if (msb == 0) d = 1;
+			else { int i = msb - 1; d = (1u << msb) | ptrc_special(&r, mem, RLZ_DIST + i * 0x20, i); }
+			if (d > n_out) { ok = 0; break; }
+			for (uint32_t k = 0; k < mlen && n_out < dlen; k++, n_out++) out[n_out] = out[n_out - d];
+			var_c = 7 - (n_out & 1);
+		}
+		if (n_out) last = out[n_out - 1];
+	}
+	free(mem);
+	if (!ok || n_out != dlen) { free(out); return NULL; }
+	return out;
+}
+
+static uint8_t *pt_inflate(const uint8_t *src, uint32_t clen, uint32_t dlen);
+
+/* decodes a .ptf chunk by its compression field (0 raw, 1 RLZ, 2 zlib) */
+static uint8_t *pt_unpack(const uint8_t *z, uint32_t clen, uint32_t dlen, uint32_t comp)
+{
+	if (comp == 1) return pt_rlz(z, clen, dlen);
+	if (comp == 0) { uint8_t *o = malloc(clen); if (o) memcpy(o, z, clen); return o; }
+	return pt_inflate(z, clen, dlen);
+}
+
 static uint8_t *pt_read(FILE *f, long off, long size)
 {
 	if (size <= 0 || size > 16 * 1024 * 1024 || fseek(f, off, SEEK_SET) != 0) return NULL;
@@ -243,11 +366,11 @@ static void pt_read_ptf(FILE *f, long ptf_end)
 	uint8_t h[0x20];
 	for (int n = 0; n < 4 && pos + 0x20 <= ptf_end; n++) {
 		if (fseek(f, pos, SEEK_SET) != 0 || fread(h, 1, 0x20, f) != 0x20) return;
-		uint32_t idx = pt_rd32(h), clen = pt_rd32(h + 8), dlen = pt_rd32(h + 12);
+		uint32_t idx = pt_rd32(h), flags = pt_rd32(h + 4), clen = pt_rd32(h + 8), dlen = pt_rd32(h + 12);
 		if (clen == 0 || pos + 0x20 + (long)clen > ptf_end) return;
 		if (idx == 1 && !pt_preview) {
 			uint8_t *z = pt_read(f, pos + 0x20, clen);
-			uint8_t *g = z ? pt_inflate(z, clen, dlen) : NULL;
+			uint8_t *g = z ? pt_unpack(z, clen, dlen, flags >> 16) : NULL;
 			int w, hh;
 			uint8_t *pix = g ? pt_gim_decode(g, dlen, &w, &hh) : NULL;
 			pt_preview = pt_tex(pix, w, hh);
@@ -263,8 +386,7 @@ static void pt_read_ptf(FILE *f, long ptf_end)
 		uint32_t flags = pt_rd32(c + 4), clen = pt_rd32(c + 8), dlen = pt_rd32(c + 12);
 		if ((flags & 0xFFFF) == 4 && clen && pos + 0x40 + (long)clen <= ptf_end) {
 			uint8_t *z = pt_read(f, pos + 0x40, clen);
-			uint8_t *b = z ? ((flags >> 16) == 2 ? pt_inflate(z, clen, dlen) : NULL) : NULL;
-			if (!b && z && (flags >> 16) == 0) { b = z; z = NULL; dlen = clen; }
+			uint8_t *b = z ? pt_unpack(z, clen, dlen, flags >> 16) : NULL;
 			int w, hh;
 			uint8_t *pix = b ? pt_bmp_decode(b, dlen, &w, &hh) : NULL;
 			if (pix && w == 480 && hh == 272) pt_wall = pt_tex(pix, w, hh); else free(pix);
@@ -370,6 +492,9 @@ static const PtMap pt_map[] = {
 };
 #define PT_MAP_N ((int)(sizeof(pt_map) / sizeof(pt_map[0])))
 static vita2d_texture *pt_ov[PT_MAP_N];            /* themed replacement for pt_map[i] */
+/* The PSP icon number (group 3 of a .ptf's icon part; each number is given twice, 2/3, 4/5 ...) that shows the same thing as pt_map[i]; 0 = none.
+ * Matched by the picture of the icon: theme palette, ring, power, photo, note, film, wireless, disc, card, update, nodes, antenna x2, clock, usb. */
+static const int pt_ptf_num[] = { 2, 4, 28, 20, 22, 18, 32, 12, 30, 6, 14, 8, 36, 46, 26, 16, 0, 0, 0 };
 static const char *pt_cat_label[CAT_COUNT] = { "AJ", "AL", "AM", "AN", "AO", "AP" };   /* Settings Photo Music Video Game Network */
 #define PT_CAT_N 6                                  /* the PSP's own six: a theme has no picture for Emulators and Utilities */
 
@@ -671,6 +796,52 @@ static void pt_read_list(FILE *f, const PtFile *pf)
 	free(r);
 }
 
+/* The .ptf part also carries icon groups (header table at 0x100 lists their offsets): group 2 = the category icons (Settings, Photo,
+ * Music, Video, Game, Network, PSN), group 3 = Settings row icons (PSP icon numbers, each given twice), group 4 = two small ones. */
+static vita2d_texture *pt_ptf_icon(FILE *f, long pos, long ptf_end, uint32_t flags, uint32_t clen, uint32_t dlen)
+{
+	if ((flags & 0xFFFF) != 5 || clen == 0 || pos + 0x20 + (long)clen > ptf_end) return NULL;
+	uint8_t *z = pt_read(f, pos + 0x20, clen);
+	uint8_t *g = z ? pt_unpack(z, clen, dlen, flags >> 16) : NULL;
+	int w, h;
+	uint8_t *pix = g ? pt_gim_decode(g, dlen, &w, &h) : NULL;
+	vita2d_texture *t = pix ? pt_tex(pix, w, h) : NULL;
+	free(g); free(z);
+	return t;
+}
+
+static void pt_read_ptf_icons(FILE *f, long ptf_end)
+{
+	uint8_t tb[32];
+	if (fseek(f, 0x100, SEEK_SET) != 0 || fread(tb, 1, 32, f) != 32) return;
+	for (int gi = 0; gi < 8; gi++) {
+		long gp = (long)pt_rd32(tb + gi * 4);
+		uint8_t gh[0x20];
+		if (gp < 0x120 || gp + 0x20 > ptf_end || fseek(f, gp, SEEK_SET) != 0 || fread(gh, 1, 0x20, f) != 0x20) continue;
+		int type = pt_rd16(gh), count = pt_rd16(gh + 2);
+		if (type != 2 && type != 3) continue;
+		long pos = gp + 0x20;
+		for (int i = 0; i < count && i < 64 && pos + 0x20 <= ptf_end; i++) {
+			uint8_t h[0x20];
+			if (fseek(f, pos, SEEK_SET) != 0 || fread(h, 1, 0x20, f) != 0x20) break;
+			uint32_t idx = pt_rd32(h), flags = pt_rd32(h + 4), clen = pt_rd32(h + 8), dlen = pt_rd32(h + 12);
+			if (clen == 0) break;
+			int want = -1;
+			if (type == 2 && idx >= 1 && idx <= 6 && !pt_cat[idx - 1]) want = (int)idx - 1;
+			if (type == 3) {
+				for (int k = 0; k < PT_MAP_N; k++) if (pt_ptf_num[k] == (int)idx && !pt_ov[k]) {
+					vita2d_texture *t = pt_ptf_icon(f, pos, ptf_end, flags, clen, dlen);
+					if (t) { pt_ov[k] = t; glow_for(t); }
+					break;
+				}
+			} else if (want >= 0) {
+				pt_cat[want] = pt_ptf_icon(f, pos, ptf_end, flags, clen, dlen);
+			}
+			pos += 0x20 + clen;
+		}
+	}
+}
+
 static void pt_read_icons(FILE *f, const PtFile *pf)
 {
 	uint8_t *r = pt_read(f, pf->start, pf->size);
@@ -681,7 +852,7 @@ static void pt_read_icons(FILE *f, const PtFile *pf)
 	for (int c = 0; c < PT_CAT_N; c++) {
 		int w, h;
 		uint8_t *px = pt_label_pixels(r, pf->size, imgs, n, p_data, pt_cat_label[c], &w, &h, 1);
-		if (px) pt_cat[c] = pt_tex(px, w, h);
+		if (px) { if (pt_cat[c]) { defer_free(pt_cat[c]); pt_cat[c] = NULL; } pt_cat[c] = pt_tex(px, w, h); }
 	}
 	for (int c = 0; c < PT_CAT_N; c++) {                   /* a tall panel where the icon should be: this theme draws the whole bar as artwork */
 		if (pt_cat[c]) continue;
@@ -700,7 +871,7 @@ static void pt_read_icons(FILE *f, const PtFile *pf)
 	for (int i = 0; i < PT_MAP_N; i++) {
 		int w, h;
 		uint8_t *px = pt_label_pixels(r, pf->size, imgs, n, p_data, pt_map[i].label, &w, &h, 1);
-		if (px) { pt_ov[i] = pt_tex(px, w, h); if (pt_ov[i]) glow_for(pt_ov[i]); }
+		if (px) { if (pt_ov[i]) { glow_release(pt_ov[i]); defer_free(pt_ov[i]); } pt_ov[i] = pt_tex(px, w, h); if (pt_ov[i]) glow_for(pt_ov[i]); }
 	}
 	free(r);
 }
@@ -1159,6 +1330,7 @@ static int pt_load(int idx)
 	trace("theme: %s size %ld files %d\n", pt_list[idx].path, fsize, nf);
 	if (nf < 0) { fclose(f); return 0; }
 	pt_read_ptf(f, ptf_end);
+	pt_read_ptf_icons(f, ptf_end);
 	if (nf > 0) {
 		/* a PSP-3000 and later (what Adrenaline runs as) loads 01-12_03g.bmp; its October sky fits a capture of the real XMB, 01-12.bmp's does not */
 		PtFile *bg = pt_find(files, nf, "/vsh/resource/01-12_03g.bmp");

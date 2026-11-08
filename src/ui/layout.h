@@ -57,22 +57,56 @@ static void launch_request(const Item *it)
 static int status_busy;
 
 /* The Vita's system volume is 0..30 in the registry; zero is the PSP's "mute" (read twice a second at most). */
-static int status_muted(void)
+/* The status bar's system values (battery, charging, the volume setting). Asking the system for them is a call into another process: it can take
+ * tens of milliseconds, and drawing must never wait for that. A small thread asks twice a second; the frame loop reads what it found. */
+static volatile int sys_batt_pct = 100, sys_charging, sys_muted;
+
+static void sys_poll_once(void)
 {
-	static uint64_t last;
-	static int muted;
-	uint64_t now = sceKernelGetProcessTimeWide();
-	if (last == 0 || now - last > 500000) {
-		int vol = -1;
-		last = now;
-		muted = sceRegMgrGetKeyInt("/CONFIG/SOUND", "main_volume", &vol) >= 0 && vol == 0;
+	int vol = -1;
+	sys_batt_pct = scePowerGetBatteryLifePercent();
+	sys_charging = scePowerIsBatteryCharging();
+	sys_muted = sceRegMgrGetKeyInt("/CONFIG/SOUND", "main_volume", &vol) >= 0 && vol == 0;
 #ifdef VITAXMB_DEBUG
-		SceIoStat st;                                                      /* debug builds: an empty ux0:data/VitaXMB/forcemute shows the icon */
-		if (sceIoGetstat(CONFIG_DIR "/forcemute", &st) >= 0) muted = 1;
+	SceIoStat st;                                                      /* debug builds: an empty ux0:data/VitaXMB/forcemute shows the icon */
+	if (sceIoGetstat(CONFIG_DIR "/forcemute", &st) >= 0) sys_muted = 1;
 #endif
-	}
-	return muted;
 }
+
+/* A file check the frame loop wants: "does ux0:app/<id>/data/boot.bin exist" (a PSP game bubble), asked of the thread so the loop never waits on the
+ * memory card (a stat queues behind whatever the icon loader is reading, which has taken 100 ms and more). */
+static char sys_stat_id[24];
+static volatile int sys_stat_req, sys_stat_done, sys_stat_ok;
+static void sys_stat_request(const char *id)
+{
+	snprintf(sys_stat_id, sizeof(sys_stat_id), "%.20s", id);
+	sys_stat_ok = 0;
+	__sync_synchronize();
+	sys_stat_req++;
+}
+static int sys_stat_ready(void) { return sys_stat_done == sys_stat_req; }
+
+static int sys_thread(SceSize args, void *argp)
+{
+	(void)args; (void)argp;
+	int tick = 0;
+	for (;;) {
+		sceKernelDelayThread(40000);
+		if (sys_stat_done != sys_stat_req) {
+			int gen = sys_stat_req;
+			char id[24], p[64];
+			snprintf(id, sizeof(id), "%s", sys_stat_id);
+			snprintf(p, sizeof(p), "ux0:app/%.20s/data/boot.bin", id);
+			SceIoStat st;
+			int ok = sceIoGetstat(p, &st) >= 0;
+			if (gen == sys_stat_req) { sys_stat_ok = ok; __sync_synchronize(); sys_stat_done = gen; }
+		}
+		if (++tick >= 12) { tick = 0; sys_poll_once(); }
+	}
+	return 0;
+}
+
+static int status_muted(void) { return sys_muted; }
 
 /* A status picture at its own size (the PSP's pixels are two of ours), centred on cx, cy. */
 static void draw_status_pic(vita2d_texture *t, float cx, float cy, int a)
@@ -132,11 +166,11 @@ static PtFont *stock_clock_font(void)
 static void draw_status(const SceDateTime *dt)
 {
 	char buf[32];
-	int pct = scePowerGetBatteryLifePercent();
+	int pct = sys_batt_pct;
 	const float cy = 26.0f;                       /* shared centre line of clock and battery */
 	/* charging: anim_battery_charging fires OnChargeBattery every 400 ms; its handler (vshmain 0x31158) shows frame `counter` of the
 	 * four-frame sheet and counts down 3, 2, 1, 0, 3, ... (empty, one bar, two, full), whatever the real level is */
-	int charging = scePowerIsBatteryCharging();
+	int charging = sys_charging;
 	unsigned step = (unsigned)(sceKernelGetProcessTimeWide() / 400000);
 
 	float bx = 908;

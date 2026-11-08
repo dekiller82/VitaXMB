@@ -79,6 +79,16 @@ static void draw_text_rows(int m, float xoff, float amul)
 	}
 }
 
+/* The icon a theme's .ptf gives this Settings row (by what the row is), or NULL for the common badge. */
+static vita2d_texture *pt_row_icon(const Item *it)
+{
+	vita2d_texture *t = NULL;
+	if (it->stock == tex_theme || it->stock == tex_date) t = pt_swap(it->stock);
+	else if (!strcmp(it->title, "System Update")) t = pt_swap(tex_launch);
+	else if (!strcmp(it->title, "Wi-Fi Settings")) t = pt_swap(tex_net_s);
+	return t && pt_owned(t) ? t : NULL;
+}
+
 /* The child list of a Settings-style page: wrench badge, title, value at the right. */
 static void draw_sub_list(int m, float xoff, float amul)
 {
@@ -98,6 +108,7 @@ static void draw_sub_list(int m, float xoff, float amul)
 		if (m == M_TRACKS && it->kind == KIND_TRACK) { draw_track_row(it, j + 1, y, xoff, sel, a); continue; }
 		float ix = 262.0f + xoff, tx = 303.0f + xoff;
 		vita2d_texture *tex = pt_swap((m == M_VIDEOS) ? it->stock : tex_badge);
+		if (m != M_VIDEOS && m != M_TRACKS) { vita2d_texture *rt = pt_row_icon(it); if (rt) tex = rt; }
 		float isz = (m == M_VIDEOS) ? 84.0f : 64.0f;
 		if (tex && it->glow > 0.02f) draw_glow(tex, ix, y, isz, it->glow * 0.95f * (a / 255.0f));
 		draw_icon(tex, ix, y, isz, a);

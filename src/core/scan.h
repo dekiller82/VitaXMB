@@ -52,6 +52,7 @@ static void scan_apps(void)
 	else n_all = 0;
 	retro_scan();                                     /* the ROMs of RetroArch's playlists and RetroFlow's folders wait as records; the placed ones become apps */
 	retro_add_placed();
+	renames_apply();                                  /* the names the user gave */
 	if (all_apps) qsort(all_apps, n_all, sizeof(Item), item_cmp);
 	rebuild_game_lists();
 }

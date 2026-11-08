@@ -6,6 +6,8 @@
 
 #define REMOTE_FILE CONFIG_DIR "/remote.txt"
 static int test_page;
+static unsigned prof_frame;
+static int prof_mode;                    /* debug: a file called prof measures the frame loop without any file access on the side */
 static char rc_cmd[64][100];
 static int  rc_n, rc_i, rc_wait;
 static char rc_shot[48];
@@ -14,6 +16,7 @@ static char rc_name[40];                 /* debug builds: stands in for typing a
 
 static void remote_poll(void)
 {
+	if (rc_i < rc_n) return;                      /* the frame loop is still working through the last commands */
 	SceUID fd = sceIoOpen(REMOTE_FILE, SCE_O_RDONLY, 0);
 	if (fd < 0) return;
 	char buf[2048];
@@ -22,10 +25,29 @@ static void remote_poll(void)
 	sceIoRemove(REMOTE_FILE);
 	if (n <= 0) return;
 	buf[n] = 0;
-	rc_n = rc_i = 0;
-	for (char *tok = strtok(buf, " \r\n\t,"); tok && rc_n < 64; tok = strtok(NULL, " \r\n\t,"))
-		snprintf(rc_cmd[rc_n++], sizeof(rc_cmd[0]), "%s", tok);
+	rc_n = 0;                                     /* nothing for the frame loop to read while the list is rebuilt */
+	rc_i = 0;
+	int cnt = 0;
+	for (char *tok = strtok(buf, " \r\n\t,"); tok && cnt < 64; tok = strtok(NULL, " \r\n\t,"))
+		snprintf(rc_cmd[cnt++], sizeof(rc_cmd[0]), "%s", tok);
+	rc_i = 0;
+	__sync_synchronize();
+	rc_n = cnt;                                   /* published last: the frame loop reads the commands only once rc_n is set */
 }
+
+#ifdef VITAXMB_DEBUG
+/* Debug helper thread: writes the queued trace lines and looks for a remote.txt, away from the frame loop. */
+static int dbg_thread(SceSize args, void *argp)
+{
+	(void)args; (void)argp;
+	for (;;) {
+		trace_flush();
+		remote_poll();
+		sceKernelDelayThread(100000);
+	}
+	return 0;
+}
+#endif
 
 /* One command per frame; returns the synthetic "pressed" mask. */
 static unsigned int remote_step(void)
@@ -38,8 +60,6 @@ static unsigned int remote_step(void)
 		{ "cross", SCE_CTRL_CROSS }, { "circle", SCE_CTRL_CIRCLE }, { "triangle", SCE_CTRL_TRIANGLE },
 		{ "l", SCE_CTRL_LTRIGGER }, { "r", SCE_CTRL_RTRIGGER },
 	};
-	static int poll_div;
-	if (rc_i >= rc_n && (++poll_div % 20) == 0) remote_poll();
 	if (rc_wait > 0) { rc_wait--; return 0; }
 	if (rc_i >= rc_n) return 0;
 	const char *c = rc_cmd[rc_i++];
@@ -108,7 +128,7 @@ static void save_screenshot(const char *name)
 /* Actions queued by the UI and carried out once per frame, after input. */
 enum { ACT_NONE, ACT_EXIT_ASK, ACT_EXIT_DO, ACT_ARTDEC_ASK, ACT_ARTDEC_DO, ACT_URI, ACT_START, ACT_INFO, ACT_REFRESH,
        ACT_NEWFOLDER, ACT_SELECT, ACT_RENAME, ACT_DELFOLDER_ASK, ACT_DELFOLDER_DO, ACT_REMOVE, ACT_NLA_ASK, ACT_NLA_DO, ACT_REBOOT_DO,
-       ACT_MOVE, ACT_MOVEFOLDER, ACT_ORGANIZE, ACT_TROPHIES, ACT_SORT_ASK, ACT_SORT_OPEN, ACT_SORT_DO, ACT_COLUMNS, ACT_COLDEL_DO, ACT_ICON, ACT_UNINSTALL_ASK, ACT_UNINSTALL_DO };
+       ACT_MOVE, ACT_MOVEFOLDER, ACT_ORGANIZE, ACT_TROPHIES, ACT_SORT_ASK, ACT_SORT_OPEN, ACT_SORT_DO, ACT_COLUMNS, ACT_COLDEL_DO, ACT_ICON, ACT_UNINSTALL_ASK, ACT_UNINSTALL_DO, ACT_RENAMEAPP };
 
 static void launch_uri(const char *uri)
 {

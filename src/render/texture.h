@@ -20,24 +20,48 @@ static void xlog(const char *fmt, ...)
 	sceIoClose(fd);
 }
 
-/* Breadcrumbs for freezes: the last line written is the last thing that happened. */
+/* Breadcrumbs for freezes. Debug builds only. The lines are queued in memory and a helper thread (dbg_thread, remote.h) writes them out
+ * every 100 ms: file access on this console can stall a thread for tens of milliseconds, which must never happen on the frame loop. */
+#ifdef VITAXMB_DEBUG
+static char trace_q[262144];
+static volatile unsigned trace_head, trace_tail;       /* bytes ever queued / ever written */
+static volatile int trace_lk;
+static int trace_first = 1;
+static void trace_flush(void)
+{
+	char tmp[4096];
+	for (;;) {
+		unsigned n = trace_head - trace_tail;
+		if (!n) return;
+		if (n > sizeof(tmp)) n = sizeof(tmp);
+		for (unsigned i = 0; i < n; i++) tmp[i] = trace_q[(trace_tail + i) % sizeof(trace_q)];
+		SceUID fd = sceIoOpen(CONFIG_DIR "/trace.txt", SCE_O_WRONLY | SCE_O_CREAT | (trace_first ? SCE_O_TRUNC : SCE_O_APPEND), 0777);
+		trace_first = 0;
+		if (fd >= 0) { sceIoWrite(fd, tmp, n); sceIoClose(fd); }
+		trace_tail += n;
+	}
+}
+#endif
 static void trace(const char *fmt, ...)
 {
 #ifndef VITAXMB_DEBUG
 	(void)fmt;
 	return;
-#endif
-	static int n;
-	SceUID fd = sceIoOpen(CONFIG_DIR "/trace.txt",
-	                      SCE_O_WRONLY | SCE_O_CREAT | (n++ == 0 ? SCE_O_TRUNC : SCE_O_APPEND), 0777);
-	if (fd < 0) return;
+#else
 	char buf[200];
 	va_list ap;
 	va_start(ap, fmt);
 	int len = vsnprintf(buf, sizeof(buf), fmt, ap);
 	va_end(ap);
-	if (len > 0) sceIoWrite(fd, buf, len < (int)sizeof(buf) ? len : (int)sizeof(buf) - 1);
-	sceIoClose(fd);
+	if (len <= 0) return;
+	if (len > (int)sizeof(buf) - 1) len = (int)sizeof(buf) - 1;
+	while (__sync_lock_test_and_set(&trace_lk, 1)) { }
+	if (trace_head - trace_tail + (unsigned)len < sizeof(trace_q)) {       /* a full queue drops the line rather than waiting */
+		for (int i = 0; i < len; i++) trace_q[(trace_head + i) % sizeof(trace_q)] = buf[i];
+		trace_head += (unsigned)len;
+	}
+	__sync_lock_release(&trace_lk);
+#endif
 }
 
 static char png_err[96];

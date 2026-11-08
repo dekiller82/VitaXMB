@@ -126,10 +126,29 @@ static int   sh_dx = 2, sh_dy = 2;                      /* offset, screen pixels
 static int   sh_col[3] = { 0, 0, 0 };
 static float txt_soft = 0.5f;                           /* how much the letters themselves are softened (the PSP's picture is a 2x upscale) */
 
-static void make_shadow(uint8_t *img, uint8_t *tmp, int pw, int ph)
+/* The shadow is very soft (a blur of about 3.5 px), so it is made at HALF resolution and drawn at twice the size with linear filtering: a quarter of the
+ * pixels to blur and to keep in the atlas, which makes a new glyph several times cheaper. cov is the glyph's coverage (w x h); the result (malloc,
+ * hw x hs, hw = (w + 2 * SHADOW_PAD + 1) / 2) covers the glyph plus SHADOW_PAD on every side. */
+static uint8_t *shadow_half(const uint8_t *cov, int w, int h, int stride)
 {
-	for (int i = 0; i < sh_n; i++) box_blur_r(img, tmp, pw, ph, sh_rad);
-	for (int i = 0; i < pw * ph; i++) { int v = (int)(img[i] * sh_dim * 3.0f); img[i] = (uint8_t)(v > 255 ? 255 : v); }   /* the blur thins the glow: bring it back up */
+	int hw = (w + SHADOW_PAD * 2 + 1) / 2, hs = (h + SHADOW_PAD * 2 + 1) / 2;
+	uint8_t *img = calloc((size_t)hw * hs, 1), *tmp = calloc((size_t)hw * hs, 1);
+	if (!img || !tmp) { free(img); free(tmp); return NULL; }
+	for (int y = 0; y < hs; y++)
+		for (int x = 0; x < hw; x++) {
+			int sum = 0;
+			for (int j = 0; j < 2; j++)
+				for (int i = 0; i < 2; i++) {
+					int px = 2 * x + i - SHADOW_PAD, py = 2 * y + j - SHADOW_PAD;
+					if (px >= 0 && py >= 0 && px < w && py < h) sum += cov[py * stride + px];
+				}
+			img[y * hw + x] = (uint8_t)((sum + 2) / 4);
+		}
+	int r = sh_rad / 2 > 0 ? sh_rad / 2 : 1;
+	for (int i = 0; i < sh_n + 1; i++) box_blur_r(img, tmp, hw, hs, r);
+	for (int i = 0; i < hw * hs; i++) { int v = (int)(img[i] * sh_dim * 3.0f); img[i] = (uint8_t)(v > 255 ? 255 : v); }      /* the blur thins the glow: bring it back up */
+	free(tmp);
+	return img;
 }
 
 /* a 3x3 smoothing of a glyph bitmap (copy), mixed with the original by txt_soft */
@@ -149,7 +168,35 @@ static void soften_glyph(uint8_t *dst, const uint8_t *src, int w, int h, int pit
 		}
 }
 
+static uint64_t gly_us; static int gly_n;                        /* profiling: time spent making glyphs this frame */
+/* Making a glyph takes a good fraction of a millisecond, and a new screen of text can need dozens. They are made at most GLYPH_BUDGET_US per frame (a
+ * 16 ms window, so it works in any loop); text whose glyphs are not all there yet is simply not drawn that frame (see text_draw) and shows up whole a
+ * few frames later, instead of one frame taking 50 ms. gly_unlimited lifts it where nothing is being drawn (the start-up prewarm). */
+#define GLYPH_BUDGET_US 3000
+static int gly_unlimited, gly_deferred;
+static uint64_t gly_win_t, gly_win_spent;
+static Glyph *glyph_get_raw(uint32_t cp, unsigned int size, int sub);
 static Glyph *glyph_get(uint32_t cp, unsigned int size, int sub)
+{
+	uint32_t key = (size << 24) | ((uint32_t)sub << 21) | (cp & 0x1FFFFF);
+	uint32_t hh = (key * 2654435761u) >> 20;
+	for (int probe = 0; probe < GLYPH_SLOTS; probe++) {
+		Glyph *g = &glyphs[(hh + probe) & (GLYPH_SLOTS - 1)];
+		if (g->key == key) return g;
+		if (g->key == 0) break;
+	}
+	uint64_t a = sceKernelGetProcessTimeWide();
+	if (!gly_unlimited) {
+		if (a - gly_win_t > 16000) { gly_win_t = a; gly_win_spent = 0; }
+		if (gly_win_spent >= GLYPH_BUDGET_US) { gly_deferred++; return NULL; }
+	}
+	Glyph *r = glyph_get_raw(cp, size, sub);
+	uint64_t dt = sceKernelGetProcessTimeWide() - a;
+	gly_us += dt; gly_win_spent += dt; gly_n++;
+	return r;
+}
+
+static Glyph *glyph_get_raw(uint32_t cp, unsigned int size, int sub)
 {
 	uint32_t key = (size << 24) | ((uint32_t)sub << 21) | (cp & 0x1FFFFF);
 	uint32_t h = (key * 2654435761u) >> 20;
@@ -198,10 +245,15 @@ static Glyph *glyph_get(uint32_t cp, unsigned int size, int sub)
 						dst[j * w + i] = (uint8_t)(acc > 255 ? 255 : acc + 0.5f);
 					}
 				free(src);
-				int pw = w + SHADOW_PAD * 2, ph = hh + SHADOW_PAD * 2;
-				int ax, ay, sx, sy;
+				Glyph *g0 = NULL;
+				if (sub) {                                     /* the shadow is soft: the phase-0 glyph owns it and the other phases share it */
+					g0 = glyph_get_raw(cp, size, 0);
+					if (!g0) { free(dst); g->key = 0; return NULL; }
+				}
+				int hw = (w + SHADOW_PAD * 2 + 1) / 2, hs = (hh + SHADOW_PAD * 2 + 1) / 2;
+				int ax, ay, sx = 0, sy = 0;
 				if (!atlas_alloc(w + GLYPH_PAD * 2, hh + GLYPH_PAD * 2, &ax, &ay) ||
-				    !atlas_alloc(pw + GLYPH_PAD * 2, ph + GLYPH_PAD * 2, &sx, &sy)) {
+				    (!g0 && !atlas_alloc(hw + GLYPH_PAD * 2, hs + GLYPH_PAD * 2, &sx, &sy))) {
 					free(dst);
 					g->key = 0;
 					atlas_dirty = 1;
@@ -209,16 +261,19 @@ static Glyph *glyph_get(uint32_t cp, unsigned int size, int sub)
 				}
 				ax += GLYPH_PAD; ay += GLYPH_PAD; sx += GLYPH_PAD; sy += GLYPH_PAD;
 				atlas_put(ax, ay, w, hh, dst, w);
-				uint8_t *img = calloc(pw * ph, 1), *tmp = calloc(pw * ph, 1);
-				if (img && tmp) {
-					for (int j = 0; j < hh; j++) memcpy(img + (j + SHADOW_PAD) * pw + SHADOW_PAD, dst + j * w, w);
-					make_shadow(img, tmp, pw, ph);
-					atlas_put(sx, sy, pw, ph, img, pw);
-					g->sx = sx; g->sy = sy; g->sw = pw; g->sh = ph;
-					g->sleft = ox0 - SHADOW_PAD;
-					g->stop = -oy0 + SHADOW_PAD;
+				if (g0) {
+					g->sx = g0->sx; g->sy = g0->sy; g->sw = g0->sw; g->sh = g0->sh; g->sleft = g0->sleft; g->stop = g0->stop;
+				} else {
+					uint8_t *img = shadow_half(dst, w, hh, w);
+					if (img) {
+						atlas_put(sx, sy, hw, hs, img, hw);
+						g->sx = sx; g->sy = sy; g->sw = hw; g->sh = hs;
+						g->sleft = ox0 - SHADOW_PAD;
+						g->stop = -oy0 + SHADOW_PAD;
+						free(img);
+					}
 				}
-				free(img); free(tmp); free(dst);
+				free(dst);
 				g->ax = ax; g->ay = ay; g->aw = w; g->ah = hh;
 				g->left = ox0; g->top = -oy0;
 				return g;
@@ -229,7 +284,7 @@ static Glyph *glyph_get(uint32_t cp, unsigned int size, int sub)
 				g->key = key;                                   /* hold this slot while the phase-0 glyph is made */
 				g->aw = g->ah = g->sw = g->sh = 0;
 				g->adv = 0;
-				g0 = glyph_get(cp, size, 0);
+				g0 = glyph_get_raw(cp, size, 0);
 				if (!g0) { g->key = 0; return NULL; }
 			}
 			FT_Set_Pixel_Sizes(ft_face, 0, size);
@@ -268,10 +323,10 @@ static Glyph *glyph_get(uint32_t cp, unsigned int size, int sub)
 			g->aw = g->ah = g->sw = g->sh = 0;
 			if (bm->width && bm->rows) {
 				int w = bm->width, hh = bm->rows;
-				int pw = w + SHADOW_PAD * 2, ph = hh + SHADOW_PAD * 2;
-				int ox, oy, sx, sy;
+				int hw = (w + SHADOW_PAD * 2 + 1) / 2, hs = (hh + SHADOW_PAD * 2 + 1) / 2;
+				int ox, oy, sx = 0, sy = 0;
 				if (!atlas_alloc(w + GLYPH_PAD * 2, hh + GLYPH_PAD * 2, &ox, &oy) ||
-				    (!g0 && !atlas_alloc(pw + GLYPH_PAD * 2, ph + GLYPH_PAD * 2, &sx, &sy))) {
+				    (!g0 && !atlas_alloc(hw + GLYPH_PAD * 2, hs + GLYPH_PAD * 2, &sx, &sy))) {
 					g->key = 0;
 					atlas_dirty = 1;
 					return NULL;
@@ -284,19 +339,18 @@ static Glyph *glyph_get(uint32_t cp, unsigned int size, int sub)
 				} else atlas_put(ox, oy, w, hh, bm->buffer, bm->pitch);
 
 				/* shadow: padded copy, blurred (shared with the other phases of the same letter) */
-				uint8_t *img = g0 ? NULL : calloc(pw * ph, 1), *tmp = g0 ? NULL : calloc(pw * ph, 1);
 				if (g0) {
 					g->sx = g0->sx; g->sy = g0->sy; g->sw = g0->sw; g->sh = g0->sh; g->sleft = g0->sleft; g->stop = g0->stop;
-				} else if (img && tmp) {
-					for (int j = 0; j < hh; j++)
-						memcpy(img + (j + SHADOW_PAD) * pw + SHADOW_PAD, bm->buffer + j * bm->pitch, w);
-					make_shadow(img, tmp, pw, ph);
-					atlas_put(sx, sy, pw, ph, img, pw);
-					g->sx = sx; g->sy = sy; g->sw = pw; g->sh = ph;
-					g->sleft = sl->bitmap_left - SHADOW_PAD;
-					g->stop = sl->bitmap_top + SHADOW_PAD;
+				} else {
+					uint8_t *img = shadow_half(bm->buffer, w, hh, bm->pitch);
+					if (img) {
+						atlas_put(sx, sy, hw, hs, img, hw);
+						g->sx = sx; g->sy = sy; g->sw = hw; g->sh = hs;
+						g->sleft = sl->bitmap_left - SHADOW_PAD;
+						g->stop = sl->bitmap_top + SHADOW_PAD;
+						free(img);
+					}
 				}
-				free(img); free(tmp);
 				g->ax = ox; g->ay = oy; g->aw = w; g->ah = hh;
 				g->left = sl->bitmap_left; g->top = sl->bitmap_top;
 			}
@@ -311,7 +365,21 @@ static Glyph *glyph_get(uint32_t cp, unsigned int size, int sub)
 #define MAX_SHAPED 160
 typedef struct { uint32_t gid; float adv; float xoff; } Shaped;
 
+static uint64_t shp_us; static int shp_n, shp_hb;                /* profiling: shaping time this frame */
+static int text_shape_raw(unsigned int size, const char *s, Shaped *out);
 static int text_shape(unsigned int size, const char *s, Shaped *out)
+{
+#ifdef VITAXMB_DEBUG
+	uint64_t a = sceKernelGetProcessTimeWide();
+	int r = text_shape_raw(size, s, out);
+	shp_us += sceKernelGetProcessTimeWide() - a; shp_n++;
+	return r;
+#else
+	return text_shape_raw(size, s, out);
+#endif
+}
+
+static int text_shape_raw(unsigned int size, const char *s, Shaped *out)
 {
 	if (pt_font && *s) {                 /* the theme's bitmap font, if it has every character */
 		int n = 0, ok = 1;
@@ -335,6 +403,7 @@ static int text_shape(unsigned int size, const char *s, Shaped *out)
 		if (ok && n) return n;
 	}
 	if (!hb_fnt || !*s) return 0;
+	shp_hb++;
 	hb_buffer_t *buf = hb_buffer_create();
 	hb_buffer_add_utf8(buf, s, -1, 0, -1);
 	hb_buffer_guess_segment_properties(buf);
@@ -359,6 +428,7 @@ static void text_prewarm(int steps)
 	static int idx;
 	static const unsigned int sizes[3] = { 28, 22, 24 };
 	if (!atlas) return;
+	gly_unlimited = 1;
 	while (steps-- > 0 && idx < 3 * 95) {                  /* phase 0 only: it owns the shadow; the other phases are cheap and the atlas has to stay roomy */
 		int si = idx / 95, ci = idx % 95, ph = 0;
 		idx++;
@@ -366,6 +436,7 @@ static void text_prewarm(int steps)
 		Shaped sh[MAX_SHAPED];
 		if (text_shape(sizes[si], s, sh) > 0) glyph_get(sh[0].gid, sizes[si], ph);
 	}
+	gly_unlimited = 0;
 }
 
 static float text_width_f(unsigned int size, const char *s)
@@ -389,7 +460,11 @@ static void text_draw(float x, float y, unsigned int col, unsigned int size, con
 	const float by = y;                 /* fractional on purpose: text glides with the icons */
 	const int sdx = (int)(sh_dx * pt_shadow_kx + 0.5f), sdy = (int)(sh_dy * pt_shadow_ky + 0.5f);       /* a theme can patch the shadow offset */
 
-	for (int pass = text_flat ? 1 : 0; pass < 2; pass++) {
+	/* first make every glyph of the string (some may have to wait for a later frame, see GLYPH_BUDGET_US), then draw it whole */
+	Glyph *gl[MAX_SHAPED];
+	int gxs[MAX_SHAPED];
+	{
+		int deferred0 = gly_deferred;
 		float pen = x;
 		for (int i = 0; i < n; i++) {
 			float px = pen + sh[i].xoff;
@@ -398,19 +473,27 @@ static void text_draw(float x, float y, unsigned int col, unsigned int size, con
 			int gx = (int)fl;
 			if (sub == 4) { sub = 0; gx++; }
 			if ((sh[i].gid & 0x100000) && ((sh[i].gid >> 16) & 15)) { sub = 0; gx = (int)floorf(px + 0.5f); }          /* kana, kanji and Hangul: no quarter-pixel positions, a quarter of the pictures to keep */
-			Glyph *g = glyph_get(sh[i].gid, size, sub);
+			gl[i] = glyph_get(sh[i].gid, size, sub);
+			gxs[i] = gx;
+			pen += sh[i].adv;
+		}
+		if (gly_deferred != deferred0) return;                    /* not all there yet: next frame */
+	}
+	for (int pass = text_flat ? 1 : 0; pass < 2; pass++) {
+		for (int i = 0; i < n; i++) {
+			Glyph *g = gl[i];
+			int gx = gxs[i];
 			if (g) {
-				/* vita2d's rotate-style draw takes the CENTRE of the quad, hence +w/2, +h/2 */
+				/* vita2d's rotate-style draw takes the CENTRE of the quad, hence +w/2, +h/2; the shadow bitmap is half size, drawn at 2x */
 				if (pass == 0 && g->sw)
 					vita2d_draw_texture_part_tint_scale_rotate(atlas,
-						gx + g->sleft + sdx + g->sw * 0.5f, by - g->stop + sdy + g->sh * 0.5f,
-						g->sx, g->sy, g->sw, g->sh, 1.0f, 1.0f, 0.0f, shadow);
+						gx + g->sleft + sdx + g->sw, by - g->stop + sdy + g->sh,
+						g->sx, g->sy, g->sw, g->sh, 2.0f, 2.0f, 0.0f, shadow);
 				else if (pass == 1 && g->aw)
 					vita2d_draw_texture_part_tint_scale_rotate(atlas,
 						gx + g->left + g->aw * 0.5f, by - g->top + g->ah * 0.5f,
 						g->ax, g->ay, g->aw, g->ah, 1.0f, 1.0f, 0.0f, col);
 			}
-			pen += sh[i].adv;
 		}
 	}
 }

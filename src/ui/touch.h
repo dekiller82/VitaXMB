@@ -36,6 +36,7 @@ typedef struct {
 #define TQ_MAX 48
 static unsigned tq[TQ_MAX];
 static int tq_n;
+static int touch_pick = -1;      /* a tap on a row of the Options panel: that row is chosen (set here, taken by main) */
 
 static void tq_push(unsigned b) { if (tq_n < TQ_MAX) tq[tq_n++] = b; }
 static void tq_clear(void) { tq_n = 0; }
@@ -109,7 +110,7 @@ static void touch_tap(const TouchCtx *c, float tx, float ty)
 	case TM_OPT:
 		if (tx >= c->opt_px && c->opt_row > 1.0f) {
 			int i = (int)floorf((ty - (c->opt_y0 - c->opt_row / 2.0f)) / c->opt_row);
-			if (i >= 0 && i < c->opt_n) { tq_steps(i - c->opt_sel); tq_push(SCE_CTRL_CROSS); }
+			if (i >= 0 && i < c->opt_n) touch_pick = i;
 		} else tq_push(SCE_CTRL_CIRCLE);                                       /* outside the panel closes it */
 		break;
 	case TM_DLG: {
@@ -227,8 +228,9 @@ static unsigned touch_poll(const TouchCtx *c)
 				else if (c->mode == TM_MOVER) pitch = 40.0f;
 				else if (c->mode == TM_ARRANGE) pitch = 44.0f;
 				else if (c->mode == TM_TROPHY) pitch = 60.0f;
-				while (ay <= -pitch) { ay += pitch; if (tq_room()) tq_push(SCE_CTRL_DOWN); }     /* the content follows the finger */
-				while (ay >= pitch)  { ay -= pitch; if (tq_room()) tq_push(SCE_CTRL_UP); }
+				unsigned b_up = c->mode == TM_OPT ? SCE_CTRL_DOWN : SCE_CTRL_UP, b_down = c->mode == TM_OPT ? SCE_CTRL_UP : SCE_CTRL_DOWN;   /* the content follows the finger; the Options panel's highlight goes the way the finger goes */
+					while (ay <= -pitch) { ay += pitch; if (tq_room()) tq_push(b_down); }
+				while (ay >= pitch)  { ay -= pitch; if (tq_room()) tq_push(b_up); }
 			} else if (locked == 2) {
 				if (c->mode == TM_XMB && c->lay == LAY_COLUMN) {
 					while (ax <= -140.0f) { ax += 140.0f; if (tq_room()) tq_push(SCE_CTRL_RIGHT); }    /* drag left: the next category */

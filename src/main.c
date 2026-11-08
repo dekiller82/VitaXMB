@@ -42,6 +42,7 @@
 #include "core/pspgames.h"
 #include "core/psm.h"
 #include "core/retro.h"
+#include "core/renames.h"
 #include "core/sortwiz.h"
 #include "core/scan.h"
 #include "core/nolivearea.h"
@@ -80,9 +81,21 @@
 #include "core/remote.h"
 #include "ui/ime.h"
 
+/* frame-section timing for the debug build's slow-frame trace; nothing in a release build */
+#ifdef VITAXMB_DEBUG
+#define PNOW() sceKernelGetProcessTimeWide()
+#else
+#define PNOW() ((uint64_t)0)
+#endif
+
 int main(void)
 {
 	vita2d_init();
+#ifdef VITAXMB_DEBUG
+	{ SceIoStat pst; prof_mode = sceIoGetstat(CONFIG_DIR "/prof", &pst) >= 0; }      /* measuring: no helper thread, no file access until frame 3900 */
+	if (prof_mode) remote_poll(); else
+	{ SceUID dbt = sceKernelCreateThread("xmb_dbg", dbg_thread, 0x10000110, 0x10000, 0, 0, NULL); if (dbt >= 0) sceKernelStartThread(dbt, 0, NULL); }
+#endif
 	sceShellUtilInitEvents(0);
 	sceShellUtilLock(SCE_SHELL_UTIL_LOCK_TYPE_PS_BTN);        /* the PS button does nothing here, like the XMB: it no longer drops to LiveArea (a long press still opens the quick menu; the lock ends with the process) */
 	wave_set_model(NULL, 0);
@@ -91,6 +104,8 @@ int main(void)
 	pt_font = pt_stock_font = stock_clock_font();            /* the PSP's own font for all Latin text */
 	load_icons();
 	sound_load_all();
+	sys_poll_once();                                          /* the first frame has real values; a thread keeps them current */
+	{ SceUID sth = sceKernelCreateThread("xmb_sys", sys_thread, 0x10000110, 0x10000, 0, 0, NULL); if (sth >= 0) sceKernelStartThread(sth, 0, NULL); }
 	SceUID athread = sceKernelCreateThread("xmb_audio", audio_thread, 0x10000100, 0x10000, 0, 0, NULL);
 	if (athread >= 0) sceKernelStartThread(athread, 0, NULL);
 
@@ -150,6 +165,7 @@ int main(void)
 	const Item *dlg_item = NULL;
 	int opt_open = 0; float opt_t = 0.0f;                 /* Options panel */
 	int opt_ids[OPT_MAX], opt_n = 0, opt_sel = 0;
+	char ren_id[16] = "";                                 /* the app the Rename keyboard is for */
 	char un_id[16] = "";                                  /* the app the Uninstall dialog asks about */
 	int opt_folder = -1;                                  /* the folder the options act on */
 	int opt_col = CAT_GAME;                               /* the column a new folder goes in */
@@ -213,7 +229,7 @@ int main(void)
 		dlg_action = ACT_SORT_OPEN; dlg_item = NULL; dlg_sel = 0; dlg_open = 1;
 	}
 	for (;;) {
-		uint64_t prof_t0 = sceKernelGetProcessTimeWide();
+		uint64_t prof_t0 = PNOW();
 		cat_now = cat;
 		/* ---------------- input ---------------- */
 		prev = pad;
@@ -276,7 +292,11 @@ int main(void)
 			}
 			pressed |= touch_poll(&tc);
 		}
-		if (launching || startup_t < 0.45f || ime_active) pressed = 0;
+		if (touch_pick >= 0) {                                          /* a tap on a row of the Options panel */
+				if (opt_open && !launching && !ime_active && touch_pick < opt_n) { opt_sel = touch_pick; pressed |= SCE_CTRL_CROSS; }
+				touch_pick = -1;
+			}
+			if (launching || startup_t < 0.45f || ime_active) pressed = 0;
 
 		int act = ACT_NONE;
 		const Item *act_item = NULL;
@@ -311,6 +331,13 @@ int main(void)
 				} else if (r > 0 && ime_purpose == IME_COLRENAME && ime_target >= 0 && ime_target < CAT_COUNT) {
 					folder_clean_name(col_title[ime_target], sizeof(col_title[0]), nm);
 					columns_save();
+				} else if (r > 0 && ime_purpose == IME_RENAMEAPP && ren_id[0]) {
+					char clean[64];
+					folder_clean_name(clean, sizeof(clean), nm);
+					rename_set(ren_id, clean);
+					if (clean[0]) { renames_apply(); qsort(all_apps, n_all, sizeof(Item), item_cmp); rebuild_game_lists(); }
+					else { scan_apps(); update_game_counts(); }                  /* the original name comes back with a new scan */
+					ren_id[0] = 0;
 				} else if (r > 0 && ime_purpose == IME_RENAME && ime_target >= 0 && ime_target < n_folders) {
 					folder_clean_name(folder_name[ime_target], sizeof(folder_name[0]), nm);
 					if (!folder_name[ime_target][0]) folder_default_name(folder_name[ime_target], sizeof(folder_name[0]));
@@ -498,6 +525,7 @@ int main(void)
 				case OPT_NEWFOLDER: act = ACT_NEWFOLDER; break;
 				case OPT_SELECT:    act = ACT_SELECT; break;
 				case OPT_RENAME:    act = ACT_RENAME; break;
+				case OPT_RENAMEAPP: act = ACT_RENAMEAPP; break;
 				case OPT_DELFOLDER: act = ACT_DELFOLDER_ASK; break;
 				case OPT_REMOVE:    act = ACT_REMOVE; break;
 				case OPT_MOVE:      act = ACT_MOVE; break;
@@ -771,6 +799,12 @@ int main(void)
 		case ACT_RENAME:
 			if (opt_folder >= 0 && opt_folder < n_folders) ime_begin(T("Rename folder"), folder_name[opt_folder], IME_RENAME, opt_folder);
 			break;
+		case ACT_RENAMEAPP:
+			if (act_item && act_item->id[0]) {
+				snprintf(ren_id, sizeof(ren_id), "%s", act_item->id);
+				ime_begin(T("Rename"), act_item->title, IME_RENAMEAPP, -1);
+			}
+			break;
 		case ACT_DELFOLDER_DO:
 			if (opt_folder >= 0 && opt_folder < n_folders) {
 				int leaving = cur == M_FOLDER;
@@ -862,9 +896,9 @@ int main(void)
 		{ static int limited; if (cols_limited() != limited) { limited = cols_limited(); rebuild_game_lists(); } }
 		lay = menu_layout(cur);
 		mn = &menus[cur];
-		uint64_t prof_t1 = sceKernelGetProcessTimeWide();
+		uint64_t prof_t1 = PNOW();
 		update_icons(cur, out_t < 1.0f ? prev_menu : -1);
-		uint64_t prof_t2 = sceKernelGetProcessTimeWide();
+		uint64_t prof_t2 = PNOW();
 
 		/* freshly decrypted artwork: forget the "missing" result and look again */
 		if (dec_gen != seen_dec_gen) {
@@ -991,7 +1025,11 @@ int main(void)
 		out_t = clampf(out_t + dt_s / 0.22f, 0.0f, 1.0f);
 		t += dt_s;
 		startup_t = clampf(startup_t + dt_s / 2.2f, 0.0f, 1.0f);
-		{ static unsigned frame; if ((++frame % 300) == 0) trace("frame %u menu=%d sel=%d\n", frame, cur, menus[cur].sel); }
+		{ ++prof_frame; unsigned frame = prof_frame;
+#ifdef VITAXMB_DEBUG
+		  if (prof_mode && frame == 3900) trace_flush();
+#endif
+		  if ((frame % 300) == 0) trace("frame %u menu=%d sel=%d\n", frame, cur, menus[cur].sel); }
 		/* the bar's slide and the other categories' fade: vshmain's bar-state function (0x1d7a4) moves and fades in 200 ms, mode 4 (paf.h) */
 		float bar_k = 1.0f - powf(1.0f - ease4_step(200.0f), dt_s * 60.0f);
 		folder_t = lerpf(folder_t, lay == LAY_GAME ? 1.0f : 0.0f, bar_k);
@@ -1045,14 +1083,19 @@ int main(void)
 		Palette pal = get_palette(month);
 
 		/* ---------------- draw ---------------- */
+		uint64_t dk[10] = { 0 }; dk[0] = PNOW(); gly_us = 0; gly_n = 0; shp_us = 0; shp_n = 0; shp_hb = 0;
 		flush_free();
 		text_frame_begin();
+		dk[1] = PNOW();
 		bg_wave_prepass(t);                               /* the wave's own 480 x 272 picture, before the frame's scene */
+		dk[2] = PNOW();
 		vita2d_start_drawing();
 		vita2d_clear_screen();
 
+		dk[3] = PNOW();
 		bg_alpha = 1.0f;
 		draw_background(t, month);
+		dk[4] = PNOW();
 		if (pic_tex && pic_alpha > 0.0f) {
 			/* cover-fit: fill the screen, cropping the overflow evenly */
 			float tw = vita2d_texture_get_width(pic_tex), th = vita2d_texture_get_height(pic_tex);
@@ -1061,9 +1104,12 @@ int main(void)
 			                               sc, sc, RGBA8(255, 255, 255, (int)(255 * pic_alpha)));
 			vita2d_draw_rectangle(0, 0, SCREEN_W, SCREEN_H, RGBA8(0, 0, 0, (int)(70 * pic_alpha)));
 		}
+		dk[8] = PNOW();
 		pm_pic0_draw();                              /* a PSP game's text block (PIC0.PNG), over its background */
+		dk[9] = PNOW();
 		if (!pt_blade_mode) draw_status(&dt);          /* with full-height panels the status bar goes on top of them, below */
 
+		dk[5] = PNOW();
 		xf_on = xf_set_up;                           /* a theme may turn the whole XMB in space (xform.h) */
 		/* startup: the bar slides in from the left, the lists rise after it */
 		float su_bar = ease_out(clampf((startup_t - 0.10f) / 0.55f, 0.0f, 1.0f));
@@ -1123,6 +1169,7 @@ int main(void)
 				         WHITE((int)(255 * sel * (1.0f - fe) * su_bar)), 22, col_name(i));
 		}
 
+		dk[6] = PNOW();
 		/* Lists. Each column is pinned to its category's x, so it travels with the bar.
 		 * Opening/closing a folder adds a short slide on top. */
 		{
@@ -1216,7 +1263,7 @@ int main(void)
 
 		status_busy = launching != NULL || upd_state == UPD_DOWNLOADING || upd_state == UPD_INSTALLING;
 #ifdef VITAXMB_DEBUG
-		{ static int fb_n, fb; if (fb_n++ % 30 == 0) { SceIoStat fst; fb = sceIoGetstat(CONFIG_DIR "/forcebusy", &fst) >= 0; } if (fb) status_busy = 1; }      /* debug: a file forces the spinner */
+		{ static int fb = -1; if (fb < 0) { SceIoStat fst; fb = sceIoGetstat(CONFIG_DIR "/forcebusy", &fst) >= 0; } if (fb) status_busy = 1; }      /* debug: a file forces the spinner */
 #endif
 		draw_busy(dt_s);                                                  /* the PSP's spinner, bottom right */
 		{ static float notice_s; if (page_open == PAGE_NONE && !launching) draw_update_notice(dt_s, &notice_s); }
@@ -1227,14 +1274,17 @@ int main(void)
 		if (startup_t < 0.6f && !boot_played)         /* fade in from black */
 			vita2d_draw_rectangle(0, 0, SCREEN_W, SCREEN_H, RGBA8(0, 0, 0, (int)(255 * (1.0f - ease_out(startup_t / 0.6f)))));
 
+		dk[7] = PNOW();
 		vita2d_end_drawing();
 		if (ime_active && !ime_fake) vita2d_common_dialog_update();
-		uint64_t prof_t3 = sceKernelGetProcessTimeWide();
+		uint64_t prof_t3 = PNOW();
 		vita2d_swap_buffers();
-		uint64_t prof_t4 = sceKernelGetProcessTimeWide();
+		uint64_t prof_t4 = PNOW();
 		if (prof_t4 - prof_t0 > 24000)
-			trace("slow frame %u us: input=%u icons=%u draw=%u swap=%u\n", (unsigned)(prof_t4 - prof_t0),
-			      (unsigned)(prof_t1 - prof_t0), (unsigned)(prof_t2 - prof_t1), (unsigned)(prof_t3 - prof_t2), (unsigned)(prof_t4 - prof_t3));
+			trace("slow %u us @%u: in=%u ico=%u prep=%u txt=%u wprep=%u clr=%u bg=%u stat=%u(pic=%u pic0=%u) cats=%u rest=%u end=%u swap=%u | glyphs %u us / %d, shaping %u us / %d calls (%d harfbuzz)\n", (unsigned)(prof_t4 - prof_t0), prof_frame,
+			      (unsigned)(prof_t1 - prof_t0), (unsigned)(prof_t2 - prof_t1), (unsigned)(dk[0] - prof_t2), (unsigned)(dk[1] - dk[0]), (unsigned)(dk[2] - dk[1]),
+			      (unsigned)(dk[3] - dk[2]), (unsigned)(dk[4] - dk[3]), (unsigned)(dk[5] - dk[4]), (unsigned)(dk[8] - dk[4]), (unsigned)(dk[9] - dk[8]), (unsigned)(dk[6] - dk[5]), (unsigned)(dk[7] - dk[6]),
+			      (unsigned)(prof_t3 - dk[7]), (unsigned)(prof_t4 - prof_t3), (unsigned)gly_us, gly_n, (unsigned)shp_us, shp_n, shp_hb);
 		if (rc_shot[0]) { sceKernelDelayThread(50000); save_screenshot(rc_shot); rc_shot[0] = 0; }
 	}
 

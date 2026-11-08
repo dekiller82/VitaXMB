@@ -1,7 +1,7 @@
 #pragma once
 
 /* ---- the system's on-screen keyboard, for naming folders ---- */
-enum { IME_NEW, IME_RENAME, IME_MVNEW, IME_COLNEW, IME_COLRENAME };
+enum { IME_NEW, IME_RENAME, IME_MVNEW, IME_COLNEW, IME_COLRENAME, IME_RENAMEAPP };
 static int ime_active, ime_purpose, ime_target, ime_fake;
 static uint16_t ime_title[32], ime_init[SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1], ime_buf[SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1];
 
@@ -69,6 +69,7 @@ static int ime_poll(char *out, int n)
 	int ok = res.button == SCE_IME_DIALOG_BUTTON_ENTER;
 	if (ok) u16_to_u8(out, ime_buf, n);
 	sceImeDialogTerm();
+	if (ok && !out[0] && ime_purpose == IME_RENAMEAPP) return 2;      /* an empty name takes an app's rename away */
 	return ok && out[0] ? 1 : -1;
 }
 

@@ -166,6 +166,7 @@ static void draw_background(float t, int month)
 
 /* Called before the frame's scene starts: draws the firmware's wave into its 480 x 272 texture when the plain stock wave is what will be on screen. */
 /* Renders a model's firmware look into the 480 x 272 texture (outside any frame: it starts and ends its own drawing); 0 when it cannot. */
+static int wave_rt_async;                      /* set while the main loop's own background wave is rendered (bg_wave_prepass) */
 static int wave_rt_render(const WaveModel *M, float frame, float alpha)
 {
 	if (!M->ok || !M->refl) return 0;
@@ -177,7 +178,8 @@ static int wave_rt_render(const WaveModel *M, float frame, float alpha)
 	static const unsigned char white[3] = { 255, 255, 255 };
 	vita2d_start_drawing_advanced(wave_rt, 0);
 	vita2d_clear_screen();                                         /* opaque black: the texture's alpha is 1 everywhere, so adding it adds exactly its colour */
-	wv_draw(M, frame, white, alpha, 3);
+	if (wave_rt_async && M == &wave_m) wv_firm_async(M, frame, fmodf(frame + M->fps / 60.0f, M->end), white, alpha);   /* the main loop's wave: the mesh comes from the worker thread */
+	else wv_draw(M, frame, white, alpha, 3);
 	vita2d_end_drawing();
 	return 1;
 }
@@ -186,5 +188,7 @@ static void bg_wave_prepass(float t)
 {
 	wave_rt_ready = 0;
 	if (bg_no_wave || pt_wall || !wave_m.ok || wave_off || bgs.ok || !wave_m.refl || sw_solid > 0) return;
+	wave_rt_async = 1;
 	wave_rt_ready = wave_rt_render(&wave_m, fmodf(t * wave_m.fps, wave_m.end), 1.0f);
+	wave_rt_async = 0;
 }
